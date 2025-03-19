@@ -1,311 +1,201 @@
-import React, { useState } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Sector, Tooltip, XAxis, YAxis } from "recharts";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
-type ChartType = "line" | "area" | "bar" | "pie" | "donut";
+import React, { useState } from "react";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart as RechartsLineChart,
+  Line,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+type ChartType = "bar" | "line" | "pie" | "donut";
 
 interface AnalyticsChartProps {
   data: any[];
-  title?: string;
-  description?: string;
   height?: number;
-  className?: string;
   defaultType?: ChartType;
-  showTypeSelector?: boolean;
-  emptyText?: string;
 }
 
-const chartColors = [
-  "hsl(262.1, 83.3%, 57.8%)", // accent
-  "#38bdf8", // sky-400
-  "#4ade80", // green-400
-  "#f87171", // red-400
-  "#fb923c", // orange-400
-  "#60a5fa", // blue-400
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--muted))",
+  "hsl(var(--accent))",
+  "#82ca9d",
+  "#ffc658",
+  "#8884d8",
 ];
 
-const AnalyticsChart = ({
+const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
   data,
-  title,
-  description,
   height = 300,
-  className,
-  defaultType = "line",
-  showTypeSelector = true,
-  emptyText = "No data available",
-}: AnalyticsChartProps) => {
+  defaultType = "bar",
+}) => {
   const [chartType, setChartType] = useState<ChartType>(defaultType);
-
-  if (!data || data.length === 0) {
-    return (
-      <div
-        className={cn(
-          "flex flex-col items-center justify-center h-full min-h-[200px] bg-muted/30 rounded-md border border-border",
-          className
-        )}
-      >
-        <p className="text-muted-foreground">{emptyText}</p>
-      </div>
-    );
-  }
-
-  const sampleDataPoint = data[0];
-  const chartableKeys = Object.keys(sampleDataPoint).filter(
-    (key) => typeof sampleDataPoint[key] === "number"
-  );
 
   const renderChart = () => {
     switch (chartType) {
-      case "line":
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <LineChart
-              data={data}
-              margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis 
-                dataKey="name" 
-                stroke="hsl(var(--muted-foreground))" 
-                fontSize={12}
-                tickLine={false}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))" 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Legend />
-              {chartableKeys.map((key, index) => (
-                <Line
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  name={key.charAt(0).toUpperCase() + key.slice(1)}
-                  stroke={chartColors[index % chartColors.length]}
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case "area":
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <AreaChart
-              data={data}
-              margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis 
-                dataKey="name" 
-                stroke="hsl(var(--muted-foreground))" 
-                fontSize={12}
-                tickLine={false}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))" 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Legend />
-              {chartableKeys.map((key, index) => (
-                <Area
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  name={key.charAt(0).toUpperCase() + key.slice(1)}
-                  stroke={chartColors[index % chartColors.length]}
-                  fill={`${chartColors[index % chartColors.length]}40`}
-                  strokeWidth={2}
-                />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-
       case "bar":
         return (
           <ResponsiveContainer width="100%" height={height}>
-            <BarChart
+            <RechartsBarChart
               data={data}
-              margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
             >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="name" 
                 stroke="hsl(var(--muted-foreground))" 
                 fontSize={12}
-                tickLine={false}
               />
-              <YAxis 
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
+                  borderColor: "hsl(var(--border))",
+                  borderRadius: "var(--radius)",
+                  fontSize: 12,
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {Object.keys(data[0])
+                .filter((key) => key !== "name")
+                .map((key, index) => (
+                  <Bar
+                    key={key}
+                    dataKey={key}
+                    fill={COLORS[index % COLORS.length]}
+                    radius={[4, 4, 0, 0]}
+                  />
+                ))}
+            </RechartsBarChart>
+          </ResponsiveContainer>
+        );
+      case "line":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <RechartsLineChart
+              data={data}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="name" 
                 stroke="hsl(var(--muted-foreground))" 
                 fontSize={12}
-                tickLine={false}
-                axisLine={false}
               />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
                   borderColor: "hsl(var(--border))",
                   borderRadius: "var(--radius)",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  fontSize: 12,
                 }}
               />
-              <Legend />
-              {chartableKeys.map((key, index) => (
-                <Bar
-                  key={key}
-                  dataKey={key}
-                  name={key.charAt(0).toUpperCase() + key.slice(1)}
-                  fill={chartColors[index % chartColors.length]}
-                  radius={[4, 4, 0, 0]}
-                />
-              ))}
-            </BarChart>
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {Object.keys(data[0])
+                .filter((key) => key !== "name")
+                .map((key, index) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={COLORS[index % COLORS.length]}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                ))}
+            </RechartsLineChart>
           </ResponsiveContainer>
         );
-
       case "pie":
-        const pieDataKey = chartableKeys[0];
-        const pieData = data.map(item => ({
-          name: item.name,
-          value: item[pieDataKey]
-        }));
-
+      case "donut": // Adding support for donut chart type
         return (
           <ResponsiveContainer width="100%" height={height}>
-            <PieChart>
+            <RechartsPieChart>
               <Pie
-                data={pieData}
+                data={data}
                 cx="50%"
                 cy="50%"
-                innerRadius={70}
-                outerRadius={100}
+                labelLine={false}
+                outerRadius={chartType === "donut" ? 80 : 100}
+                innerRadius={chartType === "donut" ? 60 : 0}
                 fill="#8884d8"
-                paddingAngle={1}
                 dataKey="value"
+                nameKey="name"
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
               >
-                {pieData.map((entry, index) => (
-                  <Sector
-                    key={`cell-${index}`}
-                    fill={chartColors[index % chartColors.length]}
-                  />
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
                   borderColor: "hsl(var(--border))",
                   borderRadius: "var(--radius)",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  fontSize: 12,
                 }}
               />
-              <Legend />
-            </PieChart>
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+            </RechartsPieChart>
           </ResponsiveContainer>
         );
-
-      case "donut":
-        const donutDataKey = chartableKeys[0];
-        const donutData = data.map(item => ({
-          name: item.name,
-          value: item[donutDataKey]
-        }));
-
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <PieChart>
-              <Pie
-                data={donutData}
-                cx="50%"
-                cy="50%"
-                innerRadius={70}
-                outerRadius={100}
-                fill="#8884d8"
-                paddingAngle={1}
-                dataKey="value"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {donutData.map((entry, index) => (
-                  <Sector
-                    key={`cell-${index}`}
-                    fill={chartColors[index % chartColors.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "hsl(var(--card))",
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "var(--radius)",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        );
-
       default:
         return null;
     }
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between">
-        {(title || description) && (
-          <div>
-            {title && <h3 className="text-base font-medium">{title}</h3>}
-            {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
-            )}
-          </div>
-        )}
-
-        {showTypeSelector && (
-          <div className="ml-auto">
-            <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Chart Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="line">Line Chart</SelectItem>
-                <SelectItem value="area">Area Chart</SelectItem>
-                <SelectItem value="bar">Bar Chart</SelectItem>
-                <SelectItem value="pie">Pie Chart</SelectItem>
-                <SelectItem value="donut">Donut Chart</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+    <div className="w-full">
+      <div className="mb-4 flex justify-end gap-2">
+        <div className="join">
+          <button
+            className={`btn btn-sm join-item ${chartType === "bar" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+            onClick={() => setChartType("bar")}
+          >
+            Bar
+          </button>
+          <button
+            className={`btn btn-sm join-item ${chartType === "line" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+            onClick={() => setChartType("line")}
+          >
+            Line
+          </button>
+          <button
+            className={`btn btn-sm join-item ${chartType === "pie" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+            onClick={() => setChartType("pie")}
+          >
+            Pie
+          </button>
+          <button
+            className={`btn btn-sm join-item ${chartType === "donut" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+            onClick={() => setChartType("donut")}
+          >
+            Donut
+          </button>
+        </div>
       </div>
-
-      <div className="w-full">{renderChart()}</div>
+      {renderChart()}
     </div>
   );
 };

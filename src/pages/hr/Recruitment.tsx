@@ -2,235 +2,35 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Calendar as CalendarIcon, BriefcaseBusiness, UserCircle, FileCheck, ArrowUpRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, Briefcase, Users, CheckCircle, Clock, Filter, Plus, Star } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import DashboardCard from "@/components/dashboard/DashboardCard";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 
-// Sample data for job listings
-const jobListings = [
-  {
-    id: 1,
-    title: "Senior Frontend Developer",
-    department: "Engineering",
-    location: "Remote",
-    type: "Full-time",
-    posted: "2023-09-01",
-    applications: 28,
-    status: "active",
-    urgency: "high",
-  },
-  {
-    id: 2,
-    title: "UX/UI Designer",
-    department: "Design",
-    location: "New York, NY",
-    type: "Full-time",
-    posted: "2023-09-05",
-    applications: 15,
-    status: "active",
-    urgency: "medium",
-  },
-  {
-    id: 3,
-    title: "Marketing Manager",
-    department: "Marketing",
-    location: "San Francisco, CA",
-    type: "Full-time",
-    posted: "2023-08-25",
-    applications: 22,
-    status: "active",
-    urgency: "high",
-  },
-  {
-    id: 4,
-    title: "DevOps Engineer",
-    department: "Engineering",
-    location: "Remote",
-    type: "Full-time",
-    posted: "2023-09-10",
-    applications: 10,
-    status: "active",
-    urgency: "medium",
-  },
-  {
-    id: 5,
-    title: "Content Writer",
-    department: "Marketing",
-    location: "Remote",
-    type: "Contract",
-    posted: "2023-08-20",
-    applications: 35,
-    status: "closed",
-    urgency: "low",
-  },
-  {
-    id: 6,
-    title: "Junior Backend Developer",
-    department: "Engineering",
-    location: "Austin, TX",
-    type: "Full-time",
-    posted: "2023-09-12",
-    applications: 8,
-    status: "active",
-    urgency: "medium",
-  },
-  {
-    id: 7,
-    title: "Human Resources Specialist",
-    department: "HR",
-    location: "Chicago, IL",
-    type: "Full-time",
-    posted: "2023-08-15",
-    applications: 18,
-    status: "closed",
-    urgency: "low",
-  },
-  {
-    id: 8,
-    title: "Financial Analyst",
-    department: "Finance",
-    location: "New York, NY",
-    type: "Full-time",
-    posted: "2023-09-08",
-    applications: 12,
-    status: "active",
-    urgency: "medium",
-  },
+// Sample data for charts
+const recruitmentFunnelData = [
+  { name: "Applied", value: 210 },
+  { name: "Screening", value: 120 },
+  { name: "Interview", value: 75 },
+  { name: "Technical", value: 45 },
+  { name: "Offer", value: 30 },
+  { name: "Hired", value: 18 },
 ];
-
-// Sample data for candidates
-const candidates = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    position: "Senior Frontend Developer",
-    source: "LinkedIn",
-    appliedDate: "2023-09-10",
-    stage: "interview",
-    rating: 4.5,
-    skills: ["React", "TypeScript", "NextJS"],
-  },
-  {
-    id: 2,
-    name: "Maria Garcia",
-    position: "UX/UI Designer",
-    source: "Referral",
-    appliedDate: "2023-09-08",
-    stage: "screening",
-    rating: 4.0,
-    skills: ["Figma", "UI Design", "Prototyping"],
-  },
-  {
-    id: 3,
-    name: "David Lee",
-    position: "Senior Frontend Developer",
-    source: "Indeed",
-    appliedDate: "2023-09-05",
-    stage: "offer",
-    rating: 4.8,
-    skills: ["React", "Vue", "CSS"],
-  },
-  {
-    id: 4,
-    name: "Sophia Williams",
-    position: "Marketing Manager",
-    source: "Company Website",
-    appliedDate: "2023-09-02",
-    stage: "interview",
-    rating: 4.2,
-    skills: ["Content Strategy", "Social Media", "Analytics"],
-  },
-  {
-    id: 5,
-    name: "James Smith",
-    position: "DevOps Engineer",
-    source: "LinkedIn",
-    appliedDate: "2023-09-12",
-    stage: "application",
-    rating: 3.5,
-    skills: ["AWS", "Docker", "CI/CD"],
-  },
-];
-
-// Sample chart data for recruitment analytics
-const recruitmentSourceData = [
-  { name: "LinkedIn", value: 42 },
-  { name: "Referrals", value: 28 },
-  { name: "Indeed", value: 18 },
-  { name: "Company Website", value: 12 },
-];
-
-const hiringTimelineData = [
-  { name: "Engineering", days: 35 },
-  { name: "Design", days: 28 },
-  { name: "Marketing", days: 24 },
-  { name: "HR", days: 18 },
-  { name: "Finance", days: 22 },
-];
-
-// Badge variants by status and urgency
-const getStatusBadgeVariant = (status: string) => {
-  switch (status) {
-    case "active":
-      return "success";
-    case "closed":
-      return "secondary";
-    case "draft":
-      return "outline";
-    default:
-      return "default";
-  }
-};
-
-const getUrgencyBadgeVariant = (urgency: string) => {
-  switch (urgency) {
-    case "high":
-      return "destructive";
-    case "medium":
-      return "warning";
-    case "low":
-      return "outline";
-    default:
-      return "default";
-  }
-};
-
-const getStageBadgeVariant = (stage: string) => {
-  switch (stage) {
-    case "application":
-      return "outline";
-    case "screening":
-      return "secondary";
-    case "interview":
-      return "warning";
-    case "offer":
-      return "success";
-    case "rejected":
-      return "destructive";
-    default:
-      return "default";
-  }
-};
 
 const HrRecruitment = () => {
   return (
     <div className="space-y-8 animate-blur-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Recruitment</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Recruitment Dashboard</h1>
           <p className="text-muted-foreground">
-            Manage job positions, candidates, and hiring processes
+            Track recruitment progress and manage job openings
           </p>
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Create Job Posting
+          Post New Job
         </Button>
       </div>
 
@@ -238,291 +38,228 @@ const HrRecruitment = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
-            <BriefcaseBusiness className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">2 high priority</p>
+            <div className="text-2xl font-bold">12</div>
+            <p className="text-xs text-muted-foreground">4 urgent hires needed</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
-            <UserCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Candidates</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">142</div>
-            <div className="flex items-center pt-1 text-xs text-green-500">
-              <ArrowUpRight className="h-3 w-3 mr-1" />
-              <span>18%</span>
-              <span className="text-muted-foreground ml-1">vs last month</span>
-            </div>
+            <div className="text-2xl font-bold">87</div>
+            <p className="text-xs text-muted-foreground">23 in final stages</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Interviewed</CardTitle>
-            <FileCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Interviews Scheduled</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">38</div>
-            <p className="text-xs text-muted-foreground">12 scheduled this week</p>
+            <div className="text-2xl font-bold">26</div>
+            <p className="text-xs text-muted-foreground">8 this week</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Time to Hire</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Hired This Month</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">28</div>
-            <p className="text-xs text-muted-foreground">avg. days from posting to offer</p>
+            <div className="text-2xl font-bold">5</div>
+            <p className="text-xs text-muted-foreground">3 starting next week</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-7">
-        <Card className="md:col-span-4">
-          <CardHeader>
-            <CardTitle>Hiring Timeline by Department</CardTitle>
-            <CardDescription>Average number of days to hire</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AnalyticsChart 
-              data={hiringTimelineData} 
-              height={250}
-              defaultType="bar"
-            />
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        <DashboardCard
+          title="Recruitment Funnel"
+          icon={<Users className="h-5 w-5" />}
+          className="md:col-span-1"
+        >
+          <AnalyticsChart 
+            data={recruitmentFunnelData} 
+            height={300}
+            defaultType="bar"
+          />
+        </DashboardCard>
 
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Candidate Sources</CardTitle>
-            <CardDescription>Where candidates are coming from</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AnalyticsChart 
-              data={recruitmentSourceData} 
-              height={250}
-              defaultType="pie"
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>Job Postings</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search jobs..."
-                  className="pl-8 w-full sm:w-[200px] lg:w-[300px]"
-                />
-              </div>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue placeholder="Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  <SelectItem value="engineering">Engineering</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="hr">HR</SelectItem>
-                  <SelectItem value="finance">Finance</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="active">
-            <TabsList className="mb-4">
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="closed">Closed</TabsTrigger>
-              <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-            <TabsContent value="active">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Posted</TableHead>
-                    <TableHead>Applications</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Urgency</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobListings
-                    .filter(job => job.status === "active")
-                    .map((job) => (
-                    <TableRow key={job.id}>
-                      <TableCell className="font-medium">{job.title}</TableCell>
-                      <TableCell>{job.department}</TableCell>
-                      <TableCell>{job.location}</TableCell>
-                      <TableCell>{job.type}</TableCell>
-                      <TableCell>{new Date(job.posted).toLocaleDateString()}</TableCell>
-                      <TableCell>{job.applications}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(job.status)}>
-                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getUrgencyBadgeVariant(job.urgency)}>
-                          {job.urgency.charAt(0).toUpperCase() + job.urgency.slice(1)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="closed">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Posted</TableHead>
-                    <TableHead>Applications</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Urgency</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobListings
-                    .filter(job => job.status === "closed")
-                    .map((job) => (
-                    <TableRow key={job.id}>
-                      <TableCell className="font-medium">{job.title}</TableCell>
-                      <TableCell>{job.department}</TableCell>
-                      <TableCell>{job.location}</TableCell>
-                      <TableCell>{job.type}</TableCell>
-                      <TableCell>{new Date(job.posted).toLocaleDateString()}</TableCell>
-                      <TableCell>{job.applications}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(job.status)}>
-                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getUrgencyBadgeVariant(job.urgency)}>
-                          {job.urgency.charAt(0).toUpperCase() + job.urgency.slice(1)}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            <TabsContent value="all">
-              <div className="rounded-md border p-8 text-center">
-                <h3 className="font-medium">All Job Postings</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  All job postings would be displayed here
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Candidate Pipeline</CardTitle>
-          <CardDescription>Track and manage applicants through the hiring process</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Candidates</TabsTrigger>
-              <TabsTrigger value="application">Application</TabsTrigger>
-              <TabsTrigger value="screening">Screening</TabsTrigger>
-              <TabsTrigger value="interview">Interview</TabsTrigger>
-              <TabsTrigger value="offer">Offer</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Candidate</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Applied</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Skills</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {candidates.map((candidate) => (
-                    <TableRow key={candidate.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback>
-                              {candidate.name.split(" ").map(n => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="font-medium">{candidate.name}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{candidate.position}</TableCell>
-                      <TableCell>{candidate.source}</TableCell>
-                      <TableCell>{new Date(candidate.appliedDate).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStageBadgeVariant(candidate.stage)}>
-                          {candidate.stage.charAt(0).toUpperCase() + candidate.stage.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={candidate.rating * 20} className="h-1.5 w-16" />
-                          <span>{candidate.rating}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {candidate.skills.map((skill, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            {["application", "screening", "interview", "offer"].map((stage) => (
-              <TabsContent key={stage} value={stage}>
-                <div className="rounded-md border p-8 text-center">
-                  <h3 className="font-medium capitalize">{stage} Stage</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Candidates in the {stage} stage would be shown here
-                  </p>
+        <DashboardCard
+          title="Priority Openings"
+          icon={<Briefcase className="h-5 w-5" />}
+          className="md:col-span-2"
+        >
+          <div className="space-y-4">
+            {[
+              { 
+                title: "Senior Frontend Developer", 
+                department: "Engineering", 
+                applicants: 28, 
+                status: "active", 
+                priority: "high", 
+                age: "32 days"
+              },
+              { 
+                title: "Product Manager", 
+                department: "Product", 
+                applicants: 43, 
+                status: "active", 
+                priority: "high", 
+                age: "12 days"
+              },
+              { 
+                title: "UX Designer", 
+                department: "Design", 
+                applicants: 34, 
+                status: "active", 
+                priority: "medium", 
+                age: "18 days"
+              },
+              { 
+                title: "Marketing Specialist", 
+                department: "Marketing", 
+                applicants: 22, 
+                status: "active", 
+                priority: "high", 
+                age: "8 days"
+              }
+            ].map((position, index) => (
+              <div key={index} className="border border-border p-4 rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="font-medium">{position.title}</h3>
+                      {position.priority === "high" && (
+                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          Urgent
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {position.department} • {position.age} old
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">View</Button>
                 </div>
-              </TabsContent>
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{position.applicants} Applicants</span>
+                    <span className="text-muted-foreground">
+                      {Math.round(position.applicants * 0.2)} in interview stage
+                    </span>
+                  </div>
+                  <Progress value={60} className="h-1.5" />
+                </div>
+              </div>
             ))}
-          </Tabs>
-        </CardContent>
-      </Card>
+          </div>
+        </DashboardCard>
+      </div>
+
+      <DashboardCard
+        title="Top Candidates"
+        icon={<Star className="h-5 w-5" />}
+      >
+        <div className="overflow-auto">
+          <table className="min-w-full divide-y divide-border">
+            <thead>
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Candidate</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Position</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Stage</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Applied</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {[
+                { 
+                  name: "Jennifer Lee", 
+                  image: null, 
+                  position: "Senior Frontend Developer", 
+                  stage: "Final Interview", 
+                  rating: 4.8,
+                  applied: "2 weeks ago"
+                },
+                { 
+                  name: "Marcus Johnson", 
+                  image: null, 
+                  position: "Product Manager", 
+                  stage: "Technical Assessment", 
+                  rating: 4.6,
+                  applied: "1 week ago"
+                },
+                { 
+                  name: "Sarah Williams", 
+                  image: null, 
+                  position: "UX Designer", 
+                  stage: "Second Interview", 
+                  rating: 4.5,
+                  applied: "3 weeks ago"
+                },
+                { 
+                  name: "Michael Chen", 
+                  image: null, 
+                  position: "Senior Frontend Developer", 
+                  stage: "Technical Assessment", 
+                  rating: 4.7,
+                  applied: "2 weeks ago"
+                },
+                { 
+                  name: "Emily Davis", 
+                  image: null, 
+                  position: "Marketing Specialist", 
+                  stage: "First Interview", 
+                  rating: 4.9,
+                  applied: "5 days ago"
+                }
+              ].map((candidate, index) => (
+                <tr key={index}>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <Avatar className="h-8 w-8 mr-2">
+                        <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-sm">{candidate.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    {candidate.position}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      {candidate.stage}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="font-medium text-sm">{candidate.rating}</div>
+                      <div className="ml-1 flex text-amber-400">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`h-3 w-3 ${i < Math.floor(candidate.rating) ? 'fill-current' : ''}`} />
+                        ))}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
+                    {candidate.applied}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    <Button variant="outline" size="sm">View Profile</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </DashboardCard>
     </div>
   );
 };

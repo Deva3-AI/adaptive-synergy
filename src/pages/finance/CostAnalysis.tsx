@@ -2,62 +2,37 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, PieChart, LineChart, Calendar, Download, Clock, UserCog, DollarSign, Users, ChevronDown } from "lucide-react";
+import { BarChart, PieChart, LineChart, TrendingUp, TrendingDown, DollarSign, Briefcase, Calendar, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 
 // Sample data for charts
-const monthlyExpensesData = [
-  { name: "Jan", amount: 35000 },
-  { name: "Feb", amount: 38000 },
-  { name: "Mar", amount: 40000 },
-  { name: "Apr", amount: 44000 },
-  { name: "May", amount: 42000 },
-  { name: "Jun", amount: 45000 },
-  { name: "Jul", amount: 48000 },
-  { name: "Aug", amount: 52000 },
-  { name: "Sep", amount: 56000 },
+const costBreakdownData = [
+  { name: "Salaries", value: 55 },
+  { name: "Operations", value: 15 },
+  { name: "Marketing", value: 10 },
+  { name: "Software", value: 8 },
+  { name: "Office", value: 7 },
+  { name: "Other", value: 5 },
 ];
 
-const expenseCategoryData = [
-  { name: "Salaries", value: 245000 },
-  { name: "Marketing", value: 85000 },
-  { name: "Tools & Software", value: 42000 },
-  { name: "Office & Utilities", value: 28000 },
-  { name: "Travel", value: 15000 },
-  { name: "Miscellaneous", value: 10000 },
+const costTrendsData = [
+  { name: "Jan", costs: 30000 },
+  { name: "Feb", costs: 32000 },
+  { name: "Mar", costs: 31000 },
+  { name: "Apr", costs: 35000 },
+  { name: "May", costs: 36000 },
+  { name: "Jun", costs: 38000 },
 ];
 
-const departmentCostData = [
-  { name: "Engineering", value: 140000 },
-  { name: "Design", value: 80000 },
+const departmentCostsData = [
+  { name: "Engineering", value: 125000 },
   { name: "Marketing", value: 65000 },
-  { name: "Sales", value: 40000 },
-  { name: "HR", value: 15000 },
-  { name: "Finance", value: 15000 },
-];
-
-const hourlyRateData = [
-  { name: "Engineering", rate: 85 },
-  { name: "Design", rate: 75 },
-  { name: "Marketing", rate: 65 },
-  { name: "Sales", rate: 60 },
-  { name: "HR", rate: 50 },
-  { name: "Finance", rate: 55 },
-];
-
-const teamHoursData = [
-  { name: "John S.", department: "Engineering", hours: 168, cost: 14280 },
-  { name: "Sarah J.", department: "Design", hours: 160, cost: 12000 },
-  { name: "Michael B.", department: "Engineering", hours: 176, cost: 14960 },
-  { name: "Emily D.", department: "Marketing", hours: 152, cost: 9880 },
-  { name: "David W.", department: "Design", hours: 160, cost: 12000 },
-  { name: "Jennifer L.", department: "Marketing", hours: 160, cost: 10400 },
-  { name: "Robert T.", department: "Engineering", hours: 168, cost: 14280 },
-  { name: "Lisa M.", department: "HR", hours: 152, cost: 7600 },
+  { name: "Sales", value: 85000 },
+  { name: "Design", value: 45000 },
+  { name: "Operations", value: 55000 },
+  { name: "HR", value: 35000 },
 ];
 
 const FinanceCostAnalysis = () => {
@@ -67,21 +42,14 @@ const FinanceCostAnalysis = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Cost Analysis</h1>
           <p className="text-muted-foreground">
-            Analyze and optimize company expenses
+            Analyze expenses and identify cost optimization opportunities
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select defaultValue="month">
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="quarter">This Quarter</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button variant="outline">
+            <Calendar className="h-4 w-4 mr-2" />
+            Q2 2023
+          </Button>
           <Button>
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -89,200 +57,219 @@ const FinanceCostAnalysis = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$425,000</div>
-            <p className="text-xs text-muted-foreground">YTD (Jan-Sep 2023)</p>
+            <div className="text-2xl font-bold">$202,000</div>
+            <p className="text-xs text-red-500 flex items-center">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              8% from last quarter
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Hours</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Cost Per Employee</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,296</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <div className="text-2xl font-bold">$3,885</div>
+            <p className="text-xs text-red-500 flex items-center">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              3.2% from last quarter
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Size</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Expense Ratio</CardTitle>
+            <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">52</div>
-            <p className="text-xs text-muted-foreground">Across 6 departments</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Cost per Employee</CardTitle>
-            <UserCog className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$8,173</div>
-            <p className="text-xs text-muted-foreground">Per month</p>
+            <div className="text-2xl font-bold">59%</div>
+            <p className="text-xs text-green-500 flex items-center">
+              <TrendingDown className="h-3 w-3 mr-1" />
+              2% from last quarter
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-7">
         <DashboardCard
-          title="Monthly Expenses"
-          icon={<LineChart className="h-5 w-5" />}
+          title="Cost Breakdown"
+          icon={<PieChart className="h-5 w-5" />}
+          className="md:col-span-3"
         >
           <AnalyticsChart 
-            data={monthlyExpensesData} 
-            height={250}
-            defaultType="line"
+            data={costBreakdownData} 
+            height={300}
+            defaultType="pie"
           />
         </DashboardCard>
 
         <DashboardCard
-          title="Expense Categories"
-          icon={<PieChart className="h-5 w-5" />}
+          title="Monthly Cost Trends"
+          icon={<LineChart className="h-5 w-5" />}
+          className="md:col-span-4"
         >
           <AnalyticsChart 
-            data={expenseCategoryData} 
-            height={250}
-            defaultType="pie"
+            data={costTrendsData} 
+            height={300}
+            defaultType="line"
           />
         </DashboardCard>
       </div>
 
       <DashboardCard
-        title="Cost by Department"
-        icon={<BarChart className="h-5 w-5" />}
+        title="Department Costs"
+        icon={<Briefcase className="h-5 w-5" />}
       >
         <AnalyticsChart 
-          data={departmentCostData} 
+          data={departmentCostsData} 
           height={300}
           defaultType="bar"
         />
       </DashboardCard>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle>Hourly Rates by Department</CardTitle>
-              <CardDescription>Average hourly cost for each department</CardDescription>
-            </div>
-            <Button variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              Custom Date Range
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {hourlyRateData.map((dept) => (
-              <div key={dept.name} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">{dept.name}</h4>
-                  <span className="text-sm font-medium">${dept.rate}/hr</span>
+      <div className="grid gap-4 md:grid-cols-2">
+        <DashboardCard
+          title="Cost KPIs"
+          icon={<DollarSign className="h-5 w-5" />}
+        >
+          <div className="space-y-5">
+            {[
+              { 
+                name: "Cost to Revenue Ratio", 
+                value: "59%", 
+                target: "55%", 
+                progress: 55, 
+                status: "warning", 
+                description: "4% above target" 
+              },
+              { 
+                name: "Operating Expense Ratio", 
+                value: "35%", 
+                target: "33%", 
+                progress: 70, 
+                status: "warning", 
+                description: "2% above target" 
+              },
+              { 
+                name: "Marketing ROI", 
+                value: "285%", 
+                target: "250%", 
+                progress: 95, 
+                status: "success", 
+                description: "35% above target" 
+              },
+              { 
+                name: "Employee Productivity Ratio", 
+                value: "$6,580", 
+                target: "$6,000", 
+                progress: 90, 
+                status: "success", 
+                description: "$580 above target" 
+              },
+              { 
+                name: "Software Expense per Employee", 
+                value: "$485", 
+                target: "$500", 
+                progress: 85, 
+                status: "success", 
+                description: "$15 below target" 
+              }
+            ].map((kpi, index) => (
+              <div key={index}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-medium">{kpi.name}</div>
+                  <div className="text-sm font-medium">{kpi.value}</div>
                 </div>
-                <Progress value={dept.rate} max={100} className="h-2" />
-                <div className="flex justify-end text-xs text-muted-foreground">
-                  <span>Monthly cost: ~${(dept.rate * 160).toLocaleString()} per employee</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="text-xs text-muted-foreground">Target: {kpi.target}</div>
+                  <div className={`text-xs ${
+                    kpi.status === "success" ? "text-green-500" : 
+                    kpi.status === "warning" ? "text-amber-500" : "text-red-500"
+                  }`}>
+                    {kpi.description}
+                  </div>
+                </div>
+                <Progress value={kpi.progress} className={`h-1.5 ${
+                  kpi.status === "success" ? "bg-green-100 dark:bg-green-900/30" : 
+                  kpi.status === "warning" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-red-100 dark:bg-red-900/30"
+                }`} />
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard
+          title="Cost Optimization Recommendations"
+          icon={<TrendingDown className="h-5 w-5" />}
+        >
+          <div className="space-y-4">
+            {[
+              { 
+                title: "Software License Audit", 
+                impact: "High", 
+                savings: "$12,500 annually", 
+                effort: "Medium",
+                description: "Review all software subscriptions and eliminate redundant tools."
+              },
+              { 
+                title: "Optimize Cloud Resources", 
+                impact: "High", 
+                savings: "$8,200 annually", 
+                effort: "Medium",
+                description: "Resize underutilized cloud instances and implement auto-scaling."
+              },
+              { 
+                title: "Renegotiate Vendor Contracts", 
+                impact: "Medium", 
+                savings: "$15,000 annually", 
+                effort: "High",
+                description: "Review and negotiate better terms with top 5 vendors."
+              },
+              { 
+                title: "Reduce Office Space", 
+                impact: "Medium", 
+                savings: "$32,000 annually", 
+                effort: "High",
+                description: "Implement hot desking and reduce office footprint by 20%."
+              },
+              { 
+                title: "Implement Energy Efficiency", 
+                impact: "Low", 
+                savings: "$3,800 annually", 
+                effort: "Low",
+                description: "Install smart lighting and HVAC controls in office spaces."
+              }
+            ].map((recommendation, index) => (
+              <div key={index} className="border border-border p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium">{recommendation.title}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    recommendation.impact === "High" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                    recommendation.impact === "Medium" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" :
+                    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                  }`}>
+                    {recommendation.impact} Impact
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{recommendation.description}</p>
+                <div className="flex items-center justify-between mt-2 text-xs">
+                  <div className="font-medium">Potential Savings: {recommendation.savings}</div>
+                  <div>Effort: {recommendation.effort}</div>
                 </div>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle>Team Hours & Cost Analysis</CardTitle>
-              <CardDescription>Hours worked and associated costs this month</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select defaultValue="all">
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  <SelectItem value="engineering">Engineering</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="hr">HR</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm">
-                <ChevronDown className="h-4 w-4 mr-2" />
-                Sort by
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="table">
-            <TabsList className="mb-4">
-              <TabsTrigger value="table">Table View</TabsTrigger>
-              <TabsTrigger value="chart">Chart View</TabsTrigger>
-            </TabsList>
-            <TabsContent value="table">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-muted/50">
-                      <th className="p-3 text-left text-sm font-medium text-muted-foreground">Employee</th>
-                      <th className="p-3 text-left text-sm font-medium text-muted-foreground">Department</th>
-                      <th className="p-3 text-left text-sm font-medium text-muted-foreground">Hours Worked</th>
-                      <th className="p-3 text-left text-sm font-medium text-muted-foreground">Hourly Rate</th>
-                      <th className="p-3 text-left text-sm font-medium text-muted-foreground">Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teamHoursData.map((employee, index) => (
-                      <tr 
-                        key={employee.name} 
-                        className={index % 2 === 0 ? "" : "bg-muted/30"}
-                      >
-                        <td className="p-3 text-sm">{employee.name}</td>
-                        <td className="p-3 text-sm">{employee.department}</td>
-                        <td className="p-3 text-sm">{employee.hours} hrs</td>
-                        <td className="p-3 text-sm">
-                          ${hourlyRateData.find(d => d.name === employee.department)?.rate || 0}
-                        </td>
-                        <td className="p-3 text-sm font-medium">${employee.cost.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-muted/50">
-                      <td className="p-3 text-sm font-medium" colSpan={2}>Total</td>
-                      <td className="p-3 text-sm font-medium">
-                        {teamHoursData.reduce((sum, employee) => sum + employee.hours, 0)} hrs
-                      </td>
-                      <td className="p-3 text-sm font-medium">-</td>
-                      <td className="p-3 text-sm font-medium">
-                        ${teamHoursData.reduce((sum, employee) => sum + employee.cost, 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-            <TabsContent value="chart">
-              <div className="rounded-md border p-8 text-center">
-                <h3 className="font-medium">Team Hours Chart</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Visual representation of team hours would appear here
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        </DashboardCard>
+      </div>
     </div>
   );
 };
