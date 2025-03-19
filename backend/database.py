@@ -6,6 +6,10 @@ import os
 from dotenv import load_dotenv
 import logging
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Load environment variables
 load_dotenv()
 
@@ -20,7 +24,12 @@ DB_NAME = os.getenv("DB_NAME", "hyperflow")
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Create engine
-engine = create_engine(DATABASE_URL)
+try:
+    engine = create_engine(DATABASE_URL)
+    logger.info(f"Database connection established: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+except Exception as e:
+    logger.error(f"Database connection error: {e}")
+    raise
 
 # Create sessionmaker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -38,7 +47,25 @@ def get_db():
 
 def init_db():
     try:
+        # Create the database if it doesn't exist
+        engine.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
+        engine.execute(f"USE {DB_NAME}")
+        
+        # Create tables
         Base.metadata.create_all(bind=engine)
-        logging.info("Database tables created successfully")
+        logger.info("Database tables created successfully")
+        
+        # Insert default roles if they don't exist
+        from models import Role
+        db = SessionLocal()
+        default_roles = ["admin", "employee", "client", "marketing", "hr", "finance"]
+        for role_name in default_roles:
+            existing_role = db.query(Role).filter(Role.role_name == role_name).first()
+            if not existing_role:
+                db.add(Role(role_name=role_name))
+        db.commit()
+        logger.info("Default roles created successfully")
+        
     except Exception as e:
-        logging.error(f"Error creating database tables: {e}")
+        logger.error(f"Error initializing database: {e}")
+        raise

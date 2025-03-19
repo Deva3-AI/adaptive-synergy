@@ -1,148 +1,225 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, StopCircle, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { employeeService } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, PlayCircle, StopCircle, Calendar, Clock } from "lucide-react";
 
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  
-  return [
-    hours.toString().padStart(2, '0'),
-    minutes.toString().padStart(2, '0'),
-    secs.toString().padStart(2, '0')
-  ].join(':');
-}
-
-interface WorkSessionRecord {
-  startTime: Date;
-  endTime?: Date;
-  duration: number; // in seconds
+interface AttendanceData {
+  attendance_id: number;
+  login_time: string | null;
+  logout_time: string | null;
 }
 
 const EmployeeWorkTracker = () => {
   const [isWorking, setIsWorking] = useState(false);
-  const [currentTimer, setCurrentTimer] = useState(0);
-  const [workStartTime, setWorkStartTime] = useState<Date | null>(null);
-  const [todayTotal, setTodayTotal] = useState(0);
-  const [sessions, setSessions] = useState<WorkSessionRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [todayAttendance, setTodayAttendance] = useState<AttendanceData | null>(null);
+  const [loginTime, setLoginTime] = useState<string | null>(null);
+  const [workDuration, setWorkDuration] = useState<string>("00:00:00");
+  const [timerInterval, setTimerInterval] = useState<number | null>(null);
+  const { toast } = useToast();
 
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
+  // Format time from ISO string to readable format
+  const formatTime = (isoTime: string | null) => {
+    if (!isoTime) return "Not logged";
+    const date = new Date(isoTime);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Calculate duration between login and current time or logout time
+  const calculateDuration = (loginTime: string | null, logoutTime: string | null) => {
+    if (!loginTime) return "00:00:00";
     
-    if (isWorking) {
-      interval = setInterval(() => {
-        setCurrentTimer(prev => prev + 1);
-      }, 1000);
+    const startTime = new Date(loginTime).getTime();
+    const endTime = logoutTime ? new Date(logoutTime).getTime() : Date.now();
+    
+    const durationMs = endTime - startTime;
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Start timer to update work duration
+  const startTimer = (loginTimeStr: string) => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
     }
     
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isWorking]);
+    const interval = setInterval(() => {
+      setWorkDuration(calculateDuration(loginTimeStr, null));
+    }, 1000);
+    
+    setTimerInterval(interval as unknown as number);
+  };
 
-  // Calculate today's total based on sessions and current timer
+  // Stop timer
+  const stopTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
+  };
+
+  // Fetch today's attendance
+  const fetchTodayAttendance = async () => {
+    try {
+      const data = await employeeService.getTodayAttendance();
+      setTodayAttendance(data);
+      
+      if (data) {
+        setLoginTime(data.login_time);
+        
+        if (data.login_time && !data.logout_time) {
+          setIsWorking(true);
+          startTimer(data.login_time);
+        } else if (data.login_time && data.logout_time) {
+          setIsWorking(false);
+          setWorkDuration(calculateDuration(data.login_time, data.logout_time));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching today's attendance:", error);
+    }
+  };
+
+  // Handle start work
+  const handleStartWork = async () => {
+    setIsLoading(true);
+    try {
+      const data = await employeeService.startWork();
+      setTodayAttendance(data);
+      setLoginTime(data.login_time);
+      setIsWorking(true);
+      
+      if (data.login_time) {
+        startTimer(data.login_time);
+      }
+      
+      toast({
+        title: "Work Started",
+        description: `You started working at ${formatTime(data.login_time)}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to start work",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle stop work
+  const handleStopWork = async () => {
+    if (!todayAttendance?.attendance_id) return;
+    
+    setIsLoading(true);
+    try {
+      const data = await employeeService.stopWork(todayAttendance.attendance_id);
+      setTodayAttendance(data);
+      setIsWorking(false);
+      stopTimer();
+      
+      if (data.login_time && data.logout_time) {
+        setWorkDuration(calculateDuration(data.login_time, data.logout_time));
+      }
+      
+      toast({
+        title: "Work Stopped",
+        description: `You stopped working at ${formatTime(data.logout_time)}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to stop work",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch attendance on component mount
   useEffect(() => {
-    const sessionsTotal = sessions.reduce((total, session) => total + session.duration, 0);
-    setTodayTotal(sessionsTotal + currentTimer);
-  }, [sessions, currentTimer]);
-
-  const startWork = () => {
-    const startTime = new Date();
-    setWorkStartTime(startTime);
-    setIsWorking(true);
-    setCurrentTimer(0);
-    toast.success("Work session started");
-  };
-
-  const stopWork = () => {
-    if (!workStartTime) return;
+    fetchTodayAttendance();
     
-    const endTime = new Date();
-    const durationInSeconds = Math.floor((endTime.getTime() - workStartTime.getTime()) / 1000);
-    
-    const newSession: WorkSessionRecord = {
-      startTime: workStartTime,
-      endTime,
-      duration: durationInSeconds
+    // Cleanup timer on unmount
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
     };
-    
-    setSessions(prev => [...prev, newSession]);
-    setWorkStartTime(null);
-    setIsWorking(false);
-    setCurrentTimer(0);
-    toast.success(`Work session completed: ${formatTime(durationInSeconds)}`);
-  };
+  }, []);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Clock className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-medium">Work Session</h3>
-          <Badge variant={isWorking ? "success" : "outline"}>
-            {isWorking ? "Active" : "Inactive"}
-          </Badge>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-lg">Work Tracking</CardTitle>
+        <CardDescription>Track your daily work hours</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Today</span>
+            </div>
+            <span className="text-sm font-medium">{new Date().toLocaleDateString()}</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Login Time</span>
+            </div>
+            <span className="text-sm font-medium">{formatTime(loginTime)}</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Duration</span>
+            </div>
+            <span className="text-sm font-medium">{workDuration}</span>
+          </div>
         </div>
-        <div className="text-xl font-semibold font-mono">{formatTime(currentTimer)}</div>
-      </div>
-      
-      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-        <div 
-          className="h-full bg-accent transition-all duration-300 ease-out"
-          style={{ width: `${Math.min((currentTimer / (8 * 3600)) * 100, 100)}%` }}
-        />
-      </div>
-      
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div>Today's total: <span className="font-medium">{formatTime(todayTotal)}</span></div>
-        <div>Target: <span className="font-medium">08:00:00</span></div>
-      </div>
-      
-      <div className="flex space-x-3 pt-2">
-        {!isWorking ? (
+      </CardContent>
+      <CardFooter className="flex justify-center">
+        {isWorking ? (
           <Button 
-            onClick={startWork} 
-            className="flex-1 bg-green-500 hover:bg-green-600 text-white button-shine"
+            onClick={handleStopWork} 
+            disabled={isLoading} 
+            variant="destructive"
+            className="w-full"
           >
-            <Play className="h-4 w-4 mr-2" />
-            Start Work
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <StopCircle className="mr-2 h-4 w-4" />
+            )}
+            Stop Work
           </Button>
         ) : (
           <Button 
-            onClick={stopWork} 
-            variant="destructive" 
-            className="flex-1 button-shine"
+            onClick={handleStartWork} 
+            disabled={isLoading} 
+            className="w-full bg-green-500 hover:bg-green-600"
           >
-            <StopCircle className="h-4 w-4 mr-2" />
-            Stop Work
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <PlayCircle className="mr-2 h-4 w-4" />
+            )}
+            Start Work
           </Button>
         )}
-      </div>
-      
-      {sessions.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-sm font-medium mb-2">Today's Sessions</h4>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-            {sessions.map((session, index) => (
-              <div 
-                key={index} 
-                className="flex justify-between items-center p-2 bg-muted/50 rounded-md text-sm"
-              >
-                <div>
-                  {session.startTime.toLocaleTimeString()} - {session.endTime?.toLocaleTimeString()}
-                </div>
-                <div className="font-mono">{formatTime(session.duration)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 
