@@ -14,9 +14,11 @@ import {
   PieChart as RechartsPieChart,
   Pie,
   Cell,
+  AreaChart as RechartsAreaChart,
+  Area,
 } from "recharts";
 
-type ChartType = "bar" | "line" | "pie" | "donut";
+type ChartType = "bar" | "line" | "pie" | "donut" | "area";
 
 interface AnalyticsChartProps {
   data: any[];
@@ -127,8 +129,51 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
             </RechartsLineChart>
           </ResponsiveContainer>
         );
+      case "area":
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <RechartsAreaChart
+              data={data}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="name" 
+                stroke="hsl(var(--muted-foreground))" 
+                fontSize={12}
+              />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: "hsl(var(--background))",
+                  borderColor: "hsl(var(--border))",
+                  borderRadius: "var(--radius)",
+                  fontSize: 12,
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {Object.keys(data[0])
+                .filter((key) => key !== "name")
+                .map((key, index) => (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    fill={COLORS[index % COLORS.length]}
+                    stroke={COLORS[index % COLORS.length]}
+                    fillOpacity={0.3}
+                  />
+                ))}
+            </RechartsAreaChart>
+          </ResponsiveContainer>
+        );
       case "pie":
-      case "donut": // Adding support for donut chart type
+      case "donut":
         return (
           <ResponsiveContainer width="100%" height={height}>
             <RechartsPieChart>
@@ -182,6 +227,12 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
             Line
           </button>
           <button
+            className={`btn btn-sm join-item ${chartType === "area" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+            onClick={() => setChartType("area")}
+          >
+            Area
+          </button>
+          <button
             className={`btn btn-sm join-item ${chartType === "pie" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
             onClick={() => setChartType("pie")}
           >
@@ -201,3 +252,4 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
 };
 
 export default AnalyticsChart;
+

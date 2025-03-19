@@ -189,7 +189,7 @@ const FinanceDashboard = () => {
                   <p className="font-bold">{month.forecast}</p>
                   <p className="text-xs text-muted-foreground">
                     {month.status === "increase" ? "+" : "-"}
-                    {index > 0 ? `${Math.abs(parseInt(month.forecast.replace(/[^0-9]/g, '')) - parseInt(revenueData[revenueData.length-1].revenue)).toLocaleString()}` : "0"}
+                    {index > 0 ? `$${Math.abs(parseInt(month.forecast.replace(/[^0-9]/g, '')) - parseInt(revenueData[revenueData.length-1].revenue.toString())).toLocaleString()}` : "0"}
                   </p>
                 </div>
               </div>
@@ -202,3 +202,4 @@ const FinanceDashboard = () => {
 };
 
 export default FinanceDashboard;
+
