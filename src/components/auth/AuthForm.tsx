@@ -10,8 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type AuthMode = "login" | "register";
 
-const AuthForm = () => {
-  const [mode, setMode] = useState<AuthMode>("login");
+interface AuthFormProps {
+  defaultMode?: AuthMode;
+}
+
+const AuthForm = ({ defaultMode = "login" }: AuthFormProps) => {
+  const [mode, setMode] = useState<AuthMode>(defaultMode);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -38,11 +42,12 @@ const AuthForm = () => {
       if (mode === "register") {
         if (formData.password !== formData.confirmPassword) {
           toast.error("Passwords do not match");
+          setIsLoading(false);
           return;
         }
         
         toast.success("Account created successfully");
-        setMode("login");
+        navigate("/verify-email");
       } else {
         toast.success("Login successful");
         navigate("/dashboard");
@@ -133,6 +138,21 @@ const AuthForm = () => {
                   onChange={handleChange}
                   className="glass-input"
                 />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="login" className="space-y-4">
+              <div className="flex items-center justify-end">
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-sm text-muted-foreground hover:text-accent"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/password-recovery");
+                  }}
+                >
+                  Forgot password?
+                </Button>
               </div>
             </TabsContent>
 

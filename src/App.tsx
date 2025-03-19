@@ -4,10 +4,54 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Authentication Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Signup from "./pages/Signup";
+import PasswordRecovery from "./pages/PasswordRecovery";
+import VerifyEmail from "./pages/VerifyEmail";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+
+// Layout
 import AppLayout from "./components/layout/AppLayout";
+
+// Dashboard Pages
+import Dashboard from "./pages/Dashboard";
+
+// Employee Module
+import EmployeeDashboard from "./pages/employee/Dashboard";
+import EmployeeTasks from "./pages/employee/Tasks";
+import EmployeeTaskDetail from "./pages/employee/TaskDetail";
+
+// Client Module
+import ClientDashboard from "./pages/client/Dashboard";
+import ClientTasks from "./pages/client/Tasks";
+import ClientTaskDetail from "./pages/client/TaskDetail";
+import ClientReports from "./pages/client/Reports";
+
+// Marketing Module
+import MarketingDashboard from "./pages/marketing/Dashboard";
+import MarketingCampaigns from "./pages/marketing/Campaigns";
+import MarketingMeetings from "./pages/marketing/Meetings";
+import MarketingAnalytics from "./pages/marketing/Analytics";
+
+// HR Module
+import HrDashboard from "./pages/hr/Dashboard";
+import HrAttendance from "./pages/hr/Attendance";
+import HrRecruitment from "./pages/hr/Recruitment";
+import HrPayroll from "./pages/hr/Payroll";
+import HrReports from "./pages/hr/Reports";
+
+// Finance Module
+import FinanceDashboard from "./pages/finance/Dashboard";
+import FinanceInvoices from "./pages/finance/Invoices";
+import FinanceCostAnalysis from "./pages/finance/CostAnalysis";
+import FinancePerformance from "./pages/finance/Performance";
+import FinanceReports from "./pages/finance/Reports";
+
+// Not Found
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,19 +63,55 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/password-recovery" element={<PasswordRecovery />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           
-          {/* Protected routes - in a real app these would be protected by auth */}
+          {/* Protected routes - would be protected by auth in real app */}
           <Route path="/" element={<AppLayout />}>
+            {/* Main Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/clients" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/analytics" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/notifications" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/finance" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/settings" element={<Dashboard />} /> {/* Placeholder */}
+            
+            {/* User Settings */}
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
+            
+            {/* Employee Module */}
+            <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+            <Route path="/employee/tasks" element={<EmployeeTasks />} />
+            <Route path="/employee/tasks/:taskId" element={<EmployeeTaskDetail />} />
+            
+            {/* Client Module */}
+            <Route path="/client/dashboard" element={<ClientDashboard />} />
+            <Route path="/client/tasks" element={<ClientTasks />} />
+            <Route path="/client/tasks/:taskId" element={<ClientTaskDetail />} />
+            <Route path="/client/reports" element={<ClientReports />} />
+            
+            {/* Marketing Module */}
+            <Route path="/marketing/dashboard" element={<MarketingDashboard />} />
+            <Route path="/marketing/campaigns" element={<MarketingCampaigns />} />
+            <Route path="/marketing/meetings" element={<MarketingMeetings />} />
+            <Route path="/marketing/analytics" element={<MarketingAnalytics />} />
+            
+            {/* HR Module */}
+            <Route path="/hr/dashboard" element={<HrDashboard />} />
+            <Route path="/hr/attendance" element={<HrAttendance />} />
+            <Route path="/hr/recruitment" element={<HrRecruitment />} />
+            <Route path="/hr/payroll" element={<HrPayroll />} />
+            <Route path="/hr/reports" element={<HrReports />} />
+            
+            {/* Finance Module */}
+            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+            <Route path="/finance/invoices" element={<FinanceInvoices />} />
+            <Route path="/finance/cost-analysis" element={<FinanceCostAnalysis />} />
+            <Route path="/finance/performance" element={<FinancePerformance />} />
+            <Route path="/finance/reports" element={<FinanceReports />} />
           </Route>
           
+          {/* Not Found */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

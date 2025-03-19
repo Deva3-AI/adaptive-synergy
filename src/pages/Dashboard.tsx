@@ -1,10 +1,13 @@
+
 import React from "react";
-import { BarChart, Clock, Briefcase, CalendarCheck, Users, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BarChart, Clock, Briefcase, CalendarCheck, Users, Bell, LayoutDashboard, LineChart, Wallet, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import EmployeeWorkTracker from "@/components/dashboard/EmployeeWorkTracker";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // Sample data for charts
 const weeklyActivityData = [
@@ -55,6 +58,50 @@ const taskItems = [
   },
 ];
 
+// Sample data for role cards
+const roleCards = [
+  {
+    title: "Employee",
+    description: "Manage your tasks, track work time, and view project details",
+    icon: <Users className="h-8 w-8 text-blue-500" />,
+    color: "bg-blue-500/10",
+    link: "/employee/dashboard",
+    stats: "12 active tasks",
+  },
+  {
+    title: "Client",
+    description: "View project status, deliverables, and communicate with your team",
+    icon: <Briefcase className="h-8 w-8 text-purple-500" />,
+    color: "bg-purple-500/10",
+    link: "/client/dashboard",
+    stats: "8 active projects",
+  },
+  {
+    title: "Marketing",
+    description: "Manage campaigns, analytics, and client outreach",
+    icon: <BarChart2 className="h-8 w-8 text-green-500" />,
+    color: "bg-green-500/10",
+    link: "/marketing/dashboard",
+    stats: "3 campaigns in progress",
+  },
+  {
+    title: "HR",
+    description: "Handle recruitment, employee data, and productivity metrics",
+    icon: <Users className="h-8 w-8 text-amber-500" />,
+    color: "bg-amber-500/10",
+    link: "/hr/dashboard",
+    stats: "42 employees",
+  },
+  {
+    title: "Finance",
+    description: "Track invoices, manage payments, and monitor financial health",
+    icon: <Wallet className="h-8 w-8 text-red-500" />,
+    color: "bg-red-500/10",
+    link: "/finance/dashboard",
+    stats: "24 pending invoices",
+  }
+];
+
 const getPriorityBadgeVariant = (priority: string) => {
   switch (priority) {
     case "High":
@@ -98,10 +145,34 @@ const Dashboard = () => {
   return (
     <div className="space-y-8 animate-blur-in">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Main Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back! Here's an overview of your workflow today.
+          Welcome to HyperFlow! Access all your role-specific dashboards and get a quick overview of your organization.
         </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {roleCards.map((role, index) => (
+          <Link to={role.link} key={index} className="block">
+            <Card className="hover:shadow-md transition-all duration-300 h-full hover:scale-[1.01]">
+              <CardHeader className="pb-2">
+                <div className={`h-12 w-12 rounded-lg ${role.color} flex items-center justify-center mb-2`}>
+                  {role.icon}
+                </div>
+                <CardTitle>{role.title} Dashboard</CardTitle>
+                <CardDescription>{role.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">{role.stats}</p>
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    Access <LayoutDashboard className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
