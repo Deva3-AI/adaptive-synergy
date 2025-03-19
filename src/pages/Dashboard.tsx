@@ -1,11 +1,10 @@
-
 import React from "react";
 import { BarChart, Clock, Briefcase, CalendarCheck, Users, Bell } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import EmployeeWorkTracker from "@/components/dashboard/EmployeeWorkTracker";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 
 // Sample data for charts
 const weeklyActivityData = [
