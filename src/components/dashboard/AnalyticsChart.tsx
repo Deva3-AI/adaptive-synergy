@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Sector, Tooltip, XAxis, YAxis } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-type ChartType = "line" | "area" | "bar" | "pie";
+type ChartType = "line" | "area" | "bar" | "pie" | "donut";
 
 interface AnalyticsChartProps {
   data: any[];
@@ -38,7 +37,6 @@ const AnalyticsChart = ({
 }: AnalyticsChartProps) => {
   const [chartType, setChartType] = useState<ChartType>(defaultType);
 
-  // If there's no data, show an empty state
   if (!data || data.length === 0) {
     return (
       <div
@@ -52,13 +50,11 @@ const AnalyticsChart = ({
     );
   }
 
-  // Extract the first data point to get available keys for charting
   const sampleDataPoint = data[0];
   const chartableKeys = Object.keys(sampleDataPoint).filter(
     (key) => typeof sampleDataPoint[key] === "number"
   );
 
-  // Common chart configurations
   const renderChart = () => {
     switch (chartType) {
       case "line":
@@ -193,7 +189,6 @@ const AnalyticsChart = ({
         );
 
       case "pie":
-        // For pie charts, we'll use the first numerical key if not specified
         const pieDataKey = chartableKeys[0];
         const pieData = data.map(item => ({
           name: item.name,
@@ -215,6 +210,47 @@ const AnalyticsChart = ({
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
               >
                 {pieData.map((entry, index) => (
+                  <Sector
+                    key={`cell-${index}`}
+                    fill={chartColors[index % chartColors.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: "hsl(var(--card))",
+                  borderColor: "hsl(var(--border))",
+                  borderRadius: "var(--radius)",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+
+      case "donut":
+        const donutDataKey = chartableKeys[0];
+        const donutData = data.map(item => ({
+          name: item.name,
+          value: item[donutDataKey]
+        }));
+
+        return (
+          <ResponsiveContainer width="100%" height={height}>
+            <PieChart>
+              <Pie
+                data={donutData}
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={100}
+                fill="#8884d8"
+                paddingAngle={1}
+                dataKey="value"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {donutData.map((entry, index) => (
                   <Sector
                     key={`cell-${index}`}
                     fill={chartColors[index % chartColors.length]}
@@ -262,6 +298,7 @@ const AnalyticsChart = ({
                 <SelectItem value="area">Area Chart</SelectItem>
                 <SelectItem value="bar">Bar Chart</SelectItem>
                 <SelectItem value="pie">Pie Chart</SelectItem>
+                <SelectItem value="donut">Donut Chart</SelectItem>
               </SelectContent>
             </Select>
           </div>
