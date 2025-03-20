@@ -26,6 +26,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 
+// Define a type for the navigation items
+type NavItem = {
+  icon: React.ForwardRefExoticComponent<any>;
+  label: string;
+  path: string;
+  badge?: number;
+};
+
 const Sidebar = ({ className }: { className?: string }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -46,8 +54,8 @@ const Sidebar = ({ className }: { className?: string }) => {
   };
 
   // Generate navigation items based on user role
-  const getNavItems = () => {
-    const commonItems = [
+  const getNavItems = (): NavItem[] => {
+    const commonItems: NavItem[] = [
       { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
       { icon: User, label: "Profile", path: "/profile" },
       { icon: Settings, label: "Settings", path: "/settings" },
