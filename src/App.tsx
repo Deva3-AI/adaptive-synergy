@@ -54,8 +54,12 @@ import FinanceReports from "./pages/finance/Reports";
 // Not Found
 import NotFound from "./pages/NotFound";
 
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
+// Protected Route Component with proper TypeScript
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
@@ -66,15 +70,15 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   
-  return children;
+  return <>{children}</>;
 };
 
 const App = () => (
-  <TooltipProvider>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <AuthProvider>
+  <BrowserRouter>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
@@ -84,7 +88,7 @@ const App = () => (
           <Route path="/verify-email" element={<VerifyEmail />} />
           
           {/* Protected routes */}
-          <Route path="/" element={
+          <Route element={
             <ProtectedRoute>
               <AppLayout />
             </ProtectedRoute>
@@ -131,9 +135,9 @@ const App = () => (
           {/* Not Found */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  </TooltipProvider>
+      </TooltipProvider>
+    </AuthProvider>
+  </BrowserRouter>
 );
 
 export default App;

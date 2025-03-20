@@ -34,10 +34,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       try {
+        setIsLoading(true);
         const currentUser = authService.getCurrentUser();
-        setUser(currentUser);
+        
+        // For development purposes, simulate a logged-in user if none exists
+        // REMOVE THIS IN PRODUCTION
+        if (!currentUser) {
+          console.log('Using mock user for development');
+          const mockUser = {
+            id: 1,
+            name: 'Test User',
+            email: 'test@example.com',
+            role: 'admin'
+          };
+          localStorage.setItem('user', JSON.stringify(mockUser));
+          localStorage.setItem('token', 'mock-token');
+          setUser(mockUser);
+        } else {
+          setUser(currentUser);
+        }
       } catch (error) {
         console.error('Failed to get current user:', error);
         localStorage.removeItem('token');
@@ -53,6 +70,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      // For development purposes, use a mock login if backend is not available
+      // REMOVE THIS IN PRODUCTION
+      if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
+        console.log('Using mock login for development');
+        const mockUser = {
+          id: 1,
+          name: email.split('@')[0],
+          email: email,
+          role: 'admin',
+        };
+        
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        localStorage.setItem('token', 'mock-token');
+        setUser(mockUser);
+        
+        // Redirect based on role
+        navigate('/dashboard');
+        
+        toast({
+          title: 'Login Successful (Development Mode)',
+          description: `Welcome, ${mockUser.name}!`,
+        });
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      // Real login process
       const data = await authService.login(email, password);
       setUser({
         id: data.user_id,
@@ -84,12 +129,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
     } catch (error: any) {
       console.error('Login error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: error.response?.data?.detail || 'Invalid credentials',
-      });
-      throw error;
+      
+      // For development, allow login if the backend is not available
+      if (error.message === 'Network Error' && import.meta.env.DEV) {
+        console.log('Backend not available, using mock login');
+        const mockUser = {
+          id: 1,
+          name: email.split('@')[0],
+          email: email,
+          role: 'admin',
+        };
+        
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        localStorage.setItem('token', 'mock-token');
+        setUser(mockUser);
+        
+        navigate('/dashboard');
+        
+        toast({
+          title: 'Development Mode Login',
+          description: 'Logged in with mock user (backend not available)',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: error.response?.data?.detail || 'Invalid credentials',
+        });
+        throw error;
+      }
     } finally {
       setIsLoading(false);
     }
