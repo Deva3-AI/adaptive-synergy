@@ -71,14 +71,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       // For development purposes, use a mock login if backend is not available
-      // REMOVE THIS IN PRODUCTION
+      // In real deployment, this should be removed
       if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
         console.log('Using mock login for development');
+        
+        // Map employee emails to mock roles
+        let mockRole = 'employee';
+        if (email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
+          mockRole = 'admin';
+        } else if (email.includes('athira') || email.includes('shalini')) {
+          mockRole = 'hr';
+        } else if (email.includes('priya') || email.includes('vishnu')) {
+          mockRole = 'marketing';
+        } else if (email.includes('@client')) {
+          mockRole = 'client';
+        }
+        
         const mockUser = {
           id: 1,
           name: email.split('@')[0],
           email: email,
-          role: 'admin',
+          role: mockRole,
         };
         
         localStorage.setItem('user', JSON.stringify(mockUser));
@@ -86,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(mockUser);
         
         // Redirect based on role
-        navigate('/dashboard');
+        redirectBasedOnRole(mockRole);
         
         toast({
           title: 'Login Successful (Development Mode)',
@@ -107,21 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       // Redirect based on role
-      if (data.role === 'admin') {
-        navigate('/dashboard');
-      } else if (data.role === 'employee') {
-        navigate('/employee/dashboard');
-      } else if (data.role === 'client') {
-        navigate('/client/dashboard');
-      } else if (data.role === 'marketing') {
-        navigate('/marketing/dashboard');
-      } else if (data.role === 'hr') {
-        navigate('/hr/dashboard');
-      } else if (data.role === 'finance') {
-        navigate('/finance/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      redirectBasedOnRole(data.role);
       
       toast({
         title: 'Login Successful',
@@ -133,18 +132,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // For development, allow login if the backend is not available
       if (error.message === 'Network Error' && import.meta.env.DEV) {
         console.log('Backend not available, using mock login');
+        
+        // Determine role based on email
+        let mockRole = 'employee';
+        if (email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
+          mockRole = 'admin';
+        } else if (email.includes('athira') || email.includes('shalini')) {
+          mockRole = 'hr';
+        } else if (email.includes('priya') || email.includes('vishnu')) {
+          mockRole = 'marketing';
+        } else if (email.includes('@client')) {
+          mockRole = 'client';
+        }
+        
         const mockUser = {
           id: 1,
           name: email.split('@')[0],
           email: email,
-          role: 'admin',
+          role: mockRole,
         };
         
         localStorage.setItem('user', JSON.stringify(mockUser));
         localStorage.setItem('token', 'mock-token');
         setUser(mockUser);
         
-        navigate('/dashboard');
+        redirectBasedOnRole(mockRole);
         
         toast({
           title: 'Development Mode Login',
@@ -160,6 +172,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const redirectBasedOnRole = (role: string) => {
+    if (role === 'admin') {
+      navigate('/dashboard');
+    } else if (role === 'employee') {
+      navigate('/employee/dashboard');
+    } else if (role === 'client') {
+      navigate('/client/dashboard');
+    } else if (role === 'marketing') {
+      navigate('/marketing/dashboard');
+    } else if (role === 'hr') {
+      navigate('/hr/dashboard');
+    } else if (role === 'finance') {
+      navigate('/finance/dashboard');
+    } else {
+      navigate('/dashboard');
     }
   };
 

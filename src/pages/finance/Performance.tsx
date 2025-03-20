@@ -1,300 +1,243 @@
 
-import React from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BarChart, LineChart, TrendingUp, TrendingDown, DollarSign, Target, ArrowUpRight, Calendar, Download } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import DashboardCard from "@/components/dashboard/DashboardCard";
-import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ClientsList from "@/components/client/ClientsList";
+import EmployeesList from "@/components/employee/EmployeesList";
+import { useQuery } from "@tanstack/react-query";
+import { fetchData } from "@/utils/apiUtils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
-// Sample data for charts
-const revenueGrowthData = [
-  { name: "Jan", value: 45000 },
-  { name: "Feb", value: 52000 },
-  { name: "Mar", value: 48000 },
-  { name: "Apr", value: 61000 },
-  { name: "May", value: 58000 },
-  { name: "Jun", value: 68000 },
-];
+interface FinancialMetrics {
+  income: number;
+  expenses: number;
+  profit_margin: number;
+  outstanding_invoices: number;
+  total_clients: number;
+  monthly_revenue: {
+    month: string;
+    revenue: number;
+    expenses: number;
+  }[];
+  revenue_by_client: {
+    client_name: string;
+    revenue: number;
+  }[];
+}
 
-const yearlyComparisonData = [
-  { name: "Jan", current: 45000, previous: 32000 },
-  { name: "Feb", current: 52000, previous: 38000 },
-  { name: "Mar", current: 48000, previous: 42000 },
-  { name: "Apr", current: 61000, previous: 45000 },
-  { name: "May", current: 58000, previous: 48000 },
-  { name: "Jun", current: 68000, previous: 52000 },
-];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#ff6b81', '#c95151'];
 
-const productPerformanceData = [
-  { name: "Product A", revenue: 135000 },
-  { name: "Product B", revenue: 98000 },
-  { name: "Product C", revenue: 65000 },
-  { name: "Product D", revenue: 44500 },
-];
+const mockFinancialData: FinancialMetrics = {
+  income: 75000,
+  expenses: 45000,
+  profit_margin: 40,
+  outstanding_invoices: 15000,
+  total_clients: 10,
+  monthly_revenue: [
+    { month: "Jan", revenue: 12000, expenses: 8000 },
+    { month: "Feb", revenue: 14000, expenses: 8500 },
+    { month: "Mar", revenue: 15000, expenses: 9000 },
+    { month: "Apr", revenue: 16000, expenses: 9500 },
+    { month: "May", revenue: 18000, expenses: 10000 },
+  ],
+  revenue_by_client: [
+    { client_name: "Social Land", revenue: 15000 },
+    { client_name: "Koala Digital", revenue: 12000 },
+    { client_name: "AC Digital", revenue: 10000 },
+    { client_name: "Muse Digital", revenue: 8000 },
+    { client_name: "Internet People", revenue: 7000 },
+    { client_name: "Philip", revenue: 6000 },
+    { client_name: "Website Architect", revenue: 5000 },
+    { client_name: "Justin", revenue: 4000 },
+    { client_name: "Mark Intrinsic", revenue: 3000 },
+    { client_name: "Mario", revenue: 5000 },
+  ]
+};
 
 const FinancePerformance = () => {
+  const [timeRange, setTimeRange] = useState("monthly");
+
+  // In a real application, this would fetch from your API
+  const { data: financialMetrics, isLoading } = useQuery({
+    queryKey: ['financial-metrics', timeRange],
+    queryFn: async () => {
+      try {
+        if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
+          return mockFinancialData;
+        }
+        
+        // If backend is available
+        return await fetchData<FinancialMetrics>(`/finance/metrics?timeRange=${timeRange}`);
+      } catch (error) {
+        console.error("Error fetching financial metrics:", error);
+        // Fallback to mock data in case of error
+        return mockFinancialData;
+      }
+    }
+  });
+
   return (
-    <div className="space-y-8 animate-blur-in">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financial Performance</h1>
-          <p className="text-muted-foreground">
-            Track revenue growth and sales performance
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Calendar className="h-4 w-4 mr-2" />
-            Q2 2023
-          </Button>
-          <Button>
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Financial Performance</h1>
+        <div className="flex space-x-2">
+          <select 
+            className="border rounded px-3 py-1"
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+          >
+            <option value="monthly">Last 5 Months</option>
+            <option value="quarterly">Last 4 Quarters</option>
+            <option value="yearly">Last 3 Years</option>
+          </select>
         </div>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
+      
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$342,500</div>
-            <p className="text-xs text-green-500 flex items-center">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              12% from last quarter
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">${financialMetrics?.income.toLocaleString()}</div>
+            )}
           </CardContent>
         </Card>
+        
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Deal Size</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$18,450</div>
-            <p className="text-xs text-green-500 flex items-center">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              8% from last quarter
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">${financialMetrics?.expenses.toLocaleString()}</div>
+            )}
           </CardContent>
         </Card>
+        
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Acquisition Cost</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Profit Margin</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,240</div>
-            <p className="text-xs text-green-500 flex items-center">
-              <TrendingDown className="h-3 w-3 mr-1" />
-              5% from last quarter
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">{financialMetrics?.profit_margin}%</div>
+            )}
           </CardContent>
         </Card>
+        
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Lifetime Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding Invoices</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$52,800</div>
-            <p className="text-xs text-green-500 flex items-center">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              7% from last quarter
-            </p>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <div className="text-2xl font-bold">${financialMetrics?.outstanding_invoices.toLocaleString()}</div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-7">
-        <DashboardCard
-          title="Revenue Growth"
-          icon={<LineChart className="h-5 w-5" />}
-          className="md:col-span-4"
-        >
-          <AnalyticsChart 
-            data={revenueGrowthData} 
-            height={300}
-            defaultType="line"
-          />
-        </DashboardCard>
-
-        <DashboardCard
-          title="Year-over-Year Comparison"
-          icon={<BarChart className="h-5 w-5" />}
-          className="md:col-span-3"
-        >
-          <AnalyticsChart 
-            data={yearlyComparisonData} 
-            height={300}
-            defaultType="bar"
-          />
-          <div className="flex items-center justify-between text-sm mt-4">
-            <div className="flex items-center">
-              <div className="bg-primary h-3 w-3 rounded-sm mr-2"></div>
-              <span>2023</span>
-            </div>
-            <div className="flex items-center">
-              <div className="bg-muted h-3 w-3 rounded-sm mr-2"></div>
-              <span>2022</span>
-            </div>
-            <div>
-              <span className="text-green-500">+25.4% growth</span>
-            </div>
-          </div>
-        </DashboardCard>
-      </div>
-
-      <DashboardCard
-        title="Product Performance"
-        icon={<BarChart className="h-5 w-5" />}
-      >
-        <AnalyticsChart 
-          data={productPerformanceData} 
-          height={300}
-          defaultType="bar"
-        />
-      </DashboardCard>
-
-      <div className="grid gap-4 md:grid-cols-7">
-        <DashboardCard
-          title="Sales Performance Metrics"
-          icon={<Target className="h-5 w-5" />}
-          className="md:col-span-4"
-        >
-          <div className="space-y-5">
-            {[
-              { 
-                name: "Customer Retention Rate", 
-                value: "92%", 
-                target: "90%", 
-                progress: 92, 
-                status: "success", 
-                description: "2% above target" 
-              },
-              { 
-                name: "Sales Conversion Rate", 
-                value: "28%", 
-                target: "25%", 
-                progress: 88, 
-                status: "success", 
-                description: "3% above target" 
-              },
-              { 
-                name: "Sales Cycle Length", 
-                value: "38 days", 
-                target: "35 days", 
-                progress: 85, 
-                status: "warning", 
-                description: "3 days longer than target" 
-              },
-              { 
-                name: "Lead-to-Customer Ratio", 
-                value: "12%", 
-                target: "15%", 
-                progress: 80, 
-                status: "warning", 
-                description: "3% below target" 
-              },
-              { 
-                name: "Cross-selling Rate", 
-                value: "34%", 
-                target: "30%", 
-                progress: 90, 
-                status: "success", 
-                description: "4% above target" 
-              }
-            ].map((metric, index) => (
-              <div key={index}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm font-medium">{metric.name}</div>
-                  <div className="text-sm font-medium">{metric.value}</div>
-                </div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="text-xs text-muted-foreground">Target: {metric.target}</div>
-                  <div className={`text-xs ${
-                    metric.status === "success" ? "text-green-500" : 
-                    metric.status === "warning" ? "text-amber-500" : "text-red-500"
-                  }`}>
-                    {metric.description}
-                  </div>
-                </div>
-                <Progress value={metric.progress} className={`h-1.5 ${
-                  metric.status === "success" ? "bg-green-100 dark:bg-green-900/30" : 
-                  metric.status === "warning" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-red-100 dark:bg-red-900/30"
-                }`} />
+      
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue vs Expenses</CardTitle>
+            <CardDescription>Monthly breakdown of revenue against expenses</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="h-80 flex items-center justify-center">
+                <Skeleton className="h-64 w-full" />
               </div>
-            ))}
-          </div>
-        </DashboardCard>
-
-        <DashboardCard
-          title="Revenue Opportunities"
-          icon={<TrendingUp className="h-5 w-5" />}
-          className="md:col-span-3"
-        >
-          <div className="space-y-4">
-            {[
-              { 
-                title: "Upsell Premium Features", 
-                impact: "High", 
-                revenue: "$45,000", 
-                probability: "75%",
-                description: "Target customers using basic plan for over 6 months."
-              },
-              { 
-                title: "Enterprise Contract Renewals", 
-                impact: "High", 
-                revenue: "$120,000", 
-                probability: "90%",
-                description: "5 enterprise contracts due for renewal in Q3."
-              },
-              { 
-                title: "New Product Launch", 
-                impact: "Medium", 
-                revenue: "$65,000", 
-                probability: "60%",
-                description: "Projected revenue from Product E launch in August."
-              },
-              { 
-                title: "Expand to New Market", 
-                impact: "High", 
-                revenue: "$85,000", 
-                probability: "65%",
-                description: "Market entry planned for Q4, initial projections."
-              },
-              { 
-                title: "Partnership Program", 
-                impact: "Medium", 
-                revenue: "$38,000", 
-                probability: "80%",
-                description: "Revenue sharing from new channel partners."
-              }
-            ].map((opportunity, index) => (
-              <div key={index} className="border border-border p-4 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">{opportunity.title}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    opportunity.impact === "High" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                    "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                  }`}>
-                    {opportunity.impact} Impact
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">{opportunity.description}</p>
-                <div className="flex items-center justify-between mt-2 text-sm">
-                  <div className="font-medium">Potential: {opportunity.revenue}</div>
-                  <div>Probability: {opportunity.probability}</div>
-                </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={financialMetrics?.monthly_revenue}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `$${value}`} />
+                  <Legend />
+                  <Bar dataKey="revenue" fill="#8884d8" name="Revenue" />
+                  <Bar dataKey="expenses" fill="#82ca9d" name="Expenses" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by Client</CardTitle>
+            <CardDescription>Distribution of revenue across clients</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="h-80 flex items-center justify-center">
+                <Skeleton className="h-64 w-full" />
               </div>
-            ))}
-          </div>
-        </DashboardCard>
+            ) : (
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={financialMetrics?.revenue_by_client}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="revenue"
+                    nameKey="client_name"
+                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {financialMetrics?.revenue_by_client.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `$${value}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
+      
+      {/* Clients and Employees Tabs */}
+      <Tabs defaultValue="clients">
+        <TabsList>
+          <TabsTrigger value="clients">Clients</TabsTrigger>
+          <TabsTrigger value="employees">Employees</TabsTrigger>
+        </TabsList>
+        <TabsContent value="clients">
+          <ClientsList />
+        </TabsContent>
+        <TabsContent value="employees">
+          <EmployeesList />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
