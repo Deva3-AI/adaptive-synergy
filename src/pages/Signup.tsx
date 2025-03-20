@@ -20,7 +20,7 @@ const Signup = () => {
         </div>
         
         <div className="mt-8 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <AuthForm defaultMode="register" />
+          <AuthForm type="signup" />
         </div>
         
         <p className="mt-6 text-center text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "300ms" }}>

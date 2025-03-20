@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import AuthForm from "@/components/auth/AuthForm";
 
 const Login = () => {
@@ -19,10 +20,17 @@ const Login = () => {
         </div>
         
         <div className="mt-8 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <AuthForm />
+          <AuthForm type="login" />
         </div>
         
         <p className="mt-6 text-center text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "300ms" }}>
+          Don't have an account?{" "}
+          <Link to="/signup" className="font-medium text-accent hover:text-accent/80">
+            Sign up
+          </Link>
+        </p>
+        
+        <p className="mt-3 text-center text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "300ms" }}>
           By continuing, you agree to our{" "}
           <a href="#" className="font-medium text-accent hover:text-accent/80">
             Terms of Service
