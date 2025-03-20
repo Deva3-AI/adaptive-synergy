@@ -1,75 +1,112 @@
 
-# HyperFlow AI API
-
-Backend API for HyperFlow - AI-Powered Workflow & Insights Platform.
+# HyperFlow Backend
 
 ## Setup Instructions
 
-1. Create a virtual environment:
-   ```
-   python -m venv venv
-   ```
+### 1. Create a virtual environment
+```bash
+python -m venv venv
+```
 
-2. Activate the virtual environment:
-   - Windows: `venv\Scripts\activate`
-   - macOS/Linux: `source venv/bin/activate`
+### 2. Activate the virtual environment
+- On Windows:
+```bash
+venv\Scripts\activate
+```
+- On macOS/Linux:
+```bash
+source venv/bin/activate
+```
 
-3. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+### 3. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-4. Create a `.env` file in the backend directory with the following variables:
-   ```
-   # Database
-   DB_USER=root
-   DB_PASSWORD=your_password
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_NAME=hyperflow
+### 4. Set up MySQL database
+- Install MySQL if not already installed
+- Create the database and tables by running the SQL script:
+```bash
+mysql -u root -p < setup_db.sql
+```
+- Or open MySQL Workbench/CLI and run the contents of setup_db.sql
 
-   # JWT
-   SECRET_KEY=your_secret_key
+### 5. Configure environment variables
+- Create a .env file in the backend directory with the following variables:
+```
+DB_USER=root
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=hyperflow
 
-   # OpenAI
-   OPENAI_API_KEY=your_openai_api_key
-   ```
+SECRET_KEY=your-secret-key-should-be-at-least-32-characters-long
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-5. Initialize the database:
-   ```
-   python -c "from database import init_db; init_db()"
-   ```
+DEBUG=True
+CORS_ORIGINS=http://localhost:5173,http://localhost:8080
+```
 
-6. Run the application:
-   ```
-   uvicorn main:app --reload
-   ```
+### 6. Initialize the database
+```bash
+python init_db.py
+```
 
-7. Access the API documentation at http://localhost:8000/docs
+### 7. Run the FastAPI development server
+```bash
+python main.py
+```
+
+The API will be available at http://localhost:8000
+
+## API Documentation
+
+- OpenAPI documentation is available at http://localhost:8000/docs
+- ReDoc documentation is available at http://localhost:8000/redoc
 
 ## API Endpoints
 
-The API is organized into the following modules:
+### Authentication
+- POST /api/auth/register - Register a new user
+- POST /api/auth/token - Get access token (login)
+- GET /api/auth/me - Get current user profile
 
-- **Authentication**: User registration, login, and token management
-- **Employee**: Work tracking, task management, and performance analysis
-- **Client**: Client management, requirements analysis, and task generation
-- **Marketing**: Meeting analysis, campaign insights, and market trend analysis
-- **HR**: Employee management, attendance tracking, and recruitment tools
-- **Finance**: Invoice management, financial reporting, and cost analysis
+### Employee
+- GET /api/employee/tasks - Get tasks assigned to the employee
+- GET /api/employee/tasks/{task_id} - Get a specific task
+- PUT /api/employee/tasks/{task_id}/status - Update task status
+- POST /api/employee/attendance/login - Start work tracking
+- POST /api/employee/attendance/logout - End work tracking
+- GET /api/employee/attendance/today - Get today's attendance
+- GET /api/employee/attendance/history - Get attendance history
 
-Refer to the interactive API documentation for detailed endpoint specifications.
+### Client
+- GET /api/client/clients - Get list of clients
+- GET /api/client/clients/{client_id} - Get client details
+- POST /api/client/clients - Create a new client
+- PUT /api/client/clients/{client_id} - Update client details
+- GET /api/client/clients/{client_id}/tasks - Get tasks for a client
+- POST /api/client/tasks - Create a new task
 
-## AI Features
+### HR
+- GET /api/hr/attendance - Get attendance for all employees
+- GET /api/hr/attendance/{user_id} - Get attendance for a specific employee
+- GET /api/hr/payroll - Get payroll information
+- POST /api/hr/recruitment - Create a new job posting
+- GET /api/hr/recruitment - Get all job postings
 
-The backend includes several AI-powered features:
+### Finance
+- GET /api/finance/invoices - Get all invoices
+- POST /api/finance/invoices - Create a new invoice
+- GET /api/finance/invoices/{invoice_id} - Get invoice details
+- PUT /api/finance/invoices/{invoice_id}/status - Update invoice status
+- GET /api/finance/reports/revenue - Get revenue reports
+- GET /api/finance/reports/expenses - Get expense reports
 
-- Client input analysis to extract requirements and suggest tasks
-- Task timeline prediction based on historical data
-- Meeting transcript analysis for action items and insights
-- Marketing campaign analysis for optimization suggestions
-- Financial data analysis for business insights
-- Employee performance analysis
-- Resume screening for recruitment
-
-These features leverage OpenAI and other AI techniques to provide intelligent insights.
+### Marketing
+- GET /api/marketing/campaigns - Get all marketing campaigns
+- POST /api/marketing/campaigns - Create a new campaign
+- GET /api/marketing/meetings - Get scheduled meetings
+- POST /api/marketing/meetings - Schedule a new meeting
+- GET /api/marketing/analytics - Get marketing analytics

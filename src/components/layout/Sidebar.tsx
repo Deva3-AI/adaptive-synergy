@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -14,28 +14,28 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Briefcase,
+  Clock,
+  LineChart,
+  FileText,
+  CalendarCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
 
-const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Users, label: "Clients", path: "/clients" },
-  { icon: BarChart, label: "Analytics", path: "/analytics" },
-  { icon: Bell, label: "Notifications", path: "/notifications", badge: 3 },
-  { icon: CreditCard, label: "Finance", path: "/finance" },
-  { icon: Settings, label: "Settings", path: "/settings" },
-];
-
-interface SidebarProps {
-  className?: string;
-}
-
-const Sidebar = ({ className }: SidebarProps) => {
+const Sidebar = ({ className }: { className?: string }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout, isEmployee, isClient, isMarketing, isHR, isFinance } = useAuth();
+  const location = useLocation();
+
+  // Close mobile sidebar when location changes
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
@@ -43,6 +43,74 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const toggleMobileSidebar = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  // Generate navigation items based on user role
+  const getNavItems = () => {
+    const commonItems = [
+      { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+      { icon: User, label: "Profile", path: "/profile" },
+      { icon: Settings, label: "Settings", path: "/settings" },
+    ];
+
+    if (isEmployee) {
+      return [
+        ...commonItems,
+        { icon: Briefcase, label: "Tasks", path: "/employee/tasks" },
+        { icon: Clock, label: "Time Tracking", path: "/employee/dashboard" },
+      ];
+    }
+
+    if (isClient) {
+      return [
+        ...commonItems,
+        { icon: Briefcase, label: "Projects", path: "/client/tasks" },
+        { icon: FileText, label: "Reports", path: "/client/reports" },
+      ];
+    }
+
+    if (isMarketing) {
+      return [
+        ...commonItems,
+        { icon: BarChart, label: "Campaigns", path: "/marketing/campaigns" },
+        { icon: CalendarCheck, label: "Meetings", path: "/marketing/meetings" },
+        { icon: LineChart, label: "Analytics", path: "/marketing/analytics" },
+      ];
+    }
+
+    if (isHR) {
+      return [
+        ...commonItems,
+        { icon: Users, label: "Attendance", path: "/hr/attendance" },
+        { icon: User, label: "Recruitment", path: "/hr/recruitment" },
+        { icon: CreditCard, label: "Payroll", path: "/hr/payroll" },
+        { icon: FileText, label: "Reports", path: "/hr/reports" },
+      ];
+    }
+
+    if (isFinance) {
+      return [
+        ...commonItems,
+        { icon: CreditCard, label: "Invoices", path: "/finance/invoices" },
+        { icon: BarChart, label: "Cost Analysis", path: "/finance/cost-analysis" },
+        { icon: LineChart, label: "Performance", path: "/finance/performance" },
+        { icon: FileText, label: "Reports", path: "/finance/reports" },
+      ];
+    }
+
+    // Default navigation items if no specific role is matched
+    return [
+      ...commonItems,
+      { icon: Users, label: "Clients", path: "/clients" },
+      { icon: BarChart, label: "Analytics", path: "/analytics" },
+      { icon: Bell, label: "Notifications", path: "/notifications", badge: 3 },
+    ];
+  };
+
+  const navItems = getNavItems();
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -153,14 +221,14 @@ const Sidebar = ({ className }: SidebarProps) => {
                   )}
                 >
                   <Avatar className={cn("h-8 w-8", collapsed ? "mr-0" : "mr-2")}>
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>JD</AvatarFallback>
+                    <AvatarImage src="https://github.com/shadcn.png" alt={user?.name || "User"} />
+                    <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
                   </Avatar>
                   {!collapsed && (
                     <div className="flex-1 truncate">
-                      <div className="text-sm font-medium">John Doe</div>
+                      <div className="text-sm font-medium">{user?.name || "Guest User"}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        john.doe@example.com
+                        {user?.email || "guest@example.com"}
                       </div>
                     </div>
                   )}
@@ -168,9 +236,9 @@ const Sidebar = ({ className }: SidebarProps) => {
               </TooltipTrigger>
               {collapsed && (
                 <TooltipContent side="right" sideOffset={10}>
-                  <p className="font-medium">John Doe</p>
+                  <p className="font-medium">{user?.name || "Guest User"}</p>
                   <p className="text-xs text-muted-foreground">
-                    john.doe@example.com
+                    {user?.email || "guest@example.com"}
                   </p>
                 </TooltipContent>
               )}
@@ -187,6 +255,7 @@ const Sidebar = ({ className }: SidebarProps) => {
                     "mt-2 w-full justify-start text-muted-foreground hover:text-sidebar-foreground",
                     collapsed && "justify-center px-0"
                   )}
+                  onClick={handleLogout}
                 >
                   <LogOut className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
                   {!collapsed && <span>Log out</span>}
