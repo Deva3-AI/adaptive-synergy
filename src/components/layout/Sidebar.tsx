@@ -34,7 +34,12 @@ type NavItem = {
   badge?: number;
 };
 
-const Sidebar = ({ className }: { className?: string }) => {
+interface SidebarProps {
+  className?: string;
+  isMobile?: boolean;
+}
+
+const Sidebar = ({ className, isMobile = false }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout, isEmployee, isClient, isMarketing, isHR, isFinance } = useAuth();
@@ -121,20 +126,23 @@ const Sidebar = ({ className }: { className?: string }) => {
     logout();
   };
 
+  // If in mobile view, don't render the sidebar trigger button
   return (
     <>
-      {/* Mobile sidebar trigger */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50"
-        onClick={toggleMobileSidebar}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
+      {/* Mobile sidebar trigger - only show if not already in mobile sidebar */}
+      {!isMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden fixed top-4 left-4 z-50"
+          onClick={toggleMobileSidebar}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      )}
 
       {/* Sidebar backdrop for mobile */}
-      {mobileOpen && (
+      {mobileOpen && !isMobile && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setMobileOpen(false)}
@@ -146,7 +154,7 @@ const Sidebar = ({ className }: { className?: string }) => {
         className={cn(
           "fixed top-0 left-0 z-50 h-full bg-sidebar transition-all duration-300 ease-in-out border-r border-sidebar-border flex flex-col",
           collapsed ? "w-[70px]" : "w-[240px]",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          isMobile ? "translate-x-0 relative w-full h-full border-0" : mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className
         )}
       >
@@ -160,17 +168,19 @@ const Sidebar = ({ className }: { className?: string }) => {
               <span className="font-display font-semibold text-lg">Hive</span>
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-8 w-8 p-0 rounded-full",
-              collapsed && "mx-auto"
-            )}
-            onClick={toggleSidebar}
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 w-8 p-0 rounded-full",
+                collapsed && "mx-auto"
+              )}
+              onClick={toggleSidebar}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
 
         {/* Navigation */}
