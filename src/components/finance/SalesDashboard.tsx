@@ -47,7 +47,7 @@ const SalesDashboard = () => {
   const { data: clients } = useClients();
   
   // Fetch sales data
-  const { data: salesData, isLoading } = useQuery({
+  const { data: salesData, isLoading } = useQuery<SalesData>({
     queryKey: ['salesData'],
     queryFn: async () => {
       try {
@@ -84,11 +84,11 @@ const SalesDashboard = () => {
               { service: "Content", value: 12 },
               { service: "Other", value: 8 }
             ]
-          } as SalesData;
+          };
         }
         
         // Regular API call
-        const response = await fetchData('/finance/reports/sales');
+        const response = await fetchData<SalesData>('/finance/reports/sales');
         return response;
       } catch (error) {
         console.error('Error fetching sales data:', error);
@@ -125,7 +125,7 @@ const SalesDashboard = () => {
             { service: "Content", value: 12 },
             { service: "Other", value: 8 }
           ]
-        } as SalesData;
+        };
       }
     }
   });
@@ -144,13 +144,13 @@ const SalesDashboard = () => {
   }
 
   // Use real clients if available
-  const topClients = salesData?.top_clients.map(client => {
+  const topClients = salesData?.top_clients?.map(client => {
     const realClient = clients?.find(c => c.client_id === client.client_id);
     return {
       ...client,
       client_name: realClient?.client_name || client.client_name
     };
-  });
+  }) || [];
 
   // Calculate annual progress percentage
   const annualProgress = salesData ? 
@@ -277,7 +277,7 @@ const SalesDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {topClients?.map((client, index) => (
+              {topClients.map((client, index) => (
                 <tr key={client.client_id} className={index !== topClients.length - 1 ? "border-b" : ""}>
                   <td className="py-3 px-4 font-medium">{client.client_name}</td>
                   <td className="py-3 px-4 text-right">{formatCurrency(client.revenue)}</td>

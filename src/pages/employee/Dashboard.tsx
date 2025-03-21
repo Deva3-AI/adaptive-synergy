@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   BarChart,
@@ -101,7 +100,7 @@ const EmployeeDashboard = () => {
   const currentUser = getCurrentUser();
   
   // Fetch tasks assigned to the current user
-  const { data: tasks, isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
+  const { data: tasks, isLoading: tasksLoading, refetch: refetchTasks } = useQuery<Task[]>({
     queryKey: ['employeeTasks'],
     queryFn: async () => {
       try {
@@ -160,7 +159,7 @@ const EmployeeDashboard = () => {
         }
         
         // Regular API call
-        const response = await fetchData('/employee/tasks');
+        const response = await fetchData<Task[]>('/employee/tasks');
         return response;
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -197,7 +196,7 @@ const EmployeeDashboard = () => {
   });
 
   // Fetch active task status
-  const { data: activeTask, isLoading: activeTaskLoading, refetch: refetchActiveTask } = useQuery({
+  const { data: activeTask, isLoading: activeTaskLoading, refetch: refetchActiveTask } = useQuery<Task | null>({
     queryKey: ['activeTask'],
     queryFn: async () => {
       try {
@@ -205,7 +204,7 @@ const EmployeeDashboard = () => {
           return null;
         }
         
-        const response = await fetchData('/employee/tasks/active');
+        const response = await fetchData<Task | null>('/employee/tasks/active');
         return response;
       } catch (error) {
         console.error('Error fetching active task:', error);
@@ -266,7 +265,7 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Calculate task statistics
+  // Calculate task statistics - using safe defaults when tasks is undefined
   const completedTasks = tasks?.filter(task => task.status === "completed")?.length || 0;
   const totalTasks = tasks?.length || 0;
   const tasksProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -285,17 +284,19 @@ const EmployeeDashboard = () => {
     { name: "Sun", hours: 0, tasks: 0, completed: 0 },
   ];
 
+  // Create safe task priority data with defaults
   const taskPriorityData = [
-    { name: "High", value: tasks?.filter(task => task.priority === "High").length || 4 },
-    { name: "Medium", value: tasks?.filter(task => task.priority === "Medium").length || 8 },
-    { name: "Low", value: tasks?.filter(task => task.priority === "Low").length || 3 },
+    { name: "High", value: tasks?.filter(task => task.priority === "High")?.length || 4 },
+    { name: "Medium", value: tasks?.filter(task => task.priority === "Medium")?.length || 8 },
+    { name: "Low", value: tasks?.filter(task => task.priority === "Low")?.length || 3 },
   ];
 
+  // Create safe task status data with defaults
   const taskStatusData = [
-    { name: "Not Started", value: tasks?.filter(task => task.status === "pending").length || 2 },
-    { name: "In Progress", value: tasks?.filter(task => task.status === "in_progress").length || 8 },
-    { name: "Completed", value: tasks?.filter(task => task.status === "completed").length || 12 },
-    { name: "On Hold", value: tasks?.filter(task => task.status === "cancelled").length || 1 },
+    { name: "Not Started", value: tasks?.filter(task => task.status === "pending")?.length || 2 },
+    { name: "In Progress", value: tasks?.filter(task => task.status === "in_progress")?.length || 8 },
+    { name: "Completed", value: tasks?.filter(task => task.status === "completed")?.length || 12 },
+    { name: "On Hold", value: tasks?.filter(task => task.status === "cancelled")?.length || 1 },
   ];
 
   return (
@@ -548,7 +549,7 @@ const EmployeeDashboard = () => {
           badgeVariant="success"
         >
           <div className="space-y-4">
-            {employees ? (
+            {employees && employees.length > 0 ? (
               employees.slice(0, 4).map((employee: Employee) => (
                 <div key={employee.user_id} className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10 border-2 border-green-500">
