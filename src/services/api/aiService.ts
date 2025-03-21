@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -279,6 +278,103 @@ const mockGeneratePerformanceInsights = async (employeeId: number) => {
   };
 };
 
+const mockGetAssistantResponse = async (query: string, context: any) => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // List of potential responses based on keywords in the query
+  const keywordResponses: Record<string, string> = {
+    // General inquiries
+    'hello': `Hello! I'm the Hive Assistant. I can help you with information about tasks, clients, employees, and projects.`,
+    'help': `I can assist you with various aspects of the Hive platform. You can ask about clients, tasks, employees, financial data, or request AI insights on specific topics.`,
+    
+    // Task related
+    'task': `Based on your current data, you have ${context.tasks?.length || 0} tasks in the system. ${context.tasks?.filter(t => t.status === 'pending').length || 0} are pending, ${context.tasks?.filter(t => t.status === 'in_progress').length || 0} are in progress, and ${context.tasks?.filter(t => t.status === 'completed').length || 0} are completed.`,
+    'deadline': `I notice you have ${context.tasks?.filter(t => t.status !== 'completed').length || 0} open tasks. Would you like me to help prioritize them based on deadlines and importance?`,
+    
+    // Client related
+    'client': `You currently have ${context.clients?.length || 0} clients in your system. The most active clients based on task count are ${context.clients?.slice(0, 3).map(c => c.client_name).join(', ')}.`,
+    
+    // Employee related
+    'employee': `Your team consists of ${context.employees?.length || 0} employees across various roles. Would you like to see performance metrics or attendance data?`,
+    'performance': `Based on the available data, I can analyze employee performance across task completion rates, punctuality, and efficiency. Would you like me to generate a detailed report?`,
+    
+    // Financial
+    'finance': `I can provide financial insights based on your revenue, expenses, and profit margins. Would you like me to analyze trends or suggest optimization opportunities?`,
+    'invoice': `Your invoice management system shows various clients with different payment statuses. I can help track overdue payments and suggest follow-up actions.`,
+    
+    // AI features
+    'ai feature': `Hive has several AI-powered features, including client input analysis, task timeline prediction, meeting transcript analysis, financial data insights, and employee performance evaluation. Which would you like to know more about?`,
+    'suggest': `Based on your current projects and tasks, I'd recommend focusing on completing high-priority client deliverables first. Would you like specific task recommendations?`,
+    
+    // Analytics
+    'analytics': `I can provide analytics on various aspects of your business including client satisfaction, project timelines, resource utilization, and financial performance. What specific area are you interested in?`,
+    'report': `I can generate comprehensive reports on project status, employee productivity, client engagement, or financial performance. Which type of report would be most useful for you right now?`,
+    
+    // Insights
+    'insight': `Based on your current data, I notice that projects for Client A typically take 20% longer than estimated. Consider adjusting your time estimates for future projects with them.`,
+  };
+  
+  // Default fallback response
+  let response = `I understand you're asking about "${query}". While I don't have specific information on this exact query, I can help with details about your clients, tasks, employees, or provide AI-powered insights if you ask more specifically.`;
+  
+  // Check for keyword matches
+  const lowercaseQuery = query.toLowerCase();
+  for (const [keyword, reply] of Object.entries(keywordResponses)) {
+    if (lowercaseQuery.includes(keyword)) {
+      response = reply;
+      break;
+    }
+  }
+  
+  // Special case for task-specific questions
+  if (lowercaseQuery.includes('task') && /\d+/.test(lowercaseQuery)) {
+    const taskIdMatch = lowercaseQuery.match(/\d+/);
+    if (taskIdMatch && context.tasks) {
+      const taskId = parseInt(taskIdMatch[0]);
+      const task = context.tasks.find(t => t.task_id === taskId);
+      
+      if (task) {
+        response = `Task #${taskId}: "${task.title}" is currently ${task.status}. ${
+          task.assigned_to 
+            ? `It's assigned to ${task.assignee_name || 'an employee'}.` 
+            : 'It's not assigned to anyone yet.'
+        } ${
+          task.estimated_time 
+            ? `The estimated completion time is ${task.estimated_time} hours.` 
+            : ''
+        }`;
+      }
+    }
+  }
+  
+  // Special case for client-specific questions
+  if (lowercaseQuery.includes('client') && /\d+/.test(lowercaseQuery)) {
+    const clientIdMatch = lowercaseQuery.match(/\d+/);
+    if (clientIdMatch && context.clients) {
+      const clientId = parseInt(clientIdMatch[0]);
+      const client = context.clients.find(c => c.client_id === clientId);
+      
+      if (client) {
+        const clientTasks = context.tasks?.filter(t => t.client_id === clientId) || [];
+        response = `Client #${clientId}: "${client.client_name}". ${
+          client.description ? `Description: ${client.description}.` : ''
+        } They have ${clientTasks.length} tasks in the system (${
+          clientTasks.filter(t => t.status === 'completed').length
+        } completed, ${
+          clientTasks.filter(t => t.status !== 'completed').length
+        } open).`;
+      }
+    }
+  }
+  
+  return {
+    message: response,
+    confidence: 0.85,
+    sources: []
+  };
+};
+
 // Exported AI service functions that utilize either real API calls or mock implementations
 export const aiService = {
   analyzeClientInput: async (text: string, clientHistory?: any[]) => {
@@ -370,7 +466,21 @@ export const aiService = {
       console.log('Using mock AI service for performance insights');
       return mockGeneratePerformanceInsights(employeeId);
     }
+  },
+  
+  getAssistantResponse: async (query: string, context: any) => {
+    try {
+      const response = await axios.post(`${API_URL}/ai/assistant`, {
+        query,
+        context
+      });
+      return response.data;
+    } catch (error) {
+      console.log('Using mock AI service for assistant response');
+      return mockGetAssistantResponse(query, context);
+    }
   }
 };
 
 export default aiService;
+

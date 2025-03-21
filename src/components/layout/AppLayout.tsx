@@ -1,38 +1,33 @@
 
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
-import Sidebar from "./Sidebar";
-import Header from "./Header";
-import MobileSidebar from "./MobileSidebar";
-import { useMediaQuery } from "@/hooks/use-media-query";
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import Header from './Header';
+import MobileSidebar from './MobileSidebar';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import AIAssistant from '@/components/ai/AIAssistant';
+import { Toaster } from '@/components/ui/sonner';
 
 const AppLayout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar for desktop */}
-      {isDesktop && <Sidebar />}
+    <div className="flex h-screen bg-background">
+      {/* Sidebar - only visible on desktop */}
+      {isDesktop ? <Sidebar className="hidden lg:flex" /> : <MobileSidebar />}
       
-      {/* Mobile sidebar drawer */}
-      {!isDesktop && (
-        <MobileSidebar 
-          isOpen={isSidebarOpen} 
-          onClose={() => setIsSidebarOpen(false)} 
-        />
-      )}
-      
-      <div className="flex flex-col flex-1">
-        <Header 
-          onMenuClick={() => setIsSidebarOpen(true)}
-          appName="Hive"
-        />
-        
-        <main className="flex-1 px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col flex-1 w-full overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>
+      
+      {/* AI Assistant */}
+      <AIAssistant />
+      
+      {/* Toaster for notifications */}
+      <Toaster />
     </div>
   );
 };
