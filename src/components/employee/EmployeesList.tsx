@@ -6,26 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useEmployees } from "@/utils/apiUtils";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface Employee {
-  user_id: number;
-  name: string;
-  email: string;
-  role: {
-    role_name: string;
-  };
-  created_at?: string;
-}
+import { Employee } from "@/utils/apiUtils";
 
 const EmployeesList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: employees, isLoading, error } = useEmployees();
 
   // Filter employees based on search term
-  const filteredEmployees = employees?.filter((employee: Employee) => 
+  const filteredEmployees = employees?.filter((employee) => 
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.role?.role_name.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.role_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Get role color
@@ -88,13 +79,13 @@ const EmployeesList = () => {
               </TableHeader>
               <TableBody>
                 {filteredEmployees?.length > 0 ? (
-                  filteredEmployees.map((employee: Employee) => (
+                  filteredEmployees.map((employee) => (
                     <TableRow key={employee.user_id}>
                       <TableCell className="font-medium">{employee.name}</TableCell>
                       <TableCell>{employee.email}</TableCell>
                       <TableCell>
-                        <Badge className={`${getRoleColor(employee.role?.role_name)}`}>
-                          {employee.role?.role_name}
+                        <Badge className={`${getRoleColor(employee.role_name)}`}>
+                          {employee.role_name}
                         </Badge>
                       </TableCell>
                     </TableRow>
