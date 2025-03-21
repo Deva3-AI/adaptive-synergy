@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   BarChart,
   Clock,
@@ -12,7 +12,9 @@ import {
   User,
   LineChart,
   ArrowUpRight,
-  AlertCircle
+  AlertCircle,
+  PlayCircle,
+  StopCircle
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardCard from "@/components/dashboard/DashboardCard";
@@ -21,69 +23,34 @@ import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { fetchData, postData } from "@/utils/apiUtils";
+import { useEmployees } from "@/utils/apiUtils";
 
-// Sample data for charts
-const weeklyActivityData = [
-  { name: "Mon", hours: 7.5, tasks: 5, completed: 4 },
-  { name: "Tue", hours: 8.2, tasks: 7, completed: 6 },
-  { name: "Wed", hours: 7.8, tasks: 6, completed: 5 },
-  { name: "Thu", hours: 8.5, tasks: 8, completed: 7 },
-  { name: "Fri", hours: 6.5, tasks: 4, completed: 4 },
-  { name: "Sat", hours: 2.0, tasks: 2, completed: 2 },
-  { name: "Sun", hours: 0, tasks: 0, completed: 0 },
-];
+// Types for the data
+interface Task {
+  task_id: number;
+  title: string;
+  client_name: string;
+  description: string;
+  status: string;
+  estimated_time: number;
+  actual_time: number;
+  due_date?: string;
+  progress: number;
+  priority: string;
+}
 
-const taskPriorityData = [
-  { name: "High", value: 4 },
-  { name: "Medium", value: 8 },
-  { name: "Low", value: 3 },
-];
-
-const taskStatusData = [
-  { name: "Not Started", value: 2 },
-  { name: "In Progress", value: 8 },
-  { name: "Completed", value: 12 },
-  { name: "On Hold", value: 1 },
-];
-
-const upcomingTasks = [
-  {
-    id: 1,
-    title: "Website redesign for TechCorp",
-    client: "TechCorp",
-    due: "Today at 4:00 PM",
-    priority: "High",
-    status: "In Progress",
-    progress: 65,
-  },
-  {
-    id: 2,
-    title: "Mobile app wireframes",
-    client: "Acme Inc.",
-    due: "Tomorrow at 12:00 PM",
-    priority: "Medium",
-    status: "Not Started",
-    progress: 0,
-  },
-  {
-    id: 3,
-    title: "Marketing banner designs",
-    client: "Growth Hackers",
-    due: "Sep 22, 2023",
-    priority: "Medium",
-    status: "In Progress",
-    progress: 30,
-  },
-  {
-    id: 4,
-    title: "Client presentation slides",
-    client: "NewStart LLC",
-    due: "Sep 23, 2023",
-    priority: "High",
-    status: "Not Started",
-    progress: 0,
-  },
-];
+interface Employee {
+  user_id: number;
+  name: string;
+  email: string;
+  role: {
+    role_name: string;
+  };
+}
 
 const getPriorityBadgeVariant = (priority: string) => {
   switch (priority) {
@@ -100,13 +67,13 @@ const getPriorityBadgeVariant = (priority: string) => {
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status) {
-    case "Completed":
+    case "completed":
       return "success";
-    case "In Progress":
+    case "in_progress":
       return "accent";
-    case "Not Started":
+    case "pending":
       return "outline";
-    case "On Hold":
+    case "cancelled":
       return "warning";
     default:
       return "outline";
@@ -114,12 +81,229 @@ const getStatusBadgeVariant = (status: string) => {
 };
 
 const EmployeeDashboard = () => {
+  const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
+  const { data: employees } = useEmployees();
+  
+  // Get current user info from local storage
+  const getCurrentUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        return JSON.parse(userStr);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
+  };
+  
+  const currentUser = getCurrentUser();
+  
+  // Fetch tasks assigned to the current user
+  const { data: tasks, isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
+    queryKey: ['employeeTasks'],
+    queryFn: async () => {
+      try {
+        if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
+          // In development, if backend is not available, use mock data
+          return [
+            {
+              task_id: 1,
+              title: "Website redesign for TechCorp",
+              client_name: "TechCorp",
+              description: "Redesign the homepage and product pages",
+              status: "in_progress",
+              estimated_time: 8.0,
+              actual_time: 4.5,
+              due_date: "Today at 4:00 PM",
+              progress: 65,
+              priority: "High"
+            },
+            {
+              task_id: 2,
+              title: "Mobile app wireframes",
+              client_name: "Acme Inc.",
+              description: "Create wireframes for the mobile app",
+              status: "pending",
+              estimated_time: 6.0,
+              actual_time: 0,
+              due_date: "Tomorrow at 12:00 PM",
+              progress: 0,
+              priority: "Medium"
+            },
+            {
+              task_id: 3,
+              title: "Marketing banner designs",
+              client_name: "Growth Hackers",
+              description: "Create marketing banners for social media",
+              status: "in_progress",
+              estimated_time: 3.0,
+              actual_time: 1.0,
+              due_date: "Sep 22, 2023",
+              progress: 30,
+              priority: "Medium"
+            },
+            {
+              task_id: 4,
+              title: "Client presentation slides",
+              client_name: "NewStart LLC",
+              description: "Create presentation slides for the client meeting",
+              status: "pending",
+              estimated_time: 4.0,
+              actual_time: 0,
+              due_date: "Sep 23, 2023",
+              progress: 0,
+              priority: "High"
+            }
+          ];
+        }
+        
+        // Regular API call
+        const response = await fetchData('/employee/tasks');
+        return response;
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        
+        // Fallback data
+        return [
+          {
+            task_id: 1,
+            title: "Website redesign for Social Land",
+            client_name: "Social Land",
+            description: "Redesign the homepage and product pages",
+            status: "in_progress",
+            estimated_time: 8.0,
+            actual_time: 4.5,
+            due_date: "Today at 4:00 PM",
+            progress: 65,
+            priority: "High"
+          },
+          {
+            task_id: 2,
+            title: "Mobile app wireframes",
+            client_name: "Koala Digital",
+            description: "Create wireframes for the mobile app",
+            status: "pending",
+            estimated_time: 6.0,
+            actual_time: 0,
+            due_date: "Tomorrow at 12:00 PM",
+            progress: 0,
+            priority: "Medium"
+          }
+        ];
+      }
+    }
+  });
+
+  // Fetch active task status
+  const { data: activeTask, isLoading: activeTaskLoading, refetch: refetchActiveTask } = useQuery({
+    queryKey: ['activeTask'],
+    queryFn: async () => {
+      try {
+        if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
+          return null;
+        }
+        
+        const response = await fetchData('/employee/tasks/active');
+        return response;
+      } catch (error) {
+        console.error('Error fetching active task:', error);
+        return null;
+      }
+    }
+  });
+
+  // Set active task from API response
+  useEffect(() => {
+    if (activeTask && activeTask.task_id) {
+      setActiveTaskId(activeTask.task_id);
+    }
+  }, [activeTask]);
+
+  // Start a task
+  const startTask = async (taskId: number) => {
+    try {
+      // If another task is active, stop it first
+      if (activeTaskId && activeTaskId !== taskId) {
+        await stopTask(activeTaskId);
+      }
+      
+      if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
+        setActiveTaskId(taskId);
+        toast.success(`Started work on task #${taskId}`);
+        return;
+      }
+      
+      await postData('/employee/tasks/start', { task_id: taskId });
+      setActiveTaskId(taskId);
+      toast.success(`Started work on task #${taskId}`);
+      refetchTasks();
+      refetchActiveTask();
+    } catch (error) {
+      console.error('Error starting task:', error);
+      toast.error('Failed to start task. Please try again.');
+    }
+  };
+
+  // Stop a task
+  const stopTask = async (taskId: number) => {
+    try {
+      if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
+        setActiveTaskId(null);
+        toast.success(`Stopped work on task #${taskId}`);
+        return;
+      }
+      
+      await postData('/employee/tasks/stop', { task_id: taskId });
+      setActiveTaskId(null);
+      toast.success(`Stopped work on task #${taskId}`);
+      refetchTasks();
+      refetchActiveTask();
+    } catch (error) {
+      console.error('Error stopping task:', error);
+      toast.error('Failed to stop task. Please try again.');
+    }
+  };
+
+  // Calculate task statistics
+  const completedTasks = tasks?.filter(task => task.status === "completed")?.length || 0;
+  const totalTasks = tasks?.length || 0;
+  const tasksProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  
+  // Get current user's role
+  const currentUserRole = employees?.find(emp => emp.email === currentUser?.email)?.role?.role_name || 'Employee';
+
+  // Convert tasks to chart data
+  const weeklyActivityData = [
+    { name: "Mon", hours: 7.5, tasks: 5, completed: 4 },
+    { name: "Tue", hours: 8.2, tasks: 7, completed: 6 },
+    { name: "Wed", hours: 7.8, tasks: 6, completed: 5 },
+    { name: "Thu", hours: 8.5, tasks: 8, completed: 7 },
+    { name: "Fri", hours: 6.5, tasks: 4, completed: 4 },
+    { name: "Sat", hours: 2.0, tasks: 2, completed: 2 },
+    { name: "Sun", hours: 0, tasks: 0, completed: 0 },
+  ];
+
+  const taskPriorityData = [
+    { name: "High", value: tasks?.filter(task => task.priority === "High").length || 4 },
+    { name: "Medium", value: tasks?.filter(task => task.priority === "Medium").length || 8 },
+    { name: "Low", value: tasks?.filter(task => task.priority === "Low").length || 3 },
+  ];
+
+  const taskStatusData = [
+    { name: "Not Started", value: tasks?.filter(task => task.status === "pending").length || 2 },
+    { name: "In Progress", value: tasks?.filter(task => task.status === "in_progress").length || 8 },
+    { name: "Completed", value: tasks?.filter(task => task.status === "completed").length || 12 },
+    { name: "On Hold", value: tasks?.filter(task => task.status === "cancelled").length || 1 },
+  ];
+
   return (
     <div className="space-y-8 animate-blur-in">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Employee Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back! Monitor your tasks, track your time, and enhance your productivity
+          Welcome back, {currentUser?.name || 'Employee'}! ({currentUserRole}) Monitor your tasks, track your time, and enhance your productivity
         </p>
       </div>
 
@@ -130,10 +314,10 @@ const EmployeeDashboard = () => {
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">2 completed, 3 remaining</p>
+            <div className="text-2xl font-bold">{totalTasks}</div>
+            <p className="text-xs text-muted-foreground">{completedTasks} completed, {totalTasks - completedTasks} remaining</p>
             <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div className="bg-primary h-full" style={{ width: "40%" }} />
+              <div className="bg-primary h-full" style={{ width: `${tasksProgress}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -144,10 +328,16 @@ const EmployeeDashboard = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4h 25m</div>
+            <div className="text-2xl font-bold">
+              {activeTaskId ? 
+                <span className="text-green-500 flex items-center gap-1">
+                  <Clock8 className="h-4 w-4" /> Active
+                </span> : '0h 0m'
+              }
+            </div>
             <p className="text-xs text-muted-foreground">Target: 8 hours</p>
             <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div className="bg-primary h-full" style={{ width: "55%" }} />
+              <div className="bg-primary h-full" style={{ width: activeTaskId ? "55%" : "0%" }} />
             </div>
           </CardContent>
         </Card>
@@ -245,42 +435,66 @@ const EmployeeDashboard = () => {
       </div>
 
       <DashboardCard
-        title="Upcoming Tasks"
+        title="My Tasks"
         icon={<Briefcase className="h-5 w-5" />}
         badgeText="Priority"
         badgeVariant="outline"
       >
         <div className="space-y-4">
-          {upcomingTasks.map((task) => (
-            <div 
-              key={task.id} 
-              className="p-4 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h4 className="font-medium">{task.title}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {task.client} • Due {task.due}
-                  </p>
+          {tasksLoading ? (
+            <div>Loading tasks...</div>
+          ) : tasks && tasks.length > 0 ? (
+            tasks.map((task: Task) => (
+              <div 
+                key={task.task_id} 
+                className="p-4 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium">{task.title}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {task.client_name} • Due {task.due_date || 'Not set'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge variant={getPriorityBadgeVariant(task.priority)} size="sm">
+                      {task.priority}
+                    </Badge>
+                    <Badge variant={getStatusBadgeVariant(task.status)} size="sm">
+                      {task.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Badge variant={getPriorityBadgeVariant(task.priority)} size="sm">
-                    {task.priority}
-                  </Badge>
-                  <Badge variant={getStatusBadgeVariant(task.status)} size="sm">
-                    {task.status}
-                  </Badge>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Progress</span>
+                    <span>{task.progress}%</span>
+                  </div>
+                  <Progress value={task.progress} className="h-1.5" />
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  {activeTaskId === task.task_id ? (
+                    <Button variant="destructive" size="sm" onClick={() => stopTask(task.task_id)}>
+                      <StopCircle className="h-4 w-4 mr-1" /> Stop Work
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={() => startTask(task.task_id)}
+                      disabled={activeTaskId !== null && activeTaskId !== task.task_id}
+                    >
+                      <PlayCircle className="h-4 w-4 mr-1" /> Start Work
+                    </Button>
+                  )}
                 </div>
               </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Progress</span>
-                  <span>{task.progress}%</span>
-                </div>
-                <Progress value={task.progress} className="h-1.5" />
-              </div>
+            ))
+          ) : (
+            <div className="text-center p-4 text-muted-foreground">
+              No tasks assigned to you at the moment.
             </div>
-          ))}
+          )}
         </div>
       </DashboardCard>
 
@@ -334,62 +548,28 @@ const EmployeeDashboard = () => {
           badgeVariant="success"
         >
           <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 border-2 border-green-500">
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Jane Doe</h4>
-                  <Badge variant="outline" size="sm">Team Lead</Badge>
+            {employees ? (
+              employees.slice(0, 4).map((employee: Employee) => (
+                <div key={employee.user_id} className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10 border-2 border-green-500">
+                    <AvatarFallback>{employee.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">{employee.name}</h4>
+                      <Badge variant="outline" size="sm">{employee.role.role_name}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Online • {employee.email}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Online • Working on TechCorp Project
-                </p>
+              ))
+            ) : (
+              <div className="text-center p-4 text-muted-foreground">
+                Loading team members...
               </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 border-2 border-green-500">
-                <AvatarFallback>MS</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Mike Smith</h4>
-                  <Badge variant="outline" size="sm">Developer</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Online • Working on API Integration
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 border-2 border-muted">
-                <AvatarFallback>SC</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Sarah Chen</h4>
-                  <Badge variant="outline" size="sm">Designer</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Offline • Last active 35 min ago
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 border-2 border-green-500">
-                <AvatarFallback>RJ</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Robert Johnson</h4>
-                  <Badge variant="outline" size="sm">Designer</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Online • Working on Acme Inc. Project
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </DashboardCard>
       </div>

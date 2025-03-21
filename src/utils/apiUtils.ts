@@ -209,10 +209,121 @@ export const useEmployees = () => {
   });
 };
 
+// Custom hook for fetching tasks
+export const useTasks = (status?: string) => {
+  return useQuery({
+    queryKey: ['tasks', status],
+    queryFn: async () => {
+      try {
+        let url = '/employee/tasks';
+        if (status) {
+          url += `?status=${status}`;
+        }
+        
+        const response = await apiClient.get(url);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        throw error;
+      }
+    }
+  });
+};
+
+// Custom hook for fetching task details
+export const useTaskDetails = (taskId: number) => {
+  return useQuery({
+    queryKey: ['taskDetails', taskId],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get(`/employee/tasks/${taskId}`);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching task details:', error);
+        throw error;
+      }
+    },
+    enabled: !!taskId
+  });
+};
+
+// Custom hook for updating task status
+export const useUpdateTaskStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ taskId, status }: { taskId: number, status: string }) => {
+      const response = await apiClient.put(`/employee/tasks/${taskId}/status`, { status });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Task status updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.detail || 
+        'Failed to update task status. Please try again.'
+      );
+    }
+  });
+};
+
+// Custom hook for starting a task
+export const useStartTask = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await apiClient.post('/employee/tasks/start', { task_id: taskId });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['activeTask'] });
+      toast.success(`Started work on task #${data.task_id}`);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.detail || 
+        'Failed to start task. Please try again.'
+      );
+    }
+  });
+};
+
+// Custom hook for stopping a task
+export const useStopTask = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await apiClient.post('/employee/tasks/stop', { task_id: taskId });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['activeTask'] });
+      toast.success(`Stopped work on task #${data.task_id}`);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.detail || 
+        'Failed to stop task. Please try again.'
+      );
+    }
+  });
+};
+
 export default {
   fetchData,
   postData,
   updateData,
   useClients,
-  useEmployees
+  useEmployees,
+  useTasks,
+  useTaskDetails,
+  useUpdateTaskStatus,
+  useStartTask,
+  useStopTask
 };

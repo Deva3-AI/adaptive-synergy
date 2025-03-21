@@ -6,8 +6,9 @@ import sys
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +55,7 @@ def seed_data():
                 roles[role_name] = new_role
                 logger.info(f"Added role: {role_name}")
         
-        # Add clients
+        # Add clients with specific communication channels
         clients_data = [
             {"name": "Social Land", "description": "Uses Discord for communication and Google doc, Asana for tasks", "contact_info": "client@socialland.com"},
             {"name": "Koala Digital", "description": "Uses Slack for communication and Trello for tasks", "contact_info": "client@koaladigital.com"},
@@ -98,7 +99,7 @@ def seed_data():
                     logger.error(f"Could not parse date: {date_str}")
                     return None
         
-        # Add employees
+        # Add employees with specific details
         employees_data = [
             {"name": "Raje", "joining_date": "23/05/23", "emp_id": "2301", "dob": "23/06/1998", "email": "raje.brandingbeez@gmail.com", "role": "CEO"},
             {"name": "Priya", "joining_date": "09/10/23", "emp_id": "2317", "dob": "12/03/2000", "email": "priya.brandingbeez@gmail.com", "role": "Growth strategist"},
@@ -121,10 +122,36 @@ def seed_data():
         # Default password (hashed) - use a secure password in production
         default_password_hash = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW"  # password: admin123
         
+        # List of task titles for more variety
+        task_titles = [
+            "Website redesign",
+            "Social media campaign",
+            "Logo design",
+            "SEO optimization",
+            "Content creation",
+            "Email marketing",
+            "PPC advertising",
+            "Brand strategy",
+            "Mobile app development",
+            "Video production",
+            "Graphic design",
+            "WordPress development"
+        ]
+        
+        # Priority levels
+        priorities = ["High", "Medium", "Low"]
+        
+        # Task status options
+        statuses = ["pending", "in_progress", "completed", "cancelled"]
+        status_weights = [0.3, 0.4, 0.2, 0.1]  # Probability weights for random selection
+        
+        created_employees = []
+        
         for emp_data in employees_data:
             existing_user = db.query(models.User).filter(models.User.email == emp_data["email"]).first()
             if existing_user:
                 logger.info(f"Employee already exists: {emp_data['name']}")
+                created_employees.append(existing_user)
                 continue
                 
             role = roles.get(emp_data["role"])
@@ -140,63 +167,210 @@ def seed_data():
             )
             db.add(new_user)
             db.flush()
+            created_employees.append(new_user)
             logger.info(f"Added employee: {emp_data['name']}")
             
-            # Create a sample task for each employee with a client
-            if len(clients) > 0:
-                client_list = list(clients.values())
-                client_index = hash(emp_data["name"]) % len(client_list)
-                client = client_list[client_index]
+        # Add attendance records for employees
+        for employee in created_employees:
+            # Today's attendance (if working hours)
+            current_hour = datetime.now().hour
+            if 9 <= current_hour <= 18:  # Working hours
+                # Check if attendance already exists
+                existing_attendance = db.query(models.EmployeeAttendance).filter(
+                    models.EmployeeAttendance.user_id == employee.user_id,
+                    models.EmployeeAttendance.work_date == datetime.now().date()
+                ).first()
                 
-                task = models.Task(
-                    title=f"Sample task for {emp_data['name']}",
-                    description=f"This is a sample task assigned to {emp_data['name']} for client {client.client_name}",
-                    client_id=client.client_id,
-                    assigned_to=new_user.user_id,
-                    status=models.TaskStatus.pending,
-                    estimated_time=8.0
-                )
-                db.add(task)
-                logger.info(f"Added sample task for {emp_data['name']}")
+                if not existing_attendance:
+                    login_time = datetime.combine(datetime.now().date(), datetime.strptime('09:00', '%H:%M').time())
+                    attendance = models.EmployeeAttendance(
+                        user_id=employee.user_id,
+                        login_time=login_time,
+                        work_date=datetime.now().date()
+                    )
+                    db.add(attendance)
+                    logger.info(f"Added today's attendance for {employee.name}")
+            
+            # Previous days' attendance (last 7 days)
+            for day in range(1, 8):
+                work_date = (datetime.now() - timedelta(days=day)).date()
+                # Skip weekends
+                if work_date.weekday() >= 5:  # 5 is Saturday, 6 is Sunday
+                    continue
+                    
+                # Check if attendance already exists
+                existing_attendance = db.query(models.EmployeeAttendance).filter(
+                    models.EmployeeAttendance.user_id == employee.user_id,
+                    models.EmployeeAttendance.work_date == work_date
+                ).first()
                 
-                # Add communication log entry
-                comm_log = models.CommunicationLog(
-                    client_id=client.client_id,
-                    sender_id=new_user.user_id,
-                    channel="Email",
-                    message=f"Initial contact regarding project with {client.client_name}"
-                )
-                db.add(comm_log)
+                if not existing_attendance:
+                    login_time = datetime.combine(work_date, datetime.strptime('09:00', '%H:%M').time())
+                    logout_time = datetime.combine(work_date, datetime.strptime('18:00', '%H:%M').time())
+                    attendance = models.EmployeeAttendance(
+                        user_id=employee.user_id,
+                        login_time=login_time,
+                        logout_time=logout_time,
+                        work_date=work_date
+                    )
+                    db.add(attendance)
+        
+        # Create tasks for employees with realistic status and progress
+        if created_employees and clients:
+            client_list = list(clients.values())
+            
+            # Create multiple tasks for each employee
+            for employee in created_employees:
+                # Assign 2-5 tasks per employee
+                num_tasks = random.randint(2, 5)
+                
+                for i in range(num_tasks):
+                    client = random.choice(client_list)
+                    
+                    # Random task status with weighted selection
+                    status = random.choices(statuses, weights=status_weights)[0]
+                    
+                    # Progress based on status
+                    if status == "completed":
+                        progress = 100
+                    elif status == "in_progress":
+                        progress = random.randint(30, 95)
+                    elif status == "pending":
+                        progress = 0
+                    else:  # cancelled
+                        progress = random.randint(0, 80)
+                    
+                    # Estimated and actual time
+                    estimated_time = random.uniform(2.0, 16.0)
+                    actual_time = 0.0
+                    if status == "completed":
+                        actual_time = estimated_time * random.uniform(0.8, 1.2)  # +/- 20% from estimate
+                    elif status == "in_progress":
+                        actual_time = estimated_time * (progress / 100) * random.uniform(0.8, 1.2)
+                    
+                    # Due date
+                    due_days = random.randint(-5, 15)  # Some tasks are past due
+                    start_date = None
+                    end_date = None
+                    
+                    if status == "in_progress" or status == "completed":
+                        start_date = datetime.now() - timedelta(days=random.randint(1, 10))
+                    
+                    if status == "completed":
+                        end_date = start_date + timedelta(days=random.randint(1, 5))
+                    
+                    # Task title with client name
+                    task_title = f"{random.choice(task_titles)} for {client.client_name}"
+                    task_description = f"This is a {status} task assigned to {employee.name} for client {client.client_name}"
+                    
+                    # Create the task
+                    task = models.Task(
+                        title=task_title,
+                        description=task_description,
+                        client_id=client.client_id,
+                        assigned_to=employee.user_id,
+                        status=getattr(models.TaskStatus, status),
+                        estimated_time=round(estimated_time, 2),
+                        actual_time=round(actual_time, 2),
+                        start_time=start_date,
+                        end_time=end_date
+                    )
+                    db.add(task)
+                    db.flush()
+                    
+                    # Add task metadata for frontend display (as AI insights)
+                    insight_data = {
+                        "priority": random.choice(priorities),
+                        "progress": progress,
+                        "communication_channel": client.description.split("Uses ")[1].split(" for communication")[0] if "Uses " in client.description else "Email"
+                    }
+                    
+                    insight = models.AIInsight(
+                        task_id=task.task_id,
+                        insight=str(insight_data)
+                    )
+                    db.add(insight)
+                    
+                    # Add communication log entry for this task
+                    comm_log = models.CommunicationLog(
+                        client_id=client.client_id,
+                        sender_id=employee.user_id,
+                        channel=insight_data["communication_channel"].split(", ")[0],
+                        message=f"Discussion regarding {task_title} with {client.client_name}"
+                    )
+                    db.add(comm_log)
+                    
+                    logger.info(f"Added task '{task_title}' for {employee.name} (Status: {status})")
         
         # Create some financial records for testing
-        for i in range(5):
-            record = models.FinancialRecord(
-                record_type=models.FinancialRecordType.income,
-                amount=1000 * (i + 1),
-                description=f"Payment from client {i + 1}",
-                record_date=datetime.now()
-            )
-            db.add(record)
+        for i in range(10):
+            # Income records for each client
+            for client_name, client in list(clients.items()):
+                # Multiple income entries per client
+                for j in range(random.randint(1, 3)):
+                    amount = random.randint(800, 15000)
+                    date_offset = random.randint(0, 365)
+                    record_date = datetime.now() - timedelta(days=date_offset)
+                    
+                    record = models.FinancialRecord(
+                        record_type=models.FinancialRecordType.income,
+                        amount=amount,
+                        description=f"Payment from {client_name} for services",
+                        record_date=record_date
+                    )
+                    db.add(record)
+            
+            # Expense records
+            expense_categories = ["Office rent", "Utilities", "Salaries", "Software subscriptions", 
+                                "Equipment", "Marketing", "Travel", "Training", "Miscellaneous"]
             
             expense = models.FinancialRecord(
                 record_type=models.FinancialRecordType.expense,
-                amount=500 * (i + 1),
-                description=f"Office expense {i + 1}",
-                record_date=datetime.now()
+                amount=random.randint(200, 5000),
+                description=f"{random.choice(expense_categories)} expense",
+                record_date=datetime.now() - timedelta(days=random.randint(0, 365))
             )
             db.add(expense)
         
-        # Create some invoices
-        for client_name, client in list(clients.items())[:5]:  # Create invoices for first 5 clients
-            invoice = models.Invoice(
-                client_id=client.client_id,
-                invoice_number=f"INV-{client.client_id}-{datetime.now().strftime('%Y%m%d')}",
-                amount=1500.00,
-                due_date=datetime.now(),
-                status=models.InvoiceStatus.pending
-            )
-            db.add(invoice)
-            logger.info(f"Added invoice for client: {client_name}")
+        # Create invoices for clients
+        for client_name, client in list(clients.items()):
+            # Create 1-3 invoices per client
+            for i in range(random.randint(1, 3)):
+                # Random status with weighted probabilities
+                status = random.choices(
+                    ["pending", "paid", "overdue"], 
+                    weights=[0.4, 0.5, 0.1]
+                )[0]
+                
+                # Due date based on status
+                if status == "overdue":
+                    due_date = datetime.now() - timedelta(days=random.randint(1, 30))
+                elif status == "paid":
+                    due_date = datetime.now() - timedelta(days=random.randint(5, 60))
+                else:  # pending
+                    due_date = datetime.now() + timedelta(days=random.randint(5, 30))
+                
+                # Generate invoice number
+                invoice_number = f"INV-{client.client_id}-{i+1}-{datetime.now().strftime('%Y%m%d')}"
+                
+                # Amount based on client size (just for demonstration)
+                base_amount = 1000
+                if "Digital" in client_name:
+                    base_amount = 2500
+                elif "Land" in client_name or "Architect" in client_name:
+                    base_amount = 5000
+                    
+                amount = base_amount + random.randint(100, 1000)
+                
+                invoice = models.Invoice(
+                    client_id=client.client_id,
+                    invoice_number=invoice_number,
+                    amount=amount,
+                    due_date=due_date,
+                    status=getattr(models.InvoiceStatus, status)
+                )
+                db.add(invoice)
+                logger.info(f"Added {status} invoice for client: {client_name}")
         
         # Commit all changes
         db.commit()
