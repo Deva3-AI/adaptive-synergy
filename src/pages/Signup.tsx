@@ -12,7 +12,7 @@ const Signup = () => {
             <span className="text-white font-bold text-xl">AI</span>
           </div>
           <h1 className="mt-6 text-3xl font-display font-bold tracking-tight text-foreground">
-            <span className="text-gradient">HyperFlow</span>
+            <span className="text-gradient">Hive</span>
           </h1>
           <p className="mt-2 text-muted-foreground">
             Create your account on the AI-powered workflow platform

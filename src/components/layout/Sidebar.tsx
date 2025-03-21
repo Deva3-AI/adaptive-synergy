@@ -157,7 +157,7 @@ const Sidebar = ({ className }: { className?: string }) => {
               <div className="h-7 w-7 rounded-full bg-accent flex items-center justify-center">
                 <span className="text-accent-foreground font-bold text-sm">AI</span>
               </div>
-              <span className="font-display font-semibold text-lg">HyperFlow</span>
+              <span className="font-display font-semibold text-lg">Hive</span>
             </div>
           )}
           <Button

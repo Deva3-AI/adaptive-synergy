@@ -13,7 +13,7 @@ const Index = () => {
           <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
             <span className="text-white font-bold text-lg">AI</span>
           </div>
-          <span className="font-display font-bold text-xl">HyperFlow</span>
+          <span className="font-display font-bold text-xl">Hive</span>
         </div>
         <div className="flex items-center space-x-4">
           <Link to="/login">
@@ -36,7 +36,7 @@ const Index = () => {
             <span className="text-gradient">Intelligent AI</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl">
-            HyperFlow combines state-of-the-art AI with intuitive dashboards to streamline your workflow, optimize resource allocation, and drive real-time insights.
+            Hive combines state-of-the-art AI with intuitive dashboards to streamline your workflow, optimize resource allocation, and drive real-time insights.
           </p>
           <div className="flex flex-wrap gap-4 pt-4">
             <Link to="/login">
@@ -122,7 +122,7 @@ const Index = () => {
               Ready to transform your workflow?
             </h2>
             <p className="text-muted-foreground mb-6">
-              Join thousands of teams already using HyperFlow to optimize their workflows and drive productivity.
+              Join thousands of teams already using Hive to optimize their workflows and drive productivity.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/login">
@@ -166,10 +166,10 @@ const Index = () => {
             <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center">
               <span className="text-white font-bold text-xs">AI</span>
             </div>
-            <span className="font-display font-bold">HyperFlow</span>
+            <span className="font-display font-bold">Hive</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} HyperFlow. All rights reserved.
+            © {new Date().getFullYear()} Hive. All rights reserved.
           </div>
         </div>
       </footer>

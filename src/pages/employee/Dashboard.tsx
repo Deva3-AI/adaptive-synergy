@@ -1,579 +1,497 @@
+
+// Update employee dashboard with proper type handling
 import React, { useState, useEffect } from "react";
-import {
-  BarChart,
-  Clock,
-  Briefcase,
-  CalendarCheck,
-  Users,
-  CheckCircle,
-  Clock8,
+import { useQuery } from "@tanstack/react-query";
+import { 
+  Briefcase, 
+  CheckCircle, 
+  Clock, 
+  ListChecks, 
+  PlayCircle, 
+  StopCircle,
   Calendar,
-  User,
-  LineChart,
-  ArrowUpRight,
-  AlertCircle,
-  PlayCircle,
-  StopCircle
+  MoreHorizontal,
+  User as UserIcon,
+  BadgeCheck,
+  ArrowRight,
+  MessageSquare,
+  Flame
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import DashboardCard from "@/components/dashboard/DashboardCard";
-import EmployeeWorkTracker from "@/components/dashboard/EmployeeWorkTracker";
-import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTasks, useEmployees, taskOperations, Task, Employee } from "@/utils/apiUtils";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { fetchData, postData } from "@/utils/apiUtils";
-import { useEmployees } from "@/utils/apiUtils";
-
-// Types for the data
-interface Task {
-  task_id: number;
-  title: string;
-  client_name: string;
-  description: string;
-  status: string;
-  estimated_time: number;
-  actual_time: number;
-  due_date?: string;
-  progress: number;
-  priority: string;
-}
-
-interface Employee {
-  user_id: number;
-  name: string;
-  email: string;
-  role: {
-    role_name: string;
-  };
-}
-
-const getPriorityBadgeVariant = (priority: string) => {
-  switch (priority) {
-    case "High":
-      return "danger";
-    case "Medium":
-      return "warning";
-    case "Low":
-      return "secondary";
-    default:
-      return "outline";
-  }
-};
-
-const getStatusBadgeVariant = (status: string) => {
-  switch (status) {
-    case "completed":
-      return "success";
-    case "in_progress":
-      return "accent";
-    case "pending":
-      return "outline";
-    case "cancelled":
-      return "warning";
-    default:
-      return "outline";
-  }
-};
+import DashboardCard from "@/components/dashboard/DashboardCard";
+import EmployeeWorkTracker from "@/components/dashboard/EmployeeWorkTracker";
+import EmployeePerformanceInsights from "@/components/ai/EmployeePerformanceInsights";
 
 const EmployeeDashboard = () => {
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
-  const { data: employees } = useEmployees();
+  const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   
-  // Get current user info from local storage
-  const getCurrentUser = () => {
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        return JSON.parse(userStr);
-      }
-      return null;
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      return null;
-    }
-  };
+  // Fetch tasks and employees
+  const { data: tasks = [], refetch: refetchTasks } = useTasks();
+  const { data: employees = [] } = useEmployees();
   
-  const currentUser = getCurrentUser();
-  
-  // Fetch tasks assigned to the current user
-  const { data: tasks, isLoading: tasksLoading, refetch: refetchTasks } = useQuery<Task[]>({
-    queryKey: ['employeeTasks'],
-    queryFn: async () => {
-      try {
-        if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
-          // In development, if backend is not available, use mock data
-          return [
-            {
-              task_id: 1,
-              title: "Website redesign for TechCorp",
-              client_name: "TechCorp",
-              description: "Redesign the homepage and product pages",
-              status: "in_progress",
-              estimated_time: 8.0,
-              actual_time: 4.5,
-              due_date: "Today at 4:00 PM",
-              progress: 65,
-              priority: "High"
-            },
-            {
-              task_id: 2,
-              title: "Mobile app wireframes",
-              client_name: "Acme Inc.",
-              description: "Create wireframes for the mobile app",
-              status: "pending",
-              estimated_time: 6.0,
-              actual_time: 0,
-              due_date: "Tomorrow at 12:00 PM",
-              progress: 0,
-              priority: "Medium"
-            },
-            {
-              task_id: 3,
-              title: "Marketing banner designs",
-              client_name: "Growth Hackers",
-              description: "Create marketing banners for social media",
-              status: "in_progress",
-              estimated_time: 3.0,
-              actual_time: 1.0,
-              due_date: "Sep 22, 2023",
-              progress: 30,
-              priority: "Medium"
-            },
-            {
-              task_id: 4,
-              title: "Client presentation slides",
-              client_name: "NewStart LLC",
-              description: "Create presentation slides for the client meeting",
-              status: "pending",
-              estimated_time: 4.0,
-              actual_time: 0,
-              due_date: "Sep 23, 2023",
-              progress: 0,
-              priority: "High"
-            }
-          ];
-        }
-        
-        // Regular API call
-        const response = await fetchData<Task[]>('/employee/tasks');
-        return response;
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-        
-        // Fallback data
-        return [
-          {
-            task_id: 1,
-            title: "Website redesign for Social Land",
-            client_name: "Social Land",
-            description: "Redesign the homepage and product pages",
-            status: "in_progress",
-            estimated_time: 8.0,
-            actual_time: 4.5,
-            due_date: "Today at 4:00 PM",
-            progress: 65,
-            priority: "High"
-          },
-          {
-            task_id: 2,
-            title: "Mobile app wireframes",
-            client_name: "Koala Digital",
-            description: "Create wireframes for the mobile app",
-            status: "pending",
-            estimated_time: 6.0,
-            actual_time: 0,
-            due_date: "Tomorrow at 12:00 PM",
-            progress: 0,
-            priority: "Medium"
-          }
-        ];
-      }
-    }
-  });
-
-  // Fetch active task status
-  const { data: activeTask, isLoading: activeTaskLoading, refetch: refetchActiveTask } = useQuery<Task | null>({
-    queryKey: ['activeTask'],
-    queryFn: async () => {
-      try {
-        if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
-          return null;
-        }
-        
-        const response = await fetchData<Task | null>('/employee/tasks/active');
-        return response;
-      } catch (error) {
-        console.error('Error fetching active task:', error);
-        return null;
-      }
-    }
-  });
-
-  // Set active task from API response
+  // Get current user from employees list (for demo purposes)
+  // In a real app, this would come from auth context
   useEffect(() => {
-    if (activeTask && activeTask.task_id) {
-      setActiveTaskId(activeTask.task_id);
+    if (employees.length > 0) {
+      // Use first employee as current user for demo
+      setCurrentUser(employees[0]);
     }
-  }, [activeTask]);
-
-  // Start a task
-  const startTask = async (taskId: number) => {
-    try {
-      // If another task is active, stop it first
-      if (activeTaskId && activeTaskId !== taskId) {
-        await stopTask(activeTaskId);
-      }
-      
-      if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
-        setActiveTaskId(taskId);
-        toast.success(`Started work on task #${taskId}`);
-        return;
-      }
-      
-      await postData('/employee/tasks/start', { task_id: taskId });
-      setActiveTaskId(taskId);
-      toast.success(`Started work on task #${taskId}`);
-      refetchTasks();
-      refetchActiveTask();
-    } catch (error) {
-      console.error('Error starting task:', error);
-      toast.error('Failed to start task. Please try again.');
-    }
-  };
-
-  // Stop a task
-  const stopTask = async (taskId: number) => {
-    try {
-      if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
-        setActiveTaskId(null);
-        toast.success(`Stopped work on task #${taskId}`);
-        return;
-      }
-      
-      await postData('/employee/tasks/stop', { task_id: taskId });
-      setActiveTaskId(null);
-      toast.success(`Stopped work on task #${taskId}`);
-      refetchTasks();
-      refetchActiveTask();
-    } catch (error) {
-      console.error('Error stopping task:', error);
-      toast.error('Failed to stop task. Please try again.');
-    }
-  };
-
-  // Calculate task statistics - using safe defaults when tasks is undefined
-  const completedTasks = tasks?.filter(task => task.status === "completed")?.length || 0;
-  const totalTasks = tasks?.length || 0;
-  const tasksProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  }, [employees]);
   
-  // Get current user's role
-  const currentUserRole = employees?.find(emp => emp.email === currentUser?.email)?.role?.role_name || 'Employee';
-
-  // Convert tasks to chart data
-  const weeklyActivityData = [
-    { name: "Mon", hours: 7.5, tasks: 5, completed: 4 },
-    { name: "Tue", hours: 8.2, tasks: 7, completed: 6 },
-    { name: "Wed", hours: 7.8, tasks: 6, completed: 5 },
-    { name: "Thu", hours: 8.5, tasks: 8, completed: 7 },
-    { name: "Fri", hours: 6.5, tasks: 4, completed: 4 },
-    { name: "Sat", hours: 2.0, tasks: 2, completed: 2 },
-    { name: "Sun", hours: 0, tasks: 0, completed: 0 },
-  ];
-
-  // Create safe task priority data with defaults
-  const taskPriorityData = [
-    { name: "High", value: tasks?.filter(task => task.priority === "High")?.length || 4 },
-    { name: "Medium", value: tasks?.filter(task => task.priority === "Medium")?.length || 8 },
-    { name: "Low", value: tasks?.filter(task => task.priority === "Low")?.length || 3 },
-  ];
-
-  // Create safe task status data with defaults
-  const taskStatusData = [
-    { name: "Not Started", value: tasks?.filter(task => task.status === "pending")?.length || 2 },
-    { name: "In Progress", value: tasks?.filter(task => task.status === "in_progress")?.length || 8 },
-    { name: "Completed", value: tasks?.filter(task => task.status === "completed")?.length || 12 },
-    { name: "On Hold", value: tasks?.filter(task => task.status === "cancelled")?.length || 1 },
-  ];
-
+  // Check if there's an active task
+  useEffect(() => {
+    if (tasks) {
+      const inProgressTask = tasks.find(
+        task => task.status === "in_progress" && task.assigned_to === currentUser?.user_id
+      );
+      if (inProgressTask) {
+        setActiveTaskId(inProgressTask.task_id);
+      } else {
+        setActiveTaskId(null);
+      }
+    }
+  }, [tasks, currentUser]);
+  
+  // Handle start task
+  const handleStartTask = async (taskId: number) => {
+    if (activeTaskId) {
+      toast.error("You already have an active task. Please finish it first.");
+      return;
+    }
+    
+    try {
+      await taskOperations.startTask(taskId);
+      setActiveTaskId(taskId);
+      refetchTasks();
+    } catch (error) {
+      console.error("Error starting task:", error);
+    }
+  };
+  
+  // Handle stop task
+  const handleStopTask = async (taskId: number) => {
+    try {
+      await taskOperations.stopTask(taskId);
+      setActiveTaskId(null);
+      refetchTasks();
+    } catch (error) {
+      console.error("Error stopping task:", error);
+    }
+  };
+  
+  // Handle complete task
+  const handleCompleteTask = async (taskId: number) => {
+    try {
+      await taskOperations.completeTask(taskId);
+      if (activeTaskId === taskId) {
+        setActiveTaskId(null);
+      }
+      refetchTasks();
+    } catch (error) {
+      console.error("Error completing task:", error);
+    }
+  };
+  
+  // Filter assigned tasks for the current user
+  const myTasks = tasks && Array.isArray(tasks) ? tasks.filter(task => 
+    task.assigned_to === currentUser?.user_id
+  ) : [];
+  
+  // Count tasks by status
+  const taskCounts = {
+    total: myTasks.length || 0,
+    pending: myTasks.filter(task => task.status === "pending").length || 0,
+    inProgress: myTasks.filter(task => task.status === "in_progress").length || 0,
+    completed: myTasks.filter(task => task.status === "completed").length || 0,
+    today: myTasks.filter(task => {
+      if (!task.created_at) return false;
+      const taskDate = new Date(task.created_at).toDateString();
+      const today = new Date().toDateString();
+      return taskDate === today;
+    }).length || 0
+  };
+  
+  // Calculate completion rate
+  const completionRate = taskCounts.total > 0 
+    ? Math.round((taskCounts.completed / taskCounts.total) * 100) 
+    : 0;
+  
   return (
-    <div className="space-y-8 animate-blur-in">
+    <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Employee Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back, {currentUser?.name || 'Employee'}! ({currentUserRole}) Monitor your tasks, track your time, and enhance your productivity
+          Welcome back{currentUser ? `, ${currentUser.name}` : ""}! Track your tasks and manage your work time.
         </p>
       </div>
-
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover-scale shadow-subtle">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tasks Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTasks}</div>
-            <p className="text-xs text-muted-foreground">{completedTasks} completed, {totalTasks - completedTasks} remaining</p>
-            <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div className="bg-primary h-full" style={{ width: `${tasksProgress}%` }} />
+            <div className="text-2xl font-bold">{taskCounts.total}</div>
+            <div className="flex mt-1 space-x-2">
+              <div className="text-xs text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+                {taskCounts.pending} pending
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-full bg-amber-500 mr-1"></span>
+                {taskCounts.inProgress} in progress
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
+                {taskCounts.completed} completed
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="hover-scale shadow-subtle">
+        
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Hours</CardTitle>
+            <CardTitle className="text-sm font-medium">Today's Tasks</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{taskCounts.today}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {activeTaskId ? "1 task currently active" : "No active tasks"}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completionRate}%</div>
+            <Progress value={completionRate} className="h-1.5 mt-2" />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Task</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {activeTaskId ? 
-                <span className="text-green-500 flex items-center gap-1">
-                  <Clock8 className="h-4 w-4" /> Active
-                </span> : '0h 0m'
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">Target: 8 hours</p>
-            <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div className="bg-primary h-full" style={{ width: activeTaskId ? "55%" : "0%" }} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale shadow-subtle">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Performance</CardTitle>
-            <LineChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">92%</div>
-            <p className="text-xs text-muted-foreground flex items-center">
-              <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-500">4%</span> from last week
-            </p>
-            <div className="mt-2 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div className="bg-green-500 h-full" style={{ width: "92%" }} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale shadow-subtle">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Meetings</CardTitle>
-            <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">Next: Client check-in at 2:00 PM</p>
-            <div className="flex items-center mt-2">
-              <Avatar className="h-6 w-6 border-2 border-background">
-                <AvatarFallback>TC</AvatarFallback>
-              </Avatar>
-              <Avatar className="h-6 w-6 border-2 border-background -ml-2">
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-              <span className="text-xs text-muted-foreground ml-2">with TechCorp Team</span>
-            </div>
+            {activeTaskId ? (
+              <div>
+                <div className="text-md font-medium truncate">
+                  {tasks.find(t => t.task_id === activeTaskId)?.title || "Task"}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                  <Flame className="h-3 w-3 text-amber-500 mr-1 animate-pulse" />
+                  <span>Currently in progress</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-md">No active task</div>
+                <div className="text-xs text-muted-foreground mt-1">Start a task below</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
+      
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-7">
         <DashboardCard
-          title="Work Session"
+          title="Work Timer"
           icon={<Clock className="h-5 w-5" />}
           badgeText="Daily"
           badgeVariant="outline"
+          className="md:col-span-3"
         >
           <EmployeeWorkTracker />
         </DashboardCard>
-
+        
         <DashboardCard
-          title="Weekly Activity"
-          icon={<BarChart className="h-5 w-5" />}
-          badgeText="This Week"
-          badgeVariant="outline"
+          title={activeTaskId ? "Active Task" : "No Active Task"}
+          icon={activeTaskId ? <Flame className="h-5 w-5 text-amber-500" /> : <Clock className="h-5 w-5" />}
+          badgeText={activeTaskId ? "In Progress" : "Start Task"}
+          badgeVariant={activeTaskId ? "warning" : "outline"}
+          className="md:col-span-4"
         >
-          <AnalyticsChart 
-            data={weeklyActivityData} 
-            height={250}
-            defaultType="bar"
-          />
-        </DashboardCard>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-5">
-        <DashboardCard
-          title="Task Priority"
-          icon={<AlertCircle className="h-5 w-5" />}
-          badgeText="Current"
-          badgeVariant="outline"
-          className="md:col-span-2"
-        >
-          <AnalyticsChart 
-            data={taskPriorityData} 
-            height={200}
-            defaultType="pie"
-          />
-        </DashboardCard>
-
-        <DashboardCard
-          title="Task Status"
-          icon={<CheckCircle className="h-5 w-5" />}
-          badgeText="Overall"
-          badgeVariant="outline"
-          className="md:col-span-3"
-        >
-          <AnalyticsChart 
-            data={taskStatusData} 
-            height={200}
-            defaultType="bar"
-          />
-        </DashboardCard>
-      </div>
-
-      <DashboardCard
-        title="My Tasks"
-        icon={<Briefcase className="h-5 w-5" />}
-        badgeText="Priority"
-        badgeVariant="outline"
-      >
-        <div className="space-y-4">
-          {tasksLoading ? (
-            <div>Loading tasks...</div>
-          ) : tasks && tasks.length > 0 ? (
-            tasks.map((task: Task) => (
-              <div 
-                key={task.task_id} 
-                className="p-4 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium">{task.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {task.client_name} • Due {task.due_date || 'Not set'}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant={getPriorityBadgeVariant(task.priority)} size="sm">
-                      {task.priority}
-                    </Badge>
-                    <Badge variant={getStatusBadgeVariant(task.status)} size="sm">
-                      {task.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Progress</span>
-                    <span>{task.progress}%</span>
-                  </div>
-                  <Progress value={task.progress} className="h-1.5" />
-                </div>
-                <div className="mt-3 flex justify-end gap-2">
-                  {activeTaskId === task.task_id ? (
-                    <Button variant="destructive" size="sm" onClick={() => stopTask(task.task_id)}>
-                      <StopCircle className="h-4 w-4 mr-1" /> Stop Work
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      onClick={() => startTask(task.task_id)}
-                      disabled={activeTaskId !== null && activeTaskId !== task.task_id}
-                    >
-                      <PlayCircle className="h-4 w-4 mr-1" /> Start Work
-                    </Button>
-                  )}
-                </div>
+          {activeTaskId ? (
+            <div className="h-full flex flex-col">
+              <div className="space-y-4 flex-1">
+                {tasks.map(task => {
+                  if (task.task_id === activeTaskId) {
+                    return (
+                      <div key={task.task_id} className="bg-muted/50 p-4 rounded-lg space-y-3">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-lg">{task.title}</h3>
+                          <Badge variant="warning" className="ml-2">In Progress</Badge>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground">{task.description}</p>
+                        
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <UserIcon className="h-4 w-4 mr-1" />
+                          <span>Client: {task.client_name}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center mt-4">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span className="text-sm">{task.estimated_time} hrs estimated</span>
+                          </div>
+                          
+                          <div className="space-x-2">
+                            <Button variant="destructive" size="sm" onClick={() => handleStopTask(task.task_id)}>
+                              <StopCircle className="h-4 w-4 mr-1" />
+                              <span>Stop Task</span>
+                            </Button>
+                            <Button variant="default" size="sm" onClick={() => handleCompleteTask(task.task_id)}>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              <span>Complete</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
               </div>
-            ))
+              
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p>
+                  <span className="font-medium">Note:</span> Stopping a task will pause your progress. You can resume later.
+                </p>
+              </div>
+            </div>
           ) : (
-            <div className="text-center p-4 text-muted-foreground">
-              No tasks assigned to you at the moment.
+            <div className="h-full flex flex-col">
+              <div className="text-center py-4 text-muted-foreground mb-4">
+                <Clock className="h-12 w-12 mx-auto mb-2 text-muted-foreground/70" />
+                <h3 className="text-lg font-medium mb-1">No Active Task</h3>
+                <p className="text-sm">Select a task from below to start working</p>
+              </div>
+              
+              <div className="flex-1 space-y-2">
+                {myTasks.filter(task => task.status === "pending").length > 0 ? (
+                  myTasks
+                    .filter(task => task.status === "pending")
+                    .slice(0, 3)
+                    .map(task => (
+                      <div key={task.task_id} className="bg-muted/30 p-3 rounded-md flex justify-between items-center">
+                        <div>
+                          <h4 className="font-medium">{task.title}</h4>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Client: {task.client_name} • {task.estimated_time} hrs
+                          </div>
+                        </div>
+                        <Button size="sm" onClick={() => handleStartTask(task.task_id)}>
+                          <PlayCircle className="h-4 w-4 mr-1" />
+                          <span>Start</span>
+                        </Button>
+                      </div>
+                    ))
+                ) : (
+                  <div className="bg-muted/30 p-3 rounded-md text-center">
+                    <p className="text-muted-foreground">No pending tasks available</p>
+                  </div>
+                )}
+              </div>
+              
+              {myTasks.filter(task => task.status === "pending").length > 3 && (
+                <div className="text-center mt-2">
+                  <Button variant="ghost" size="sm">
+                    <span>View All Tasks</span>
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      </DashboardCard>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <DashboardCard
-          title="Today's Schedule"
-          icon={<Calendar className="h-5 w-5" />}
-          badgeText="Today"
-          badgeVariant="outline"
-        >
-          <div className="space-y-4">
-            <div className="relative pl-5 border-l-2 border-accent">
-              <div className="absolute left-[-8px] top-0 h-4 w-4 rounded-full bg-accent"></div>
-              <p className="text-xs text-muted-foreground">9:00 AM - 10:30 AM</p>
-              <h4 className="font-medium">Team Standup Meeting</h4>
-              <p className="text-sm text-muted-foreground">
-                Weekly sprint planning with the design team
-              </p>
-            </div>
-            <div className="relative pl-5 border-l-2 border-green-500">
-              <div className="absolute left-[-8px] top-0 h-4 w-4 rounded-full bg-green-500"></div>
-              <p className="text-xs text-muted-foreground">11:00 AM - 12:00 PM</p>
-              <h4 className="font-medium">Website Redesign Work</h4>
-              <p className="text-sm text-muted-foreground">
-                Work on TechCorp homepage mockups
-              </p>
-            </div>
-            <div className="relative pl-5 border-l-2 border-yellow-500">
-              <div className="absolute left-[-8px] top-0 h-4 w-4 rounded-full bg-yellow-500"></div>
-              <p className="text-xs text-muted-foreground">2:00 PM - 3:00 PM</p>
-              <h4 className="font-medium">Client Check-in</h4>
-              <p className="text-sm text-muted-foreground">
-                Progress review with TechCorp team
-              </p>
-            </div>
-            <div className="relative pl-5 border-l-2 border-muted-foreground">
-              <div className="absolute left-[-8px] top-0 h-4 w-4 rounded-full bg-muted-foreground"></div>
-              <p className="text-xs text-muted-foreground">4:00 PM - 5:30 PM</p>
-              <h4 className="font-medium">Mobile App Wireframes</h4>
-              <p className="text-sm text-muted-foreground">
-                Start work on Acme Inc. mobile app concepts
-              </p>
-            </div>
-          </div>
-        </DashboardCard>
-
-        <DashboardCard
-          title="Team Members"
-          icon={<Users className="h-5 w-5" />}
-          badgeText="Online"
-          badgeVariant="success"
-        >
-          <div className="space-y-4">
-            {employees && employees.length > 0 ? (
-              employees.slice(0, 4).map((employee: Employee) => (
-                <div key={employee.user_id} className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10 border-2 border-green-500">
-                    <AvatarFallback>{employee.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">{employee.name}</h4>
-                      <Badge variant="outline" size="sm">{employee.role.role_name}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Online • {employee.email}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center p-4 text-muted-foreground">
-                Loading team members...
-              </div>
-            )}
-          </div>
         </DashboardCard>
       </div>
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        <Tabs defaultValue="pending" className="flex flex-col h-full">
+          <TabsList className="mb-4 w-full grid grid-cols-3">
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+          
+          <Card className="flex-1">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <ListChecks className="h-5 w-5 mr-2" />
+                My Tasks
+              </CardTitle>
+              <CardDescription>
+                {myTasks.length} total tasks assigned to you
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <TabsContent value="pending" className="m-0">
+                {myTasks.filter(task => task.status === "pending").length > 0 ? (
+                  myTasks
+                    .filter(task => task.status === "pending")
+                    .map(task => (
+                      <div key={task.task_id} className="border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{task.title}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                            <div className="flex items-center text-xs text-muted-foreground mt-2">
+                              <UserIcon className="h-3 w-3 mr-1" />
+                              <span>{task.client_name}</span>
+                              <span className="mx-2">•</span>
+                              <Clock className="h-3 w-3 mr-1" />
+                              <span>{task.estimated_time} hrs</span>
+                              {task.priority && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  <Badge variant={
+                                    task.priority === "high" ? "destructive" :
+                                    task.priority === "medium" ? "warning" : "secondary"
+                                  } size="sm">
+                                    {task.priority}
+                                  </Badge>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <Button size="sm" onClick={() => handleStartTask(task.task_id)}>
+                            <PlayCircle className="h-4 w-4 mr-1" />
+                            <span>Start</span>
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="h-10 w-10 mx-auto mb-3" />
+                    <p>No pending tasks available</p>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="in-progress" className="m-0">
+                {myTasks.filter(task => task.status === "in_progress").length > 0 ? (
+                  myTasks
+                    .filter(task => task.status === "in_progress")
+                    .map(task => (
+                      <div key={task.task_id} className="border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{task.title}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                            <div className="flex items-center text-xs text-muted-foreground mt-2">
+                              <UserIcon className="h-3 w-3 mr-1" />
+                              <span>{task.client_name}</span>
+                              <span className="mx-2">•</span>
+                              <Clock className="h-3 w-3 mr-1" />
+                              <span>{task.estimated_time} hrs</span>
+                              <span className="mx-2">•</span>
+                              <Badge variant="warning" size="sm">In Progress</Badge>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => handleStopTask(task.task_id)}>
+                              <StopCircle className="h-4 w-4 mr-1" />
+                              <span>Stop</span>
+                            </Button>
+                            <Button size="sm" onClick={() => handleCompleteTask(task.task_id)}>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              <span>Complete</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-10 w-10 mx-auto mb-3" />
+                    <p>No tasks in progress</p>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="completed" className="m-0">
+                {myTasks.filter(task => task.status === "completed").length > 0 ? (
+                  myTasks
+                    .filter(task => task.status === "completed")
+                    .map(task => (
+                      <div key={task.task_id} className="border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{task.title}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                            <div className="flex items-center text-xs text-muted-foreground mt-2">
+                              <UserIcon className="h-3 w-3 mr-1" />
+                              <span>{task.client_name}</span>
+                              <span className="mx-2">•</span>
+                              <Clock className="h-3 w-3 mr-1" />
+                              <span>{task.estimated_time} hrs</span>
+                              <span className="mx-2">•</span>
+                              <Badge variant="success" size="sm">Completed</Badge>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <BadgeCheck className="h-10 w-10 mx-auto mb-3" />
+                    <p>No completed tasks yet</p>
+                  </div>
+                )}
+              </TabsContent>
+            </CardContent>
+          </Card>
+        </Tabs>
+        
+        {currentUser && (
+          <EmployeePerformanceInsights
+            employeeId={currentUser.user_id}
+            employeeName={currentUser.name}
+            attendanceData={[]}
+            taskData={myTasks}
+          />
+        )}
+      </div>
+      
+      <DashboardCard
+        title="Communications"
+        icon={<MessageSquare className="h-5 w-5" />}
+        badgeText="Recent"
+        badgeVariant="outline"
+      >
+        <Tabs defaultValue="all">
+          <TabsList className="mb-4">
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="internal">Internal</TabsTrigger>
+            <TabsTrigger value="client">Client</TabsTrigger>
+          </TabsList>
+          
+          <div className="text-center py-8 text-muted-foreground">
+            <MessageSquare className="h-10 w-10 mx-auto mb-3" />
+            <p>No recent communications</p>
+            <p className="text-sm mt-1">Messages from clients and team members will appear here</p>
+          </div>
+        </Tabs>
+      </DashboardCard>
     </div>
   );
 };
