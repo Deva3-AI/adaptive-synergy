@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Brain, BrainCircuit, CheckCircle, Clock } from "lucide-react";
+import { Brain, BrainCircuit, CheckCircle, Clock, Sparkle } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 interface AIInsightCardProps {
@@ -15,6 +15,7 @@ interface AIInsightCardProps {
   footer?: React.ReactNode;
   isLoading?: boolean;
   icon?: React.ReactNode;
+  animation?: "pulse" | "glow" | "none";
 }
 
 const AIInsightCard = ({
@@ -27,6 +28,7 @@ const AIInsightCard = ({
   footer,
   isLoading = false,
   icon,
+  animation = "none",
 }: AIInsightCardProps) => {
   // Badge variant based on insight type
   const getBadgeVariant = () => {
@@ -50,9 +52,22 @@ const AIInsightCard = ({
     }
   };
 
+  // Animation class based on animation type
+  const getAnimationClass = () => {
+    if (isLoading) return "animate-pulse";
+    
+    switch (animation) {
+      case "pulse": return "animate-pulse";
+      case "glow": return "animate-glow";
+      default: return "";
+    }
+  };
+
   return (
-    <Card className={cn("overflow-hidden transition-all", 
+    <Card className={cn(
+      "overflow-hidden transition-all", 
       isLoading && "opacity-70",
+      getAnimationClass(),
       className
     )}>
       <CardHeader className="pb-3">

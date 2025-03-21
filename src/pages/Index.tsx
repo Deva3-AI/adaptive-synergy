@@ -19,7 +19,7 @@ const Index = () => {
           <Link to="/login">
             <Button variant="ghost">Login</Button>
           </Link>
-          <Link to="/login">
+          <Link to="/signup">
             <Button className="button-shine">Sign Up</Button>
           </Link>
         </div>

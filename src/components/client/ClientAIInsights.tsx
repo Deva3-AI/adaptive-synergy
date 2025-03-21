@@ -92,9 +92,14 @@ const ClientAIInsights = ({
     }
   }, [clientId]);
 
+  // Add animation to the insights card
+  const getAnimationDelay = (index: number) => {
+    return { animationDelay: `${(index + 1) * 150}ms` };
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="overflow-hidden shadow-lg border-accent/10">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 bg-accent/5">
         <CardTitle className="text-lg font-medium flex items-center">
           <Brain className="mr-2 h-5 w-5 text-accent" />
           AI Insights & Suggestions
@@ -121,7 +126,7 @@ const ClientAIInsights = ({
             <TabsTrigger value="tasks">Task Suggestions</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="insights" className="mt-0">
+          <TabsContent value="insights" className="mt-0 space-y-4 animate-fade-in">
             {clientInsights ? (
               <div className="space-y-4">
                 <AIInsightCard
@@ -132,6 +137,7 @@ const ClientAIInsights = ({
                   ]}
                   type={clientInsights.sentiment === 'positive' ? 'success' : clientInsights.sentiment === 'negative' ? 'danger' : 'info'}
                   isLoading={isLoadingInsights}
+                  animation="pulse"
                 />
                 
                 <AIInsightCard
@@ -139,6 +145,7 @@ const ClientAIInsights = ({
                   insights={clientInsights.key_requirements || ["No specific requirements detected"]}
                   isLoading={isLoadingInsights}
                   icon={<Sparkles className="h-4 w-4" />}
+                  animation="pulse"
                 />
               </div>
             ) : (
@@ -146,11 +153,12 @@ const ClientAIInsights = ({
                 title="Client Insights"
                 insights={["Analyzing client data to generate insights..."]}
                 isLoading={isLoadingInsights}
+                animation="pulse"
               />
             )}
           </TabsContent>
           
-          <TabsContent value="tasks" className="mt-0">
+          <TabsContent value="tasks" className="mt-0 animate-fade-in" style={getAnimationDelay(1)}>
             <TaskSuggestionCard
               clientId={clientId}
               clientName={clientName}

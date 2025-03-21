@@ -12,10 +12,10 @@ const Login = () => {
             <span className="text-white font-bold text-xl">AI</span>
           </div>
           <h1 className="mt-6 text-3xl font-display font-bold tracking-tight text-foreground">
-            <span className="text-gradient">HyperFlow</span>
+            <span className="text-gradient">Hive</span>
           </h1>
           <p className="mt-2 text-muted-foreground">
-            AI-powered workflow management platform
+            Sign in to the AI-powered workflow platform
           </p>
         </div>
         
@@ -28,17 +28,6 @@ const Login = () => {
           <Link to="/signup" className="font-medium text-accent hover:text-accent/80">
             Sign up
           </Link>
-        </p>
-        
-        <p className="mt-3 text-center text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "300ms" }}>
-          By continuing, you agree to our{" "}
-          <a href="#" className="font-medium text-accent hover:text-accent/80">
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a href="#" className="font-medium text-accent hover:text-accent/80">
-            Privacy Policy
-          </a>
         </p>
       </div>
     </div>

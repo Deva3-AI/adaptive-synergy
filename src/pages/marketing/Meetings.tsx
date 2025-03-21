@@ -1,211 +1,168 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarClock, Users, Video, Calendar, Check, X, Clock, ArrowRight } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FileText, Calendar, Plus, RefreshCw } from "lucide-react";
+import MeetingAnalysisCard from "@/components/ai/MeetingAnalysisCard";
 import DashboardCard from "@/components/dashboard/DashboardCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MarketingMeetings = () => {
+  const [activeTab, setActiveTab] = useState("upcoming");
+
   return (
     <div className="space-y-8 animate-blur-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meeting Scheduler</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
           <p className="text-muted-foreground">
-            Schedule and manage your meetings with leads and clients
+            Schedule, manage, and analyze your marketing meetings
           </p>
         </div>
         <Button>
-          <CalendarClock className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" />
           Schedule Meeting
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Meetings</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4</div>
-            <p className="text-xs text-muted-foreground">Next at 2:00 PM</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Confirmations</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">7</div>
-            <p className="text-xs text-muted-foreground">3 high priority leads</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Week's Schedule</CardTitle>
-            <CalendarClock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">5 more than last week</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DashboardCard
-          title="Today's Schedule"
+          title="Meeting Management"
           icon={<Calendar className="h-5 w-5" />}
         >
-          <div className="space-y-4">
-            {[
-              {
-                title: "Product Demo with Acme Corp",
-                time: "10:00 AM - 11:00 AM",
-                type: "Video Call",
-                attendees: 3,
-                status: "completed"
-              },
-              {
-                title: "Initial Discovery Call with NewTech",
-                time: "12:30 PM - 1:15 PM",
-                type: "Phone Call",
-                attendees: 2,
-                status: "completed"
-              },
-              {
-                title: "Marketing Strategy with GlobalMedia",
-                time: "2:00 PM - 3:00 PM",
-                type: "Video Call",
-                attendees: 5,
-                status: "upcoming"
-              },
-              {
-                title: "Follow-up with LeadGen Inc",
-                time: "4:30 PM - 5:00 PM",
-                type: "Video Call",
-                attendees: 2,
-                status: "upcoming"
-              }
-            ].map((meeting, index) => (
-              <div key={index} className="border border-border rounded-lg overflow-hidden">
-                <div className={`px-4 py-2 flex items-center justify-between ${
-                  meeting.status === "completed" ? "bg-muted" : 
-                  meeting.status === "upcoming" ? "bg-primary/10" : ""
-                }`}>
-                  <div className="flex items-center">
-                    {meeting.status === "completed" ? (
-                      <Check className="h-4 w-4 text-green-500 mr-2" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-primary mr-2" />
-                    )}
-                    <span className="text-sm font-medium">{meeting.time}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
-                      {meeting.type}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-medium">{meeting.title}</h3>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Users className="h-4 w-4 mr-1" />
-                      <span>{meeting.attendees} attendees</span>
-                    </div>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      {meeting.status === "upcoming" ? (
-                        <>
-                          Join
-                          <Video className="ml-2 h-3 w-3" />
-                        </>
-                      ) : (
-                        <>
-                          View Notes
-                          <ArrowRight className="ml-2 h-3 w-3" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DashboardCard>
-
-        <DashboardCard
-          title="Pending Confirmations"
-          icon={<Clock className="h-5 w-5" />}
-        >
-          <div className="space-y-4">
-            {[
-              {
-                name: "Sarah Johnson",
-                company: "InnovateX",
-                position: "Marketing Director",
-                proposed: ["Tomorrow at 10:00 AM", "Tomorrow at 2:00 PM", "Friday at 11:00 AM"],
-                priority: "high"
-              },
-              {
-                name: "Michael Chang",
-                company: "TechVentures",
-                position: "CEO",
-                proposed: ["Thursday at 9:00 AM", "Friday at 3:00 PM"],
-                priority: "high"
-              },
-              {
-                name: "Emma Wilson",
-                company: "DesignHub",
-                position: "Creative Director",
-                proposed: ["Next Monday at 1:00 PM", "Next Tuesday at 11:00 AM"],
-                priority: "medium"
-              }
-            ].map((lead, index) => (
-              <div key={index} className="border border-border rounded-lg p-4">
-                <div className="flex items-start">
-                  <Avatar className="h-10 w-10 mr-4">
-                    <AvatarFallback>{lead.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">{lead.name}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        lead.priority === "high" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
-                        "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}>
-                        {lead.priority} priority
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {lead.position} at {lead.company}
-                    </div>
-                    
-                    <div className="mt-3 space-y-2">
-                      <p className="text-xs font-medium">Proposed times:</p>
-                      {lead.proposed.map((time, timeIndex) => (
-                        <div key={timeIndex} className="flex items-center justify-between text-sm">
-                          <span>{time}</span>
-                          <div className="flex space-x-1">
-                            <Button variant="outline" size="icon" className="h-6 w-6">
-                              <Check className="h-3 w-3" />
-                            </Button>
-                            <Button variant="outline" size="icon" className="h-6 w-6">
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
+          <div className="space-y-6">
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="w-full">
+                <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
+                <TabsTrigger value="past" className="flex-1">Past</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upcoming" className="space-y-4 pt-2">
+                {[
+                  {
+                    title: "Client Onboarding Call",
+                    date: "Tomorrow, 10:00 AM",
+                    participants: ["You", "Jane Smith", "Mark Wilson"],
+                    client: "Koala Digital",
+                    type: "Zoom"
+                  },
+                  {
+                    title: "Marketing Strategy Review",
+                    date: "Sep 28, 3:30 PM",
+                    participants: ["You", "Team Lead", "Client Team"],
+                    client: "AC Digital",
+                    type: "Google Meet"
+                  },
+                  {
+                    title: "Campaign Planning",
+                    date: "Oct 3, 2:00 PM",
+                    participants: ["You", "Marketing Team"],
+                    client: "Internal",
+                    type: "Office"
+                  }
+                ].map((meeting, index) => (
+                  <Card key={index} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="text-base">{meeting.title}</CardTitle>
+                        <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                          {meeting.type}
+                        </span>
+                      </div>
+                      <CardDescription>{meeting.date}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <div className="flex flex-col space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Client:</span> {meeting.client}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Participants:</span> {meeting.participants.join(", ")}
+                        </div>
+                        <div className="pt-2">
+                          <Button variant="outline" size="sm" className="w-full">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="past" className="space-y-4 pt-2">
+                {[
+                  {
+                    title: "Campaign Review",
+                    date: "Sep 18, 11:00 AM",
+                    participants: ["You", "Design Team", "Client Team"],
+                    client: "Social Land",
+                    type: "Zoom",
+                    hasTranscript: true
+                  },
+                  {
+                    title: "Monthly Progress Update",
+                    date: "Sep 10, 2:30 PM",
+                    participants: ["You", "Project Manager", "Client"],
+                    client: "Muse Digital",
+                    type: "Google Meet",
+                    hasTranscript: true
+                  },
+                  {
+                    title: "Initial Discovery Call",
+                    date: "Sep 5, 10:00 AM",
+                    participants: ["You", "Sales Team", "Potential Client"],
+                    client: "Internet People",
+                    type: "Phone",
+                    hasTranscript: false
+                  }
+                ].map((meeting, index) => (
+                  <Card key={index} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="text-base">{meeting.title}</CardTitle>
+                        <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                          {meeting.type}
+                        </span>
+                      </div>
+                      <CardDescription>{meeting.date}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <div className="flex flex-col space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Client:</span> {meeting.client}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Participants:</span> {meeting.participants.join(", ")}
+                        </div>
+                        <div className="pt-2 flex gap-2">
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                            View Summary
+                          </Button>
+                          {meeting.hasTranscript && (
+                            <Button variant="outline" size="sm" className="flex-1">
+                              <FileText className="h-3.5 w-3.5 mr-1.5" />
+                              Transcript
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabsContent>
+            </Tabs>
+            
+            <Button variant="outline" className="w-full">
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Load More Meetings
+            </Button>
           </div>
         </DashboardCard>
+        
+        <MeetingAnalysisCard />
       </div>
     </div>
   );
