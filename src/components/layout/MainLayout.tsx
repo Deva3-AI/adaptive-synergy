@@ -1,8 +1,8 @@
 
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../Sidebar";
-import Navbar from "../Navbar";
+import Sidebar from "./Sidebar";
+import Navbar from "@/components/Navbar";
 import EnhancedAIAssistant from "../ai/EnhancedAIAssistant";
 
 const MainLayout = () => {

@@ -311,4 +311,34 @@ class PlatformIntegrationService {
 // Create singleton instance
 export const platformService = new PlatformIntegrationService();
 
+// Export a function to fetch messages from all platforms
+export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
+  try {
+    // Get all connected platforms
+    const platforms = platformService.getPlatforms()
+      .filter(platform => platform.isConnected)
+      .map(platform => platform.type);
+    
+    if (platforms.length === 0) {
+      return [];
+    }
+    
+    // Fetch messages from all platforms
+    const messagesPromises = platforms.map(platform => 
+      platformService.fetchMessages(platform)
+    );
+    
+    const results = await Promise.allSettled(messagesPromises);
+    
+    return results
+      .filter((result): result is PromiseFulfilledResult<PlatformMessage[]> => 
+        result.status === 'fulfilled'
+      )
+      .flatMap(result => result.value);
+  } catch (error) {
+    console.error('Error fetching platform messages:', error);
+    return [];
+  }
+};
+
 export default platformService;
