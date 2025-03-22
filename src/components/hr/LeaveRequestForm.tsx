@@ -48,12 +48,12 @@ const leaveRequestSchema = z.object({
   }).max(500, {
     message: "Reason must not exceed 500 characters",
   }),
-  documents: z.instanceof(FileList).optional(),
+  documents: z.any().optional(),
 });
 
 type LeaveRequestFormValues = z.infer<typeof leaveRequestSchema>;
 
-interface LeaveRequestFormProps {
+export interface LeaveRequestFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
   isSubmitting: boolean;
 }
@@ -236,7 +236,7 @@ const LeaveRequestForm: React.FC<LeaveRequestFormProps> = ({ onSubmit, isSubmitt
           <FormField
             control={form.control}
             name="documents"
-            render={({ field: { onChange, ...rest } }) => (
+            render={({ field: { onChange, value, ...rest } }) => (
               <FormItem>
                 <FormLabel>Medical Document</FormLabel>
                 <FormControl>

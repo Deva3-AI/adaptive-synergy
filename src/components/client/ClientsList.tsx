@@ -7,20 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { useClients } from "@/utils/apiUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Client {
-  client_id: number;
-  client_name: string;
-  description: string;
-  contact_info: string;
-  created_at?: string;
-}
-
 const ClientsList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: clients, isLoading, error } = useClients();
 
   // Filter clients based on search term
-  const filteredClients = clients?.filter((client: Client) => 
+  const filteredClients = clients?.filter((client) => 
     client.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.contact_info?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -84,7 +76,7 @@ const ClientsList = () => {
               </TableHeader>
               <TableBody>
                 {filteredClients?.length > 0 ? (
-                  filteredClients.map((client: Client) => (
+                  filteredClients.map((client) => (
                     <TableRow key={client.client_id}>
                       <TableCell className="font-medium">{client.client_name}</TableCell>
                       <TableCell>

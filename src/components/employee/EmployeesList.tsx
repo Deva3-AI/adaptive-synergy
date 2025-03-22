@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useEmployees } from "@/utils/apiUtils";
+import { useEmployees, Employee } from "@/utils/apiUtils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Employee } from "@/utils/apiUtils";
 
 const EmployeesList = () => {
   const [searchTerm, setSearchTerm] = useState('');

@@ -14,7 +14,7 @@ import {
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,9 +49,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import LeaveRequestForm from '@/components/hr/LeaveRequestForm';
+import LeaveRequestForm, { LeaveRequestFormProps } from '@/components/hr/LeaveRequestForm';
 import LeaveRequestsList from '@/components/hr/LeaveRequestsList';
 import EmployeePayslip from '@/components/hr/EmployeePayslip';
+import { LeaveRequest, PaySlip } from '@/utils/apiUtils';
 
 // Mock data
 const MOCK_EMPLOYEES = [
@@ -73,7 +74,7 @@ const MOCK_ATTENDANCE_RECORDS = [
   { id: 8, employeeId: 3, employeeName: 'Mike Johnson', date: '2023-09-02', loginTime: '09:30:00', logoutTime: '17:00:00', status: 'late', workHours: 7.5 },
 ];
 
-const MOCK_LEAVE_REQUESTS = [
+const MOCK_LEAVE_REQUESTS: LeaveRequest[] = [
   { 
     id: 1, 
     employeeId: 1, 
@@ -135,7 +136,7 @@ const MOCK_LEAVE_REQUESTS = [
   },
 ];
 
-const MOCK_PAYSLIPS = [
+const MOCK_PAYSLIPS: PaySlip[] = [
   {
     id: 1,
     employeeId: 1,
@@ -223,6 +224,7 @@ const HrAttendance = () => {
   });
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [leaveRequestDialog, setLeaveRequestDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Fetch attendance data
   const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
@@ -279,7 +281,7 @@ const HrAttendance = () => {
   });
   
   // Function to update leave request status
-  const updateLeaveRequestStatus = async (id: number, status: 'approved' | 'rejected') => {
+  const updateLeaveRequestStatus = async (id: number, status: 'approved' | 'rejected'): Promise<void> => {
     try {
       // In a real implementation, this would call the backend API
       // await axios.patch(`/api/hr/leave-requests/${id}`, { status });
@@ -287,10 +289,32 @@ const HrAttendance = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      return true;
+      toast.success(`Leave request ${status} successfully`);
     } catch (error) {
       console.error('Error updating leave request:', error);
+      toast.error('Failed to update leave request status');
       throw error;
+    }
+  };
+  
+  // Function to handle leave request submission
+  const handleLeaveRequestSubmit = async (formData: FormData): Promise<void> => {
+    setIsSubmitting(true);
+    try {
+      // In a real implementation, this would call the backend API
+      // await axios.post('/api/hr/leave-requests', formData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success('Leave request submitted successfully');
+      setLeaveRequestDialog(false);
+    } catch (error) {
+      console.error('Error submitting leave request:', error);
+      toast.error('Failed to submit leave request');
+      throw error;
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -366,7 +390,10 @@ const HrAttendance = () => {
                   Submit a new leave request for an employee.
                 </DialogDescription>
               </DialogHeader>
-              <LeaveRequestForm />
+              <LeaveRequestForm 
+                onSubmit={handleLeaveRequestSubmit}
+                isSubmitting={isSubmitting}
+              />
             </DialogContent>
           </Dialog>
           
