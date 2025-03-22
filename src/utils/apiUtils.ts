@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 
@@ -158,7 +157,7 @@ export interface LeaveRequest {
   startDate: string;
   endDate?: string;
   reason: string;
-  status: string;
+  status: 'pending' | 'approved' | 'rejected';
   documentUrl?: string;
   createdAt: string;
   updatedAt: string;

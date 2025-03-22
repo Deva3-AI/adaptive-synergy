@@ -49,7 +49,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import LeaveRequestForm, { LeaveRequestFormProps } from '@/components/hr/LeaveRequestForm';
+import LeaveRequestForm from '@/components/hr/LeaveRequestForm';
 import LeaveRequestsList from '@/components/hr/LeaveRequestsList';
 import EmployeePayslip from '@/components/hr/EmployeePayslip';
 import { LeaveRequest, PaySlip } from '@/utils/apiUtils';
