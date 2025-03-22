@@ -339,7 +339,7 @@ const mockGetAssistantResponse = async (query: string, context: any) => {
         response = `Task #${taskId}: "${task.title}" is currently ${task.status}. ${
           task.assigned_to 
             ? `It's assigned to ${task.assignee_name || 'an employee'}.` 
-            : 'It's not assigned to anyone yet.'
+            : "It is not assigned to anyone yet."
         } ${
           task.estimated_time 
             ? `The estimated completion time is ${task.estimated_time} hours.` 
