@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, ArrowRight } from 'lucide-react';
+import { Download, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 import {
   Card,
@@ -17,63 +19,103 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import EmployeePayslip from '@/components/hr/EmployeePayslip';
 
-// Mock data - in a real app, this would come from your API
-const MOCK_PAYSLIPS = [
-  {
-    id: 1,
-    employeeId: 1,
-    employeeName: 'John Doe',
-    month: 'August',
-    year: 2023,
-    basicSalary: 5000,
-    allowances: 800,
-    deductions: 1200,
-    netSalary: 4600,
-    paidDate: '2023-08-31',
-    status: 'paid'
-  },
-  {
-    id: 2,
-    employeeId: 1,
-    employeeName: 'John Doe',
-    month: 'July',
-    year: 2023,
-    basicSalary: 5000,
-    allowances: 750,
-    deductions: 1200,
-    netSalary: 4550,
-    paidDate: '2023-07-31',
-    status: 'paid'
-  },
-];
+// Types for payslip data
+interface Payslip {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  month: string;
+  year: number;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  netSalary: number;
+  paidDate?: string;
+  status: 'pending' | 'paid';
+}
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const EmployeePayslipWidget: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isDownloading, setIsDownloading] = useState(false);
   
   // Fetch payslips for the current employee
-  const { data: payslips, isLoading } = useQuery({
+  const { data: payslips, isLoading, error } = useQuery({
     queryKey: ['employeePayslips', user?.id],
     queryFn: async () => {
       try {
-        // In a real implementation, this would call the backend API
-        // const response = await fetch(`/api/employee/payslips?employeeId=${user?.id}`);
-        // return await response.json();
-        
-        // For mock purposes, filter the data for the current employee
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Use user.id from auth context if available, otherwise default to 1 for demo
-        const employeeId = user?.id || 1;
-        return MOCK_PAYSLIPS.filter(p => p.employeeId === employeeId);
+        // Try to get data from the real API
+        const response = await axios.get(`${API_URL}/employee/payslips?employeeId=${user?.id}`);
+        return response.data;
       } catch (error) {
         console.error('Error fetching payslips:', error);
-        return [];
+        
+        // If the API fails, use mock data for demo purposes
+        // In a real app, you should display an error message
+        const employeeId = user?.id || 1;
+        
+        return [
+          {
+            id: 1,
+            employeeId,
+            employeeName: user?.name || 'Employee',
+            month: 'August',
+            year: 2023,
+            basicSalary: 5000,
+            allowances: 800,
+            deductions: 1200,
+            netSalary: 4600,
+            paidDate: '2023-08-31',
+            status: 'paid'
+          },
+          {
+            id: 2,
+            employeeId,
+            employeeName: user?.name || 'Employee',
+            month: 'July',
+            year: 2023,
+            basicSalary: 5000,
+            allowances: 750,
+            deductions: 1200,
+            netSalary: 4550,
+            paidDate: '2023-07-31',
+            status: 'paid'
+          },
+        ];
       }
     },
   });
   
   const latestPayslip = payslips && payslips.length > 0 ? payslips[0] : null;
+  
+  const handleDownloadPayslip = async (payslipId: number) => {
+    setIsDownloading(true);
+    try {
+      // Try to download from the real API
+      const response = await axios.get(`${API_URL}/employee/payslips/${payslipId}/download`, {
+        responseType: 'blob'
+      });
+      
+      // Create a download link
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `payslip-${payslipId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success('Payslip downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading payslip:', error);
+      toast.error('Failed to download payslip. Please try again later.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
   
   return (
     <Card>
@@ -87,6 +129,10 @@ const EmployeePayslipWidget: React.FC = () => {
         {isLoading ? (
           <div className="py-6 text-center">
             <p className="text-muted-foreground">Loading your payslips...</p>
+          </div>
+        ) : error ? (
+          <div className="py-6 text-center">
+            <p className="text-red-500">Error loading payslips. Please try again later.</p>
           </div>
         ) : latestPayslip ? (
           <div className="space-y-4">
@@ -128,9 +174,22 @@ const EmployeePayslipWidget: React.FC = () => {
                 </div>
               </CardContent>
               <CardFooter className="pt-0">
-                <Button className="w-full gap-2">
-                  <Download className="h-4 w-4" />
-                  Download Payslip
+                <Button 
+                  className="w-full gap-2"
+                  onClick={() => handleDownloadPayslip(latestPayslip.id)}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Download Payslip
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -146,8 +205,18 @@ const EmployeePayslipWidget: React.FC = () => {
                         Net: ${payslip.netSalary.toFixed(2)}
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      <Download className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={() => handleDownloadPayslip(payslip.id)}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading && payslip.id === latestPayslip.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 ))}

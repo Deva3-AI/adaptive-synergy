@@ -1,11 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 
 import { Button } from "@/components/ui/button";
@@ -54,8 +53,12 @@ const leaveRequestSchema = z.object({
 
 type LeaveRequestFormValues = z.infer<typeof leaveRequestSchema>;
 
-const LeaveRequestForm: React.FC = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface LeaveRequestFormProps {
+  onSubmit: (formData: FormData) => Promise<void>;
+  isSubmitting: boolean;
+}
+
+const LeaveRequestForm: React.FC<LeaveRequestFormProps> = ({ onSubmit, isSubmitting }) => {
   const { user } = useAuth();
 
   const form = useForm<LeaveRequestFormValues>({
@@ -66,35 +69,26 @@ const LeaveRequestForm: React.FC = () => {
     },
   });
 
-  const onSubmit = async (values: LeaveRequestFormValues) => {
-    setIsSubmitting(true);
+  const handleSubmit = async (values: LeaveRequestFormValues) => {
     try {
-      // In a real implementation, this would send the data to the backend
-      // const formData = new FormData();
-      // formData.append('leaveType', values.leaveType);
-      // formData.append('startDate', values.startDate.toISOString());
-      // if (values.endDate) formData.append('endDate', values.endDate.toISOString());
-      // formData.append('reason', values.reason);
-      // formData.append('userId', user?.id.toString() || '');
-      // if (values.documents && values.documents.length > 0) {
-      //   formData.append('document', values.documents[0]);
-      // }
+      const formData = new FormData();
+      formData.append('leaveType', values.leaveType);
+      formData.append('startDate', values.startDate.toISOString());
       
-      // const response = await fetch('/api/hr/leave-requests', {
-      //   method: 'POST',
-      //   body: formData,
-      // });
+      if (values.endDate) {
+        formData.append('endDate', values.endDate.toISOString());
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      formData.append('reason', values.reason);
       
-      toast.success('Leave request submitted successfully');
+      if (values.documents && values.documents.length > 0) {
+        formData.append('document', values.documents[0]);
+      }
+      
+      await onSubmit(formData);
       form.reset();
     } catch (error) {
-      console.error('Error submitting leave request:', error);
-      toast.error('Failed to submit leave request');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error submitting form:', error);
     }
   };
   
@@ -103,7 +97,7 @@ const LeaveRequestForm: React.FC = () => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="leaveType"
@@ -155,7 +149,7 @@ const LeaveRequestForm: React.FC = () => {
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -164,6 +158,7 @@ const LeaveRequestForm: React.FC = () => {
                         date < new Date(new Date().setHours(0, 0, 0, 0))
                       }
                       initialFocus
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -198,7 +193,7 @@ const LeaveRequestForm: React.FC = () => {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value || undefined}
@@ -208,6 +203,7 @@ const LeaveRequestForm: React.FC = () => {
                           return startDate && date < startDate;
                         }}
                         initialFocus
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>

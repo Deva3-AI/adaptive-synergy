@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Download, FileText, Printer, Share2 } from 'lucide-react';
+import { Download, FileText, Printer, Share2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 import {
   Card,
@@ -49,9 +50,12 @@ interface EmployeePayslipProps {
   employeeId?: number;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
 const EmployeePayslip: React.FC<EmployeePayslipProps> = ({ payslips, employeeId }) => {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [printingId, setPrintingId] = useState<number | null>(null);
   
   // Filter payslips by employee if employeeId is provided
   const filteredPayslips = employeeId 
@@ -67,27 +71,68 @@ const EmployeePayslip: React.FC<EmployeePayslipProps> = ({ payslips, employeeId 
   const monthOptions = [...new Set(filteredPayslips.map(p => `${p.month}-${p.year}`))];
   
   const downloadPayslip = async (payslipId: number) => {
-    setIsDownloading(true);
+    setDownloadingId(payslipId);
     try {
-      // In a real implementation, this would fetch the payslip PDF
-      // const response = await fetch(`/api/hr/payslips/${payslipId}/download`);
-      // if (!response.ok) throw new Error('Failed to download payslip');
-      // const blob = await response.blob();
-      // const url = window.URL.createObjectURL(blob);
-      // const a = document.createElement('a');
-      // a.href = url;
-      // a.download = `payslip-${payslipId}.pdf`;
-      // a.click();
+      // Try to download from the real API
+      const response = await axios.get(`${API_URL}/hr/payslips/${payslipId}/download`, {
+        responseType: 'blob'
+      });
       
-      // Simulate download delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Create a download link
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `payslip-${payslipId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
       
       toast.success('Payslip downloaded successfully');
     } catch (error) {
       console.error('Error downloading payslip:', error);
-      toast.error('Failed to download payslip');
+      toast.error('Failed to download payslip. Please try again later.');
     } finally {
-      setIsDownloading(false);
+      setDownloadingId(null);
+    }
+  };
+  
+  const printPayslip = async (payslipId: number) => {
+    setPrintingId(payslipId);
+    try {
+      // In a real application, this would prepare content for printing
+      // For this demo, we'll simulate a print operation
+      setTimeout(() => {
+        window.print();
+        toast.success('Payslip sent to printer');
+      }, 1000);
+    } catch (error) {
+      console.error('Error printing payslip:', error);
+      toast.error('Failed to print payslip');
+    } finally {
+      setPrintingId(null);
+    }
+  };
+
+  const sharePayslip = async (payslipId: number) => {
+    try {
+      // This would ideally use the Web Share API if available,
+      // or provide email sharing options
+      if (navigator.share) {
+        await navigator.share({
+          title: 'My Payslip',
+          text: 'Here is my payslip',
+          url: window.location.href,
+        });
+        toast.success('Payslip shared successfully');
+      } else {
+        // Fallback to copy link
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copied to clipboard');
+      }
+    } catch (error) {
+      console.error('Error sharing payslip:', error);
+      toast.error('Failed to share payslip');
     }
   };
 
@@ -265,21 +310,48 @@ const EmployeePayslip: React.FC<EmployeePayslipProps> = ({ payslips, employeeId 
                   </div>
                   
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" className="gap-2">
-                      <Printer className="h-4 w-4" />
-                      Print
+                    <Button 
+                      variant="outline" 
+                      className="gap-2"
+                      onClick={() => printPayslip(payslip.id)}
+                      disabled={printingId === payslip.id}
+                    >
+                      {printingId === payslip.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Printing...
+                        </>
+                      ) : (
+                        <>
+                          <Printer className="h-4 w-4" />
+                          Print
+                        </>
+                      )}
                     </Button>
-                    <Button variant="outline" className="gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="gap-2"
+                      onClick={() => sharePayslip(payslip.id)}
+                    >
                       <Share2 className="h-4 w-4" />
                       Share
                     </Button>
                     <Button 
                       className="gap-2"
                       onClick={() => downloadPayslip(payslip.id)}
-                      disabled={isDownloading}
+                      disabled={downloadingId === payslip.id}
                     >
-                      <Download className="h-4 w-4" />
-                      {isDownloading ? 'Downloading...' : 'Download PDF'}
+                      {downloadingId === payslip.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          Download PDF
+                        </>
+                      )}
                     </Button>
                   </div>
                 </DialogContent>
@@ -287,10 +359,20 @@ const EmployeePayslip: React.FC<EmployeePayslipProps> = ({ payslips, employeeId 
               
               <Button
                 onClick={() => downloadPayslip(payslip.id)}
-                disabled={isDownloading}
+                disabled={downloadingId === payslip.id}
+                className="flex-1"
               >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? 'Downloading...' : 'Download'}
+                {downloadingId === payslip.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>

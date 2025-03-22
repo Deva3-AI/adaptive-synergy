@@ -1,6 +1,11 @@
 
 import React from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X, FileText, Clock, Calendar, Home, Download } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import axios from 'axios';
+
 import { 
   Card, 
   CardContent, 
@@ -25,8 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 
 // Types
 interface LeaveRequest {
@@ -48,6 +52,8 @@ interface LeaveRequestsListProps {
   forEmployee?: boolean;
   onUpdateStatus?: (id: number, status: 'approved' | 'rejected') => Promise<void>;
 }
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Helper function to get badge variant based on status
 const getStatusBadge = (status: string) => {
@@ -94,16 +100,35 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
   forEmployee = false,
   onUpdateStatus 
 }) => {
+  const { isHR, isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Mutation for updating leave request status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: 'approved' | 'rejected' }) => {
+      const response = await axios.put(`${API_URL}/hr/leave-requests/${id}`, { status });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['employeeLeaveRequests'] });
+    },
+    onError: (error) => {
+      console.error('Error updating leave request status:', error);
+      toast.error('Failed to update request status. Please try again.');
+    }
+  });
   
   const handleApprove = async (id: number) => {
     try {
       if (onUpdateStatus) {
         await onUpdateStatus(id, 'approved');
+      } else {
+        await updateStatusMutation.mutateAsync({ id, status: 'approved' });
         toast.success('Leave request approved');
       }
     } catch (error) {
       console.error('Error approving leave request:', error);
-      toast.error('Failed to approve leave request');
     }
   };
   
@@ -111,13 +136,45 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
     try {
       if (onUpdateStatus) {
         await onUpdateStatus(id, 'rejected');
+      } else {
+        await updateStatusMutation.mutateAsync({ id, status: 'rejected' });
         toast.success('Leave request rejected');
       }
     } catch (error) {
       console.error('Error rejecting leave request:', error);
-      toast.error('Failed to reject leave request');
     }
   };
+  
+  const handleDownloadDocument = async (documentUrl?: string, requestId?: number) => {
+    if (!documentUrl) return;
+    
+    try {
+      // Check if it's a full URL or a relative path
+      const url = documentUrl.startsWith('http') 
+        ? documentUrl
+        : `${API_URL}${documentUrl.startsWith('/') ? documentUrl : `/${documentUrl}`}`;
+      
+      // Try to fetch the document
+      const response = await axios.get(url, { responseType: 'blob' });
+      
+      // Create a download link
+      const blob = new Blob([response.data]);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `document-${requestId || 'leave-request'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success('Document downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Failed to download document');
+    }
+  };
+  
+  const canManageRequests = !forEmployee && (isHR || isAdmin);
   
   if (requests.length === 0) {
     return <p className="text-center py-8 text-muted-foreground">No leave requests found.</p>;
@@ -158,13 +215,18 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
           </CardContent>
           <CardFooter className="flex justify-between pt-2">
             {request.documentUrl && (
-              <Button variant="outline" size="sm" className="gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1"
+                onClick={() => handleDownloadDocument(request.documentUrl, request.id)}
+              >
                 <FileText className="h-4 w-4" />
                 View Document
               </Button>
             )}
             
-            {!forEmployee && request.status === 'pending' ? (
+            {canManageRequests && request.status === 'pending' ? (
               <div className="flex gap-2">
                 <TooltipProvider>
                   <Tooltip>
@@ -173,6 +235,7 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
                         variant="outline"
                         size="icon"
                         onClick={() => handleApprove(request.id)}
+                        disabled={updateStatusMutation.isPending}
                       >
                         <Check className="h-4 w-4 text-green-500" />
                       </Button>
@@ -190,6 +253,7 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
                         variant="outline"
                         size="icon"
                         onClick={() => handleReject(request.id)}
+                        disabled={updateStatusMutation.isPending}
                       >
                         <X className="h-4 w-4 text-red-500" />
                       </Button>
@@ -242,7 +306,10 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
                       </div>
                       
                       {request.documentUrl && (
-                        <Button className="w-full gap-2">
+                        <Button 
+                          className="w-full gap-2"
+                          onClick={() => handleDownloadDocument(request.documentUrl, request.id)}
+                        >
                           <Download className="h-4 w-4" />
                           Download Document
                         </Button>
@@ -252,11 +319,13 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
                         <Button
                           variant="outline"
                           onClick={() => handleReject(request.id)}
+                          disabled={updateStatusMutation.isPending}
                         >
                           Reject
                         </Button>
                         <Button
                           onClick={() => handleApprove(request.id)}
+                          disabled={updateStatusMutation.isPending}
                         >
                           Approve
                         </Button>
@@ -312,7 +381,10 @@ const LeaveRequestsList: React.FC<LeaveRequestsListProps> = ({
                     </div>
                     
                     {request.documentUrl && (
-                      <Button className="w-full gap-2">
+                      <Button 
+                        className="w-full gap-2"
+                        onClick={() => handleDownloadDocument(request.documentUrl, request.id)}
+                      >
                         <Download className="h-4 w-4" />
                         Download Document
                       </Button>

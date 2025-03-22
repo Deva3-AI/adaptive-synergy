@@ -1,8 +1,9 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '@/services/api';
-import { useToast } from '@/hooks/use-toast';
+import authService from '@/services/api/authService';
+import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 interface User {
   id: number;
@@ -23,6 +24,7 @@ interface AuthContextType {
   isMarketing: boolean;
   isHR: boolean;
   isFinance: boolean;
+  hasRole: (role: string | string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,7 +33,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -39,9 +40,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         const currentUser = authService.getCurrentUser();
         
-        // For development purposes, simulate a logged-in user if none exists
-        // REMOVE THIS IN PRODUCTION
-        if (!currentUser) {
+        if (currentUser) {
+          setUser(currentUser);
+        } else if (import.meta.env.DEV) {
+          // For development purposes only, use a mock user
           console.log('Using mock user for development');
           const mockUser = {
             id: 1,
@@ -52,8 +54,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem('user', JSON.stringify(mockUser));
           localStorage.setItem('token', 'mock-token');
           setUser(mockUser);
-        } else {
-          setUser(currentUser);
         }
       } catch (error) {
         console.error('Failed to get current user:', error);
@@ -71,19 +71,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       // For development purposes, use a mock login if backend is not available
-      // In real deployment, this should be removed
       if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
         console.log('Using mock login for development');
         
         // Map employee emails to mock roles
         let mockRole = 'employee';
-        if (email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
+        if (email.includes('admin') || email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
           mockRole = 'admin';
-        } else if (email.includes('athira') || email.includes('shalini')) {
+        } else if (email.includes('hr') || email.includes('athira') || email.includes('shalini')) {
           mockRole = 'hr';
-        } else if (email.includes('priya') || email.includes('vishnu')) {
+        } else if (email.includes('marketing') || email.includes('priya') || email.includes('vishnu')) {
           mockRole = 'marketing';
-        } else if (email.includes('@client')) {
+        } else if (email.includes('finance')) {
+          mockRole = 'finance';
+        } else if (email.includes('client')) {
           mockRole = 'client';
         }
         
@@ -99,12 +100,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(mockUser);
         
         // Redirect based on role
-        redirectBasedOnRole(mockRole);
+        redirectBasedOnRole(mockUser.role);
         
-        toast({
-          title: 'Login Successful (Development Mode)',
-          description: `Welcome, ${mockUser.name}!`,
-        });
+        toast.success(`Welcome, ${mockUser.name}! (Development Mode)`);
         
         setIsLoading(false);
         return;
@@ -112,20 +110,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Real login process
       const data = await authService.login(email, password);
-      setUser({
+      
+      const userData = {
         id: data.user_id,
         name: data.name,
         email: data.email,
         role: data.role,
-      });
+      };
+      
+      setUser(userData);
       
       // Redirect based on role
       redirectBasedOnRole(data.role);
       
-      toast({
-        title: 'Login Successful',
-        description: `Welcome back, ${data.name}!`,
-      });
+      toast.success(`Welcome back, ${data.name}!`);
     } catch (error: any) {
       console.error('Login error:', error);
       
@@ -135,13 +133,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // Determine role based on email
         let mockRole = 'employee';
-        if (email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
+        if (email.includes('admin') || email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
           mockRole = 'admin';
-        } else if (email.includes('athira') || email.includes('shalini')) {
+        } else if (email.includes('hr') || email.includes('athira') || email.includes('shalini')) {
           mockRole = 'hr';
-        } else if (email.includes('priya') || email.includes('vishnu')) {
+        } else if (email.includes('marketing') || email.includes('priya') || email.includes('vishnu')) {
           mockRole = 'marketing';
-        } else if (email.includes('@client')) {
+        } else if (email.includes('finance')) {
+          mockRole = 'finance';
+        } else if (email.includes('client')) {
           mockRole = 'client';
         }
         
@@ -158,16 +158,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         redirectBasedOnRole(mockRole);
         
-        toast({
-          title: 'Development Mode Login',
-          description: 'Logged in with mock user (backend not available)',
-        });
+        toast.success('Development Mode Login (backend not available)');
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: error.response?.data?.detail || 'Invalid credentials',
-        });
+        toast.error(error.response?.data?.detail || 'Invalid credentials');
         throw error;
       }
     } finally {
@@ -197,10 +190,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authService.logout();
     setUser(null);
     navigate('/login');
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
+    toast.success('You have been logged out successfully');
+  };
+
+  const hasRole = (role: string | string[]): boolean => {
+    if (!user) return false;
+    
+    if (Array.isArray(role)) {
+      return role.includes(user.role);
+    }
+    
+    return user.role === role;
   };
 
   const isAuthenticated = !!user;
@@ -225,6 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isMarketing,
         isHR,
         isFinance,
+        hasRole,
       }}
     >
       {children}

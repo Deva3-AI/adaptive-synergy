@@ -1,0 +1,141 @@
+
+import axios from 'axios';
+import apiClient from '@/utils/apiUtils';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+const authService = {
+  login: async (email: string, password: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        email,
+        password
+      });
+      
+      const data = response.data;
+      
+      // Store user data and token in local storage
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify({
+        id: data.user_id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      }));
+      
+      return data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+  
+  register: async (name: string, email: string, password: string, role: string = 'employee') => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/register`, {
+        name,
+        email,
+        password,
+        role
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  },
+  
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+  
+  getCurrentUser: (): User | null => {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+      return JSON.parse(userJson);
+    }
+    return null;
+  },
+  
+  isAuthenticated: (): boolean => {
+    return !!localStorage.getItem('token') && !!localStorage.getItem('user');
+  },
+  
+  hasRole: (role: string | string[]): boolean => {
+    const user = authService.getCurrentUser();
+    if (!user) return false;
+    
+    if (Array.isArray(role)) {
+      return role.includes(user.role);
+    }
+    
+    return user.role === role;
+  },
+  
+  refreshToken: async () => {
+    try {
+      const response = await apiClient.post('/auth/refresh-token');
+      
+      const data = response.data;
+      
+      // Update token in local storage
+      localStorage.setItem('token', data.access_token);
+      
+      return data;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      
+      // If token refresh fails, log the user out
+      authService.logout();
+      throw error;
+    }
+  },
+  
+  updateProfile: async (userData: Partial<User>) => {
+    try {
+      const response = await apiClient.put('/auth/profile', userData);
+      
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        const updatedUser = { ...currentUser, ...userData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Profile update error:', error);
+      throw error;
+    }
+  },
+  
+  resetPassword: async (email: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/reset-password`, { email });
+      return response.data;
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
+  },
+  
+  verifyEmail: async (token: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/verify-email`, { token });
+      return response.data;
+    } catch (error) {
+      console.error('Email verification error:', error);
+      throw error;
+    }
+  }
+};
+
+export default authService;

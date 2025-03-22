@@ -1,267 +1,269 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Play, Square, Clock, CalendarDays, BarChart, LogOut } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Play, PauseCircle, Loader2, ClockIcon, CalendarCheck } from 'lucide-react';
 import { format, differenceInSeconds } from 'date-fns';
 import { toast } from 'sonner';
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/use-auth';
-import { employeeService, Attendance } from '@/services/api/employeeService';
+import { apiRequest } from '@/utils/apiUtils';
+
+interface Attendance {
+  attendance_id: number;
+  user_id: number;
+  login_time: string;
+  logout_time?: string;
+  work_date: string;
+  total_hours?: number;
+}
+
+const formatTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
 
 const AttendanceTracker: React.FC = () => {
   const { user } = useAuth();
-  const [isTracking, setIsTracking] = useState(false);
-  const [currentSession, setCurrentSession] = useState<Attendance | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [timer, setTimer] = useState<number>(0);
+  const [timerRunning, setTimerRunning] = useState<boolean>(false);
+  const queryClient = useQueryClient();
   
   // Fetch today's attendance record
-  const { data: todayAttendance, isLoading, refetch } = useQuery({
-    queryKey: ['todayAttendance'],
+  const { data: todayAttendance, isLoading: isLoadingAttendance } = useQuery({
+    queryKey: ['todayAttendance', user?.id],
     queryFn: async () => {
-      try {
-        const attendance = await employeeService.getTodayAttendance();
-        return attendance;
-      } catch (error) {
-        console.error('Error fetching today\'s attendance:', error);
-        return null;
-      }
-    },
-  });
-  
-  // Fetch attendance history
-  const { data: attendanceHistory } = useQuery({
-    queryKey: ['attendanceHistory'],
-    queryFn: async () => {
-      try {
-        const history = await employeeService.getAttendanceHistory();
-        return history;
-      } catch (error) {
-        console.error('Error fetching attendance history:', error);
-        return [];
-      }
-    },
-  });
-  
-  // Update elapsed time when tracking is active
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    
-    if (isTracking && startTime) {
-      intervalId = setInterval(() => {
-        const secondsElapsed = differenceInSeconds(new Date(), startTime);
-        setElapsedTime(secondsElapsed);
-      }, 1000);
-    }
-    
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isTracking, startTime]);
-  
-  // Initialize tracking state based on today's attendance
-  useEffect(() => {
-    if (todayAttendance) {
-      setCurrentSession(todayAttendance);
+      const endpoint = `/employee/attendance/today?userId=${user?.id}`;
+      const mockData: Attendance | null = null;
       
-      if (todayAttendance.login_time && !todayAttendance.logout_time) {
-        setIsTracking(true);
-        setStartTime(new Date(todayAttendance.login_time));
-        const secondsElapsed = differenceInSeconds(
-          new Date(),
-          new Date(todayAttendance.login_time)
-        );
-        setElapsedTime(secondsElapsed);
-      } else {
-        setIsTracking(false);
-        setStartTime(null);
-        setElapsedTime(0);
+      return apiRequest<Attendance | null>(endpoint, 'get', undefined, mockData);
+    },
+    refetchInterval: 60000, // Refetch every minute
+  });
+  
+  // Mutation for starting work (login)
+  const startWorkMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest<Attendance>(
+        '/employee/attendance/login',
+        'post',
+        { user_id: user?.id }
+      );
+    },
+    onSuccess: (data) => {
+      toast.success('Work session started');
+      queryClient.setQueryData(['todayAttendance', user?.id], data);
+      queryClient.invalidateQueries({ queryKey: ['todayAttendance', user?.id] });
+    },
+    onError: (error) => {
+      console.error('Error starting work session:', error);
+      toast.error('Failed to start work session');
+    }
+  });
+  
+  // Mutation for stopping work (logout)
+  const stopWorkMutation = useMutation({
+    mutationFn: async () => {
+      if (!todayAttendance) return null;
+      
+      return apiRequest<Attendance>(
+        '/employee/attendance/logout',
+        'post',
+        { 
+          attendance_id: todayAttendance.attendance_id,
+          user_id: user?.id 
+        }
+      );
+    },
+    onSuccess: (data) => {
+      if (data) {
+        toast.success('Work session ended');
+        queryClient.setQueryData(['todayAttendance', user?.id], data);
+        queryClient.invalidateQueries({ queryKey: ['todayAttendance', user?.id] });
+        setTimerRunning(false);
       }
+    },
+    onError: (error) => {
+      console.error('Error stopping work session:', error);
+      toast.error('Failed to end work session');
+    }
+  });
+  
+  // Update timer based on attendance data
+  useEffect(() => {
+    if (todayAttendance?.login_time && !todayAttendance.logout_time) {
+      const loginTime = new Date(todayAttendance.login_time);
+      const updateTimer = () => {
+        const now = new Date();
+        const secondsElapsed = differenceInSeconds(now, loginTime);
+        setTimer(secondsElapsed);
+      };
+      
+      updateTimer();
+      setTimerRunning(true);
+      
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    } else if (todayAttendance?.login_time && todayAttendance.logout_time) {
+      const loginTime = new Date(todayAttendance.login_time);
+      const logoutTime = new Date(todayAttendance.logout_time);
+      const secondsElapsed = differenceInSeconds(logoutTime, loginTime);
+      setTimer(secondsElapsed);
+      setTimerRunning(false);
+    } else {
+      setTimer(0);
+      setTimerRunning(false);
     }
   }, [todayAttendance]);
   
+  // Handle start work button click
   const handleStartWork = async () => {
+    if (!user) {
+      toast.error('You must be logged in to start work');
+      return;
+    }
+    
     try {
-      const response = await employeeService.startWork();
-      
-      setIsTracking(true);
-      setStartTime(new Date());
-      setCurrentSession(response);
-      refetch(); // Refetch today's attendance
-      
-      toast.success('Work session started successfully');
+      await startWorkMutation.mutateAsync();
     } catch (error) {
-      console.error('Error starting work:', error);
-      toast.error('Failed to start work session');
+      console.error('Error in start work:', error);
     }
   };
   
+  // Handle stop work button click
   const handleStopWork = async () => {
-    if (!currentSession) return;
+    if (!user || !todayAttendance) {
+      toast.error('No active work session found');
+      return;
+    }
     
     try {
-      await employeeService.stopWork(currentSession.attendance_id);
-      
-      setIsTracking(false);
-      setStartTime(null);
-      setElapsedTime(0);
-      refetch(); // Refetch today's attendance
-      
-      toast.success('Work session ended successfully');
+      await stopWorkMutation.mutateAsync();
     } catch (error) {
-      console.error('Error stopping work:', error);
-      toast.error('Failed to end work session');
+      console.error('Error in stop work:', error);
     }
   };
   
-  // Format seconds to HH:MM:SS
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      secs.toString().padStart(2, '0')
-    ].join(':');
-  };
-  
-  // Calculate workday progress (8 hours = 100%)
-  const workdayProgress = Math.min(Math.floor((elapsedTime / (8 * 3600)) * 100), 100);
+  const isStartingWork = startWorkMutation.isPending;
+  const isStoppingWork = stopWorkMutation.isPending;
   
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center">
-            Work Time Tracker
-            <Clock className="ml-2 h-5 w-5 text-muted-foreground" />
-          </CardTitle>
-          <CardDescription>
-            Track your daily work hours with start and stop functionality
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="flex justify-center py-4">
-                <p className="text-muted-foreground">Loading...</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-col items-center justify-center py-6">
-                  <div className="text-4xl font-bold tracking-tighter">
-                    {formatTime(elapsedTime)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {isTracking 
-                      ? `Started at ${startTime ? format(startTime, 'h:mm a') : 'Unknown'}`
-                      : 'Not currently working'
-                    }
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Workday Progress</span>
-                    <span>{workdayProgress}%</span>
-                  </div>
-                  <Progress value={workdayProgress} className="h-2" />
-                </div>
-                
-                <div className="flex flex-col xs:flex-row gap-2">
-                  <Button
-                    className="flex-1 gap-2"
-                    onClick={handleStartWork}
-                    disabled={isTracking}
-                  >
-                    <Play className="h-4 w-4" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          Time Tracker
+          <ClockIcon className="ml-2 h-5 w-5 text-muted-foreground" />
+        </CardTitle>
+        <CardDescription>
+          Track your daily work hours
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-6">
+        {isLoadingAttendance ? (
+          <div className="flex flex-col items-center justify-center py-4">
+            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">Loading your attendance...</p>
+          </div>
+        ) : (
+          <>
+            <div className="text-5xl font-bold mb-6">{formatTime(timer)}</div>
+            <div className="flex gap-4">
+              <Button
+                size="lg"
+                variant={timerRunning ? "outline" : "default"}
+                className="gap-2"
+                onClick={handleStartWork}
+                disabled={isStartingWork || timerRunning}
+              >
+                {isStartingWork ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5" />
                     Start Work
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1 gap-2"
-                    onClick={handleStopWork}
-                    disabled={!isTracking}
-                  >
-                    <Square className="h-4 w-4" />
+                  </>
+                )}
+              </Button>
+              <Button
+                size="lg"
+                variant={timerRunning ? "default" : "outline"}
+                className="gap-2"
+                onClick={handleStopWork}
+                disabled={isStoppingWork || !timerRunning}
+              >
+                {isStoppingWork ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Stopping...
+                  </>
+                ) : (
+                  <>
+                    <PauseCircle className="h-5 w-5" />
                     Stop Work
-                  </Button>
-                </div>
-              </>
-            )}
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+      <CardFooter className="flex flex-col items-start pt-2">
+        <div className="w-full text-sm">
+          <div className="flex justify-between mb-2">
+            <span className="text-muted-foreground">Today:</span>
+            <span className="font-medium">{format(new Date(), 'PPP')}</span>
           </div>
-        </CardContent>
-        <CardFooter className="pt-0">
-          <div className="w-full text-center text-sm text-muted-foreground">
-            {todayAttendance && todayAttendance.login_time ? (
-              <p>
-                Today's Hours: {
-                  todayAttendance.logout_time 
-                    ? `${formatTime(differenceInSeconds(
-                        new Date(todayAttendance.logout_time),
-                        new Date(todayAttendance.login_time)
-                      ))} (Complete)`
-                    : 'In progress'
-                }
-              </p>
-            ) : (
-              <p>No work recorded today</p>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
-      
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center text-base">
-            Recent Activity
-            <CalendarDays className="ml-2 h-5 w-5 text-muted-foreground" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {attendanceHistory && attendanceHistory.length > 0 ? (
-              attendanceHistory.slice(0, 5).map((record, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b last:border-0">
-                  <div>
-                    <p className="font-medium">{format(new Date(record.work_date), 'EEEE, MMMM d')}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {record.login_time ? format(new Date(record.login_time), 'h:mm a') : 'N/A'} 
-                      {' - '}
-                      {record.logout_time ? format(new Date(record.logout_time), 'h:mm a') : 'In progress'}
-                    </p>
-                  </div>
-                  <Badge variant={record.logout_time ? 'outline' : 'secondary'}>
-                    {record.logout_time 
-                      ? formatTime(differenceInSeconds(
-                          new Date(record.logout_time),
-                          new Date(record.login_time)
-                        ))
-                      : 'Active'}
-                  </Badge>
-                </div>
-              ))
-            ) : (
-              <div className="py-4 text-center text-muted-foreground">
-                <p>No recent activity found</p>
+          {todayAttendance ? (
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Started:</span>
+                <span className="font-medium">
+                  {todayAttendance.login_time 
+                    ? format(new Date(todayAttendance.login_time), 'p')
+                    : 'Not started'}
+                </span>
               </div>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="pt-0">
-          <Button variant="outline" className="w-full gap-2">
-            <BarChart className="h-4 w-4" />
-            View Full History
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Ended:</span>
+                <span className="font-medium">
+                  {todayAttendance.logout_time 
+                    ? format(new Date(todayAttendance.logout_time), 'p')
+                    : timerRunning ? 'In progress' : 'Not ended'}
+                </span>
+              </div>
+              {todayAttendance.logout_time && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total hours:</span>
+                  <span className="font-medium">
+                    {todayAttendance.total_hours 
+                      ? `${todayAttendance.total_hours.toFixed(2)}h`
+                      : `${(timer / 3600).toFixed(2)}h`}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-2">
+              No attendance recorded for today
+            </p>
+          )}
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 
