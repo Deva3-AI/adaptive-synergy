@@ -3,7 +3,7 @@ import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import Sidebar from './Sidebar';
 
-interface MobileSidebarProps {
+export interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }

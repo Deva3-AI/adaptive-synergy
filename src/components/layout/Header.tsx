@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 
-interface HeaderProps {
+export interface HeaderProps {
   onMenuClick: () => void;
   appName: string;
 }
