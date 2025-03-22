@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -312,7 +313,7 @@ const mockGetAssistantResponse = async (query: string, context: any) => {
     'report': `I can generate comprehensive reports on project status, employee productivity, client engagement, or financial performance. Which type of report would be most useful for you right now?`,
     
     // Insights
-    'insight': `Based on your current data, I notice that projects for Client A typically take 20% longer than estimated. Consider adjusting your time estimates for future projects with them.`,
+    'insight': `Based on your current data, I notice that projects for Client A typically take 20% longer than estimated. Consider adjusting your time estimates for future projects with them.`
   };
   
   // Default fallback response
@@ -483,4 +484,3 @@ export const aiService = {
 };
 
 export default aiService;
-
