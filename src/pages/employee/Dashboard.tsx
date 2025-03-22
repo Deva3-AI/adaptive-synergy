@@ -1,497 +1,633 @@
 
-// Update employee dashboard with proper type handling
-import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Briefcase, 
-  CheckCircle, 
+  CheckCircle2, 
   Clock, 
-  ListChecks, 
-  PlayCircle, 
-  StopCircle,
   Calendar,
-  MoreHorizontal,
-  User as UserIcon,
-  BadgeCheck,
-  ArrowRight,
-  MessageSquare,
-  Flame
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTasks, useEmployees, taskOperations, Task, Employee } from "@/utils/apiUtils";
-import { toast } from "sonner";
-import DashboardCard from "@/components/dashboard/DashboardCard";
-import EmployeeWorkTracker from "@/components/dashboard/EmployeeWorkTracker";
-import EmployeePerformanceInsights from "@/components/ai/EmployeePerformanceInsights";
+  AlertCircle,
+  BarChart,
+  FileText,
+  ListTodo
+} from 'lucide-react';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+
+import AttendanceTracker from '@/components/employee/AttendanceTracker';
+import EmployeeLeaveRequests from '@/components/employee/EmployeeLeaveRequests';
+import EmployeePayslipWidget from '@/components/employee/EmployeePayslipWidget';
+
+// Mock data
+const MOCK_TASKS = [
+  {
+    id: 1,
+    title: 'Complete UI Design',
+    deadline: '2023-09-10',
+    priority: 'high',
+    status: 'in_progress',
+    project: 'Website Redesign',
+    client: 'Acme Inc.'
+  },
+  {
+    id: 2,
+    title: 'API Integration',
+    deadline: '2023-09-15',
+    priority: 'medium',
+    status: 'pending',
+    project: 'Mobile App',
+    client: 'TechCorp'
+  },
+  {
+    id: 3,
+    title: 'Documentation Update',
+    deadline: '2023-09-08',
+    priority: 'low',
+    status: 'completed',
+    project: 'Internal Tools',
+    client: 'Internal'
+  },
+  {
+    id: 4,
+    title: 'Client Meeting Preparation',
+    deadline: '2023-09-07',
+    priority: 'high',
+    status: 'in_progress',
+    project: 'Client Onboarding',
+    client: 'NewStart LLC'
+  },
+];
+
+const getPriorityBadge = (priority: string) => {
+  switch(priority) {
+    case 'high':
+      return 'destructive';
+    case 'medium':
+      return 'warning';
+    case 'low':
+    default:
+      return 'secondary';
+  }
+};
+
+const getStatusBadge = (status: string) => {
+  switch(status) {
+    case 'completed':
+      return 'success';
+    case 'in_progress':
+      return 'warning';
+    case 'pending':
+    default:
+      return 'outline';
+  }
+};
 
 const EmployeeDashboard = () => {
-  const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
-  const [currentUser, setCurrentUser] = useState<Employee | null>(null);
+  const { user } = useAuth();
   
-  // Fetch tasks and employees
-  const { data: tasks = [], refetch: refetchTasks } = useTasks();
-  const { data: employees = [] } = useEmployees();
-  
-  // Get current user from employees list (for demo purposes)
-  // In a real app, this would come from auth context
-  useEffect(() => {
-    if (employees.length > 0) {
-      // Use first employee as current user for demo
-      setCurrentUser(employees[0]);
-    }
-  }, [employees]);
-  
-  // Check if there's an active task
-  useEffect(() => {
-    if (tasks) {
-      const inProgressTask = tasks.find(
-        task => task.status === "in_progress" && task.assigned_to === currentUser?.user_id
-      );
-      if (inProgressTask) {
-        setActiveTaskId(inProgressTask.task_id);
-      } else {
-        setActiveTaskId(null);
+  const { data: tasks, isLoading: isLoadingTasks } = useQuery({
+    queryKey: ['employeeTasks'],
+    queryFn: async () => {
+      try {
+        // In a real implementation, this would call your backend API
+        // const response = await fetch('/api/employee/tasks');
+        // if (!response.ok) throw new Error('Failed to fetch tasks');
+        // return await response.json();
+        
+        // For mock purposes, simulate API call
+        await new Promise(resolve => setTimeout(resolve, 800));
+        return MOCK_TASKS;
+      } catch (error) {
+        console.error("Error fetching tasks, using fallback data:", error);
+        return MOCK_TASKS;
       }
     }
-  }, [tasks, currentUser]);
+  });
   
-  // Handle start task
-  const handleStartTask = async (taskId: number) => {
-    if (activeTaskId) {
-      toast.error("You already have an active task. Please finish it first.");
-      return;
-    }
-    
-    try {
-      await taskOperations.startTask(taskId);
-      setActiveTaskId(taskId);
-      refetchTasks();
-    } catch (error) {
-      console.error("Error starting task:", error);
-    }
-  };
+  const pendingTasks = tasks?.filter(task => task.status !== 'completed') || [];
+  const completedTasks = tasks?.filter(task => task.status === 'completed') || [];
+  const highPriorityTasks = tasks?.filter(task => task.priority === 'high') || [];
   
-  // Handle stop task
-  const handleStopTask = async (taskId: number) => {
-    try {
-      await taskOperations.stopTask(taskId);
-      setActiveTaskId(null);
-      refetchTasks();
-    } catch (error) {
-      console.error("Error stopping task:", error);
-    }
-  };
-  
-  // Handle complete task
-  const handleCompleteTask = async (taskId: number) => {
-    try {
-      await taskOperations.completeTask(taskId);
-      if (activeTaskId === taskId) {
-        setActiveTaskId(null);
-      }
-      refetchTasks();
-    } catch (error) {
-      console.error("Error completing task:", error);
-    }
-  };
-  
-  // Filter assigned tasks for the current user
-  const myTasks = tasks && Array.isArray(tasks) ? tasks.filter(task => 
-    task.assigned_to === currentUser?.user_id
-  ) : [];
-  
-  // Count tasks by status
-  const taskCounts = {
-    total: myTasks.length || 0,
-    pending: myTasks.filter(task => task.status === "pending").length || 0,
-    inProgress: myTasks.filter(task => task.status === "in_progress").length || 0,
-    completed: myTasks.filter(task => task.status === "completed").length || 0,
-    today: myTasks.filter(task => {
-      if (!task.created_at) return false;
-      const taskDate = new Date(task.created_at).toDateString();
-      const today = new Date().toDateString();
-      return taskDate === today;
-    }).length || 0
-  };
-  
-  // Calculate completion rate
-  const completionRate = taskCounts.total > 0 
-    ? Math.round((taskCounts.completed / taskCounts.total) * 100) 
+  // Calculate task completion percentage
+  const taskCompletionPercentage = tasks && tasks.length > 0 
+    ? Math.round((completedTasks.length / tasks.length) * 100) 
     : 0;
   
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Employee Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back{currentUser ? `, ${currentUser.name}` : ""}! Track your tasks and manage your work time.
+          Welcome back, {user?.name || 'Employee'}. Here's what's happening today.
         </p>
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Tasks</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts.total}</div>
-            <div className="flex mt-1 space-x-2">
-              <div className="text-xs text-muted-foreground">
-                <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                {taskCounts.pending} pending
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <span className="inline-block w-3 h-3 rounded-full bg-amber-500 mr-1"></span>
-                {taskCounts.inProgress} in progress
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
-                {taskCounts.completed} completed
-              </div>
+            <div className="text-2xl font-bold">{pendingTasks.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {completedTasks.length} completed
+            </p>
+            <div className="mt-2">
+              <Progress value={taskCompletionPercentage} className="h-2" />
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Tasks</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts.today}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {activeTaskId ? "1 task currently active" : "No active tasks"}
-            </div>
+            <div className="text-2xl font-bold">{highPriorityTasks.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {highPriorityTasks.filter(t => t.status === 'completed').length} completed
+            </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Work Hours</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completionRate}%</div>
-            <Progress value={completionRate} className="h-1.5 mt-2" />
+            <div className="text-2xl font-bold">32.5h</div>
+            <p className="text-xs text-muted-foreground">
+              This week (75% of target)
+            </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Task</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Leave Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            {activeTaskId ? (
-              <div>
-                <div className="text-md font-medium truncate">
-                  {tasks.find(t => t.task_id === activeTaskId)?.title || "Task"}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <Flame className="h-3 w-3 text-amber-500 mr-1 animate-pulse" />
-                  <span>Currently in progress</span>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="text-md">No active task</div>
-                <div className="text-xs text-muted-foreground mt-1">Start a task below</div>
-              </div>
-            )}
+            <div className="text-2xl font-bold">18 days</div>
+            <p className="text-xs text-muted-foreground">
+              Annual leave remaining
+            </p>
           </CardContent>
         </Card>
       </div>
       
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-7">
-        <DashboardCard
-          title="Work Timer"
-          icon={<Clock className="h-5 w-5" />}
-          badgeText="Daily"
-          badgeVariant="outline"
-          className="md:col-span-3"
-        >
-          <EmployeeWorkTracker />
-        </DashboardCard>
+      <Tabs defaultValue="tasks">
+        <TabsList className="grid grid-cols-4 w-full sm:w-[400px]">
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="leave">Leave</TabsTrigger>
+          <TabsTrigger value="payroll">Payroll</TabsTrigger>
+        </TabsList>
         
-        <DashboardCard
-          title={activeTaskId ? "Active Task" : "No Active Task"}
-          icon={activeTaskId ? <Flame className="h-5 w-5 text-amber-500" /> : <Clock className="h-5 w-5" />}
-          badgeText={activeTaskId ? "In Progress" : "Start Task"}
-          badgeVariant={activeTaskId ? "warning" : "outline"}
-          className="md:col-span-4"
-        >
-          {activeTaskId ? (
-            <div className="h-full flex flex-col">
-              <div className="space-y-4 flex-1">
-                {tasks.map(task => {
-                  if (task.task_id === activeTaskId) {
-                    return (
-                      <div key={task.task_id} className="bg-muted/50 p-4 rounded-lg space-y-3">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-semibold text-lg">{task.title}</h3>
-                          <Badge variant="warning" className="ml-2">In Progress</Badge>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground">{task.description}</p>
-                        
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <UserIcon className="h-4 w-4 mr-1" />
-                          <span>Client: {task.client_name}</span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center mt-4">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                            <span className="text-sm">{task.estimated_time} hrs estimated</span>
-                          </div>
-                          
-                          <div className="space-x-2">
-                            <Button variant="destructive" size="sm" onClick={() => handleStopTask(task.task_id)}>
-                              <StopCircle className="h-4 w-4 mr-1" />
-                              <span>Stop Task</span>
-                            </Button>
-                            <Button variant="default" size="sm" onClick={() => handleCompleteTask(task.task_id)}>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              <span>Complete</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-              
-              <div className="mt-4 text-sm text-muted-foreground">
-                <p>
-                  <span className="font-medium">Note:</span> Stopping a task will pause your progress. You can resume later.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="h-full flex flex-col">
-              <div className="text-center py-4 text-muted-foreground mb-4">
-                <Clock className="h-12 w-12 mx-auto mb-2 text-muted-foreground/70" />
-                <h3 className="text-lg font-medium mb-1">No Active Task</h3>
-                <p className="text-sm">Select a task from below to start working</p>
-              </div>
-              
-              <div className="flex-1 space-y-2">
-                {myTasks.filter(task => task.status === "pending").length > 0 ? (
-                  myTasks
-                    .filter(task => task.status === "pending")
-                    .slice(0, 3)
-                    .map(task => (
-                      <div key={task.task_id} className="bg-muted/30 p-3 rounded-md flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">{task.title}</h4>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Client: {task.client_name} • {task.estimated_time} hrs
-                          </div>
-                        </div>
-                        <Button size="sm" onClick={() => handleStartTask(task.task_id)}>
-                          <PlayCircle className="h-4 w-4 mr-1" />
-                          <span>Start</span>
-                        </Button>
-                      </div>
-                    ))
-                ) : (
-                  <div className="bg-muted/30 p-3 rounded-md text-center">
-                    <p className="text-muted-foreground">No pending tasks available</p>
-                  </div>
-                )}
-              </div>
-              
-              {myTasks.filter(task => task.status === "pending").length > 3 && (
-                <div className="text-center mt-2">
-                  <Button variant="ghost" size="sm">
-                    <span>View All Tasks</span>
-                    <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </DashboardCard>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        <Tabs defaultValue="pending" className="flex flex-col h-full">
-          <TabsList className="mb-4 w-full grid grid-cols-3">
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-          
-          <Card className="flex-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <ListChecks className="h-5 w-5 mr-2" />
-                My Tasks
+        <TabsContent value="tasks" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                Your Tasks
+                <ListTodo className="ml-2 h-5 w-5 text-muted-foreground" />
               </CardTitle>
               <CardDescription>
-                {myTasks.length} total tasks assigned to you
+                View and manage your assigned tasks and projects
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <TabsContent value="pending" className="m-0">
-                {myTasks.filter(task => task.status === "pending").length > 0 ? (
-                  myTasks
-                    .filter(task => task.status === "pending")
-                    .map(task => (
-                      <div key={task.task_id} className="border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{task.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                            <div className="flex items-center text-xs text-muted-foreground mt-2">
-                              <UserIcon className="h-3 w-3 mr-1" />
-                              <span>{task.client_name}</span>
-                              <span className="mx-2">•</span>
-                              <Clock className="h-3 w-3 mr-1" />
-                              <span>{task.estimated_time} hrs</span>
-                              {task.priority && (
-                                <>
-                                  <span className="mx-2">•</span>
-                                  <Badge variant={
-                                    task.priority === "high" ? "destructive" :
-                                    task.priority === "medium" ? "warning" : "secondary"
-                                  } size="sm">
-                                    {task.priority}
-                                  </Badge>
-                                </>
-                              )}
+            <CardContent>
+              {isLoadingTasks ? (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">Loading tasks...</p>
+                </div>
+              ) : tasks && tasks.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingTasks.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Pending Tasks</h3>
+                      <div className="space-y-2">
+                        {pendingTasks.map(task => (
+                          <div key={task.id} className="border rounded-md p-3 bg-card">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-medium">{task.title}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {task.project} • {task.client}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge variant={getPriorityBadge(task.priority)}>
+                                  {task.priority}
+                                </Badge>
+                                <Badge variant={getStatusBadge(task.status)}>
+                                  {task.status.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center mt-3">
+                              <div className="text-sm text-muted-foreground">
+                                Due: {new Date(task.deadline).toLocaleDateString()}
+                              </div>
+                              <Button variant="outline" size="sm">View Details</Button>
                             </div>
                           </div>
-                          <Button size="sm" onClick={() => handleStartTask(task.task_id)}>
-                            <PlayCircle className="h-4 w-4 mr-1" />
-                            <span>Start</span>
-                          </Button>
-                        </div>
+                        ))}
                       </div>
-                    ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle className="h-10 w-10 mx-auto mb-3" />
-                    <p>No pending tasks available</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="in-progress" className="m-0">
-                {myTasks.filter(task => task.status === "in_progress").length > 0 ? (
-                  myTasks
-                    .filter(task => task.status === "in_progress")
-                    .map(task => (
-                      <div key={task.task_id} className="border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{task.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                            <div className="flex items-center text-xs text-muted-foreground mt-2">
-                              <UserIcon className="h-3 w-3 mr-1" />
-                              <span>{task.client_name}</span>
-                              <span className="mx-2">•</span>
-                              <Clock className="h-3 w-3 mr-1" />
-                              <span>{task.estimated_time} hrs</span>
-                              <span className="mx-2">•</span>
-                              <Badge variant="warning" size="sm">In Progress</Badge>
+                    </div>
+                  )}
+                  
+                  {completedTasks.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Completed Tasks</h3>
+                      <div className="space-y-2">
+                        {completedTasks.slice(0, 2).map(task => (
+                          <div key={task.id} className="border rounded-md p-3 bg-card flex justify-between items-center">
+                            <div>
+                              <div className="font-medium line-through opacity-70">{task.title}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {task.project} • {task.client}
+                              </div>
                             </div>
+                            <Badge variant="success">completed</Badge>
                           </div>
-                          <div className="flex gap-1">
-                            <Button variant="outline" size="sm" onClick={() => handleStopTask(task.task_id)}>
-                              <StopCircle className="h-4 w-4 mr-1" />
-                              <span>Stop</span>
-                            </Button>
-                            <Button size="sm" onClick={() => handleCompleteTask(task.task_id)}>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              <span>Complete</span>
-                            </Button>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-10 w-10 mx-auto mb-3" />
-                    <p>No tasks in progress</p>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="completed" className="m-0">
-                {myTasks.filter(task => task.status === "completed").length > 0 ? (
-                  myTasks
-                    .filter(task => task.status === "completed")
-                    .map(task => (
-                      <div key={task.task_id} className="border-b pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{task.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
-                            <div className="flex items-center text-xs text-muted-foreground mt-2">
-                              <UserIcon className="h-3 w-3 mr-1" />
-                              <span>{task.client_name}</span>
-                              <span className="mx-2">•</span>
-                              <Clock className="h-3 w-3 mr-1" />
-                              <span>{task.estimated_time} hrs</span>
-                              <span className="mx-2">•</span>
-                              <Badge variant="success" size="sm">Completed</Badge>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BadgeCheck className="h-10 w-10 mx-auto mb-3" />
-                    <p>No completed tasks yet</p>
-                  </div>
-                )}
-              </TabsContent>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No tasks assigned to you yet.</p>
+                  <Button variant="outline" className="mt-4">Check Available Tasks</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </Tabs>
-        
-        {currentUser && (
-          <EmployeePerformanceInsights
-            employeeId={currentUser.user_id}
-            employeeName={currentUser.name}
-            attendanceData={[]}
-            taskData={myTasks}
-          />
-        )}
-      </div>
-      
-      <DashboardCard
-        title="Communications"
-        icon={<MessageSquare className="h-5 w-5" />}
-        badgeText="Recent"
-        badgeVariant="outline"
-      >
-        <Tabs defaultValue="all">
-          <TabsList className="mb-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="internal">Internal</TabsTrigger>
-            <TabsTrigger value="client">Client</TabsTrigger>
-          </TabsList>
           
-          <div className="text-center py-8 text-muted-foreground">
-            <MessageSquare className="h-10 w-10 mx-auto mb-3" />
-            <p>No recent communications</p>
-            <p className="text-sm mt-1">Messages from clients and team members will appear here</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  Upcoming Deadlines
+                  <Calendar className="ml-2 h-5 w-5 text-muted-foreground" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {pendingTasks
+                    .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+                    .slice(0, 3)
+                    .map(task => (
+                      <div key={task.id} className="flex items-start gap-3">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                          new Date(task.deadline).getTime() < new Date().getTime()
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-yellow-100 text-yellow-600'
+                        }`}>
+                          {new Date(task.deadline).getTime() < new Date().getTime()
+                            ? <AlertCircle className="h-5 w-5" />
+                            : <Clock className="h-5 w-5" />
+                          }
+                        </div>
+                        <div>
+                          <p className="font-medium">{task.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Due: {new Date(task.deadline).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  }
+                  
+                  {pendingTasks.length === 0 && (
+                    <div className="py-8 text-center">
+                      <p className="text-muted-foreground">No upcoming deadlines.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-base">
+                  Task Statistics
+                  <BarChart className="ml-2 h-5 w-5 text-muted-foreground" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Task Completion</span>
+                      <span>{taskCompletionPercentage}%</span>
+                    </div>
+                    <Progress value={taskCompletionPercentage} className="h-2" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <p className="text-sm text-muted-foreground">By Priority</p>
+                      <div className="space-y-1 mt-2">
+                        <div className="flex justify-between text-sm">
+                          <span>High</span>
+                          <span>{highPriorityTasks.length}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Medium</span>
+                          <span>{tasks?.filter(t => t.priority === 'medium').length || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Low</span>
+                          <span>{tasks?.filter(t => t.priority === 'low').length || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/50 p-3 rounded-md">
+                      <p className="text-sm text-muted-foreground">By Status</p>
+                      <div className="space-y-1 mt-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Pending</span>
+                          <span>{tasks?.filter(t => t.status === 'pending').length || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>In Progress</span>
+                          <span>{tasks?.filter(t => t.status === 'in_progress').length || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Completed</span>
+                          <span>{completedTasks.length}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </Tabs>
-      </DashboardCard>
+        </TabsContent>
+        
+        <TabsContent value="attendance" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <AttendanceTracker />
+            
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    Weekly Work Summary
+                    <CheckCircle2 className="ml-2 h-5 w-5 text-muted-foreground" />
+                  </CardTitle>
+                  <CardDescription>
+                    Your working hours for the current week
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day, i) => (
+                      <div key={day} className="flex justify-between items-center">
+                        <span>{day}</span>
+                        <div className="flex gap-2 items-center">
+                          <span className="text-sm font-medium">
+                            {i < new Date().getDay() ? `${7 + i}:${['30', '45', '15', '00', '30'][i]}h` : '—'}
+                          </span>
+                          <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary"
+                              style={{ width: i < new Date().getDay() ? `${75 + i * 5}%` : '0%' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    Attendance Records
+                    <FileText className="ml-2 h-5 w-5 text-muted-foreground" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center py-3 border-b">
+                      <div>
+                        <div className="font-medium">August 2023</div>
+                        <div className="text-sm text-muted-foreground">Monthly Summary</div>
+                      </div>
+                      <Button variant="outline" size="sm">View</Button>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b">
+                      <div>
+                        <div className="font-medium">July 2023</div>
+                        <div className="text-sm text-muted-foreground">Monthly Summary</div>
+                      </div>
+                      <Button variant="outline" size="sm">View</Button>
+                    </div>
+                    <div className="flex justify-between items-center py-3">
+                      <div>
+                        <div className="font-medium">June 2023</div>
+                        <div className="text-sm text-muted-foreground">Monthly Summary</div>
+                      </div>
+                      <Button variant="outline" size="sm">View</Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="leave" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <EmployeeLeaveRequests />
+            
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    Leave Balance
+                    <Calendar className="ml-2 h-5 w-5 text-muted-foreground" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Annual Leave</span>
+                        <span className="font-medium">18 / 24 days</span>
+                      </div>
+                      <Progress value={75} className="h-2" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Sick Leave</span>
+                        <span className="font-medium">5 / 10 days</span>
+                      </div>
+                      <Progress value={50} className="h-2" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Personal Leave</span>
+                        <span className="font-medium">2 / 3 days</span>
+                      </div>
+                      <Progress value={66.67} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    Leave History
+                    <FileText className="ml-2 h-5 w-5 text-muted-foreground" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="border rounded-md p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">Annual Leave</div>
+                          <div className="text-sm text-muted-foreground">
+                            Jul 10 - Jul 14, 2023 (5 days)
+                          </div>
+                        </div>
+                        <Badge variant="success">Approved</Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-md p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">Sick Leave</div>
+                          <div className="text-sm text-muted-foreground">
+                            May 23 - May 24, 2023 (2 days)
+                          </div>
+                        </div>
+                        <Badge variant="success">Approved</Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-md p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">Work From Home</div>
+                          <div className="text-sm text-muted-foreground">
+                            Apr 18, 2023 (1 day)
+                          </div>
+                        </div>
+                        <Badge variant="success">Approved</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="payroll" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <EmployeePayslipWidget />
+            
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    Earnings Summary
+                    <BarChart className="ml-2 h-5 w-5 text-muted-foreground" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Last 6 Months Earnings</h3>
+                      <div className="h-48 w-full bg-muted/30 rounded-md flex items-end justify-between p-4">
+                        {['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((month, i) => (
+                          <div key={month} className="flex flex-col items-center gap-2">
+                            <div 
+                              className="w-10 bg-primary rounded-t-sm"
+                              style={{ 
+                                height: `${70 + Math.floor(Math.random() * 30)}px`,
+                                opacity: 0.6 + (i * 0.1)
+                              }}
+                            />
+                            <span className="text-xs">{month}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4 border-t">
+                      <h3 className="text-sm font-medium mb-2">Earnings Breakdown</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm">Basic Salary</span>
+                          <span className="font-medium">$5,000.00</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Performance Bonus</span>
+                          <span className="font-medium">$320.00</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Transportation Allowance</span>
+                          <span className="font-medium">$240.00</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Other Allowances</span>
+                          <span className="font-medium">$240.00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base">
+                    Tax & Benefits
+                    <Briefcase className="ml-2 h-5 w-5 text-muted-foreground" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-muted/50 p-3 rounded-md">
+                        <p className="text-sm text-muted-foreground">YTD Income Tax</p>
+                        <p className="text-xl font-bold mt-1">$5,760.00</p>
+                        <p className="text-xs text-muted-foreground mt-1">12% of gross income</p>
+                      </div>
+                      
+                      <div className="bg-muted/50 p-3 rounded-md">
+                        <p className="text-sm text-muted-foreground">YTD Benefits</p>
+                        <p className="text-xl font-bold mt-1">$2,400.00</p>
+                        <p className="text-xs text-muted-foreground mt-1">Health insurance, pension</p>
+                      </div>
+                    </div>
+                    
+                    <Button variant="outline" className="w-full">
+                      View Tax Documents
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
