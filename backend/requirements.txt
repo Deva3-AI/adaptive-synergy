@@ -20,3 +20,6 @@ trello==0.9.5
 asana==3.2.0
 google-api-python-client==2.85.0
 google-auth-oauthlib==1.0.0
+spacy==3.7.2
+textblob==0.17.1
+tiktoken==0.5.1

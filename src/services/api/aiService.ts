@@ -283,96 +283,203 @@ const mockGetAssistantResponse = async (query: string, context: any) => {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // List of potential responses based on keywords in the query
-  const keywordResponses: Record<string, string> = {
-    // General inquiries
-    'hello': `Hello! I'm the Hive Assistant. I can help you with information about tasks, clients, employees, and projects.`,
-    'help': `I can assist you with various aspects of the Hive platform. You can ask about clients, tasks, employees, financial data, or request AI insights on specific topics.`,
+  // Enhanced contextual response based on user query and knowledge base
+  const { user, knowledgeBase, previousMessages } = context;
+  const lowercaseQuery = query.toLowerCase();
+  
+  // Function to generate more specific responses based on knowledge base
+  const generateContextualResponse = () => {
+    // Role-specific recommendations based on knowledge
+    if (lowercaseQuery.includes('grow') || lowercaseQuery.includes('10x') || lowercaseQuery.includes('scaling')) {
+      return `Based on our current data, here are steps to help achieve 10X growth in 12 months:
+
+1. **Client Expansion**: With ${knowledgeBase?.clients?.clientCount || 'your current'} clients, focus on increasing project scope with your top ${Math.min(3, knowledgeBase?.clients?.recentClients?.length || 0)} clients.
+
+2. **Operational Efficiency**: Your task completion rate is ${knowledgeBase?.tasks?.completionRate || 'currently suboptimal'}. Improving this by 20% would significantly increase capacity without adding resources.
+
+3. **Team Scaling**: Strategic hiring in ${knowledgeBase?.employees?.departments?.slice(0, 2).join(' and ') || 'key departments'} would address current bottlenecks.
+
+4. **Marketing Channels**: Based on communication patterns, invest more in client referral programs and targeted digital marketing.
+
+5. **Process Automation**: Implement AI-driven workflow management to reduce manual task handling by 40%.
+
+Would you like me to elaborate on any of these strategies?`;
+    }
     
-    // Task related
-    'task': `Based on your current data, you have ${context.tasks?.length || 0} tasks in the system. ${context.tasks?.filter(t => t.status === 'pending').length || 0} are pending, ${context.tasks?.filter(t => t.status === 'in_progress').length || 0} are in progress, and ${context.tasks?.filter(t => t.status === 'completed').length || 0} are completed.`,
-    'deadline': `I notice you have ${context.tasks?.filter(t => t.status !== 'completed').length || 0} open tasks. Would you like me to help prioritize them based on deadlines and importance?`,
+    // Task and productivity insights
+    if (lowercaseQuery.includes('task') || lowercaseQuery.includes('productivity') || lowercaseQuery.includes('work')) {
+      const pendingTasks = knowledgeBase?.tasks?.pending || 0;
+      const inProgressTasks = knowledgeBase?.tasks?.inProgress || 0;
+      const completionRate = knowledgeBase?.tasks?.completionRate || '0%';
+      
+      return `Here's an overview of current task status:
+
+- Pending tasks: ${pendingTasks}
+- In-progress tasks: ${inProgressTasks}
+- Overall completion rate: ${completionRate}
+${knowledgeBase?.tasks?.highPriorityTasks?.length ? 
+`- High priority tasks requiring attention: ${knowledgeBase.tasks.highPriorityTasks.slice(0, 3).join(', ')}` : ''}
+
+To improve productivity, consider:
+1. Focusing on high-priority items first
+2. Breaking down large tasks into smaller, manageable units
+3. Implementing time-blocking techniques
+4. Leveraging AI-assisted task analysis to optimize resource allocation
+
+Would you like specific strategies for improving task completion rates?`;
+    }
     
-    // Client related
-    'client': `You currently have ${context.clients?.length || 0} clients in your system. The most active clients based on task count are ${context.clients?.slice(0, 3).map(c => c.client_name).join(', ')}.`,
+    // Financial and business insights
+    if (lowercaseQuery.includes('financial') || lowercaseQuery.includes('money') || lowercaseQuery.includes('revenue') || lowercaseQuery.includes('profit')) {
+      return `While I don't have direct access to financial figures, I can offer general insights based on operational data:
+
+1. Client portfolio health: With ${knowledgeBase?.clients?.clientCount || 'your current number of'} clients, focus on retention and expansion strategies.
+
+2. Operational efficiency: Your task completion rate of ${knowledgeBase?.tasks?.completionRate || '0%'} impacts profitability - improving this metric directly correlates with financial performance.
+
+3. Resource utilization: The average estimated task time of ${knowledgeBase?.tasks?.averageEstimatedTime || '0 hours'} suggests opportunities for process optimization.
+
+For specific financial analysis, I recommend using the Financial Insights tool in the Finance dashboard which can provide detailed metrics and trends.`;
+    }
     
-    // Employee related
-    'employee': `Your team consists of ${context.employees?.length || 0} employees across various roles. Would you like to see performance metrics or attendance data?`,
-    'performance': `Based on the available data, I can analyze employee performance across task completion rates, punctuality, and efficiency. Would you like me to generate a detailed report?`,
+    // Team and employee insights
+    if (lowercaseQuery.includes('team') || lowercaseQuery.includes('employee') || lowercaseQuery.includes('staff')) {
+      return `Your team currently consists of ${knowledgeBase?.employees?.employeeCount || 'several'} employees across ${knowledgeBase?.employees?.departments?.length || 'multiple'} departments (${knowledgeBase?.employees?.departments?.join(', ') || 'various roles'}).
+
+Recent team additions include ${knowledgeBase?.employees?.recentJoins?.join(', ') || 'new team members'}.
+
+Based on task data, team performance is reflected in:
+- Task completion rate: ${knowledgeBase?.tasks?.completionRate || '0%'}
+- Average task time: ${knowledgeBase?.tasks?.averageEstimatedTime || 'N/A'}
+
+For detailed employee performance metrics, you can use the HR dashboard's analytics tools to identify top performers and improvement opportunities.`;
+    }
     
-    // Financial
-    'finance': `I can provide financial insights based on your revenue, expenses, and profit margins. Would you like me to analyze trends or suggest optimization opportunities?`,
-    'invoice': `Your invoice management system shows various clients with different payment statuses. I can help track overdue payments and suggest follow-up actions.`,
+    // Client-related questions
+    if (lowercaseQuery.includes('client') || lowercaseQuery.includes('customer')) {
+      const clientCount = knowledgeBase?.clients?.clientCount || 0;
+      const recentClients = knowledgeBase?.clients?.recentClients || [];
+      
+      return `You currently have ${clientCount} clients in the system.
+
+${recentClients.length > 0 ? `Recent clients include: ${recentClients.join(', ')}
+
+` : ''}Based on communication analysis, client interactions show ${knowledgeBase?.communication?.sentiment_overview || 'neutral'} sentiment overall.
+
+Common topics in client communications include: ${knowledgeBase?.communication?.topics?.join(', ') || 'various business requirements'}.
+
+For detailed client insights, you can view the Client Dashboard which provides comprehensive information on project status, communication history, and satisfaction metrics.`;
+    }
     
-    // AI features
-    'ai feature': `Hive has several AI-powered features, including client input analysis, task timeline prediction, meeting transcript analysis, financial data insights, and employee performance evaluation. Which would you like to know more about?`,
-    'suggest': `Based on your current projects and tasks, I'd recommend focusing on completing high-priority client deliverables first. Would you like specific task recommendations?`,
-    
-    // Analytics
-    'analytics': `I can provide analytics on various aspects of your business including client satisfaction, project timelines, resource utilization, and financial performance. What specific area are you interested in?`,
-    'report': `I can generate comprehensive reports on project status, employee productivity, client engagement, or financial performance. Which type of report would be most useful for you right now?`,
-    
-    // Insights
-    'insight': `Based on your current data, I notice that projects for Client A typically take 20% longer than estimated. Consider adjusting your time estimates for future projects with them.`
+    // Default response with general insights
+    return `Based on your company data, here are some key insights:
+
+- Client portfolio: ${knowledgeBase?.clients?.clientCount || 0} clients currently active
+- Task management: ${knowledgeBase?.tasks?.total || 0} total tasks with ${knowledgeBase?.tasks?.completionRate || '0%'} completion rate
+- Team composition: ${knowledgeBase?.employees?.employeeCount || 0} employees across ${knowledgeBase?.employees?.departments?.length || 0} departments
+- Communication: Primary topics include ${knowledgeBase?.communication?.topics?.slice(0, 3).join(', ') || 'various business topics'}
+
+I can provide more specific insights if you ask about clients, tasks, team performance, or growth strategies. What would you like to know more about?`;
   };
   
-  // Default fallback response
-  let response = `I understand you're asking about "${query}". While I don't have specific information on this exact query, I can help with details about your clients, tasks, employees, or provide AI-powered insights if you ask more specifically.`;
+  // Generate response based on context
+  let response = generateContextualResponse();
   
-  // Check for keyword matches
-  const lowercaseQuery = query.toLowerCase();
-  for (const [keyword, reply] of Object.entries(keywordResponses)) {
-    if (lowercaseQuery.includes(keyword)) {
-      response = reply;
-      break;
-    }
-  }
-  
-  // Special case for task-specific questions
-  if (lowercaseQuery.includes('task') && /\d+/.test(lowercaseQuery)) {
-    const taskIdMatch = lowercaseQuery.match(/\d+/);
-    if (taskIdMatch && context.tasks) {
-      const taskId = parseInt(taskIdMatch[0]);
-      const task = context.tasks.find(t => t.task_id === taskId);
-      
-      if (task) {
-        response = `Task #${taskId}: "${task.title}" is currently ${task.status}. ${
-          task.assigned_to 
-            ? `It's assigned to ${task.assignee_name || 'an employee'}.` 
-            : "It is not assigned to anyone yet."
-        } ${
-          task.estimated_time 
-            ? `The estimated completion time is ${task.estimated_time} hours.` 
-            : ''
-        }`;
-      }
-    }
-  }
-  
-  // Special case for client-specific questions
-  if (lowercaseQuery.includes('client') && /\d+/.test(lowercaseQuery)) {
-    const clientIdMatch = lowercaseQuery.match(/\d+/);
-    if (clientIdMatch && context.clients) {
-      const clientId = parseInt(clientIdMatch[0]);
-      const client = context.clients.find(c => c.client_id === clientId);
+  // If there's a specific client, task, or employee mentioned, provide focused information
+  if (/client\s+(\d+|name)/i.test(lowercaseQuery) && knowledgeBase?.clients?.clients) {
+    const clientIdMatch = lowercaseQuery.match(/client\s+(\d+)/i);
+    if (clientIdMatch) {
+      const clientId = parseInt(clientIdMatch[1]);
+      const client = knowledgeBase.clients.clients.find((c: any) => c.id === clientId);
       
       if (client) {
-        const clientTasks = context.tasks?.filter(t => t.client_id === clientId) || [];
-        response = `Client #${clientId}: "${client.client_name}". ${
-          client.description ? `Description: ${client.description}.` : ''
-        } They have ${clientTasks.length} tasks in the system (${
-          clientTasks.filter(t => t.status === 'completed').length
-        } completed, ${
-          clientTasks.filter(t => t.status !== 'completed').length
-        } open).`;
+        response = `Client #${clientId}: "${client.name}"\n\nDescription: ${client.description}\nContact: ${client.contact}\nCreated: ${new Date(client.created).toLocaleDateString()}\n\nWould you like to see task information for this client?`;
       }
     }
   }
   
   return {
     message: response,
-    confidence: 0.85,
+    confidence: 0.92,
     sources: []
+  };
+};
+
+// New function to extract context data from messages
+const mockExtractContextData = async (text: string) => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Sample topics that might be extracted from conversations
+  const possibleTopics = [
+    'Website Development',
+    'Mobile App Design', 
+    'Marketing Campaign', 
+    'Content Creation',
+    'SEO Optimization',
+    'Payment Integration',
+    'User Experience',
+    'Analytics Implementation',
+    'Project Timeline',
+    'Budget Discussion',
+    'Feedback Implementation'
+  ];
+  
+  // Sample entities that might be extracted
+  const possibleEntities = [
+    {name: 'Website Redesign', type: 'project'},
+    {name: 'Mobile App', type: 'product'},
+    {name: 'Marketing Team', type: 'team'},
+    {name: 'Q4 Launch', type: 'event'},
+    {name: 'Client Dashboard', type: 'feature'},
+    {name: 'Stripe', type: 'integration'},
+    {name: 'Google Analytics', type: 'tool'},
+    {name: 'Content Strategy', type: 'strategy'}
+  ];
+  
+  // Generate a sentiment overview based on text
+  let sentiment;
+  if (text.toLowerCase().includes('love') || text.toLowerCase().includes('great') || text.toLowerCase().includes('excellent')) {
+    sentiment = 'positive';
+  } else if (text.toLowerCase().includes('issue') || text.toLowerCase().includes('problem') || text.toLowerCase().includes('delay')) {
+    sentiment = 'negative';
+  } else {
+    sentiment = 'neutral';
+  }
+  
+  // Select random topics and entities
+  const numTopics = 3 + Math.floor(Math.random() * 3); // 3-5 topics
+  const numEntities = 2 + Math.floor(Math.random() * 3); // 2-4 entities
+  
+  const topics = [];
+  const entities = [];
+  
+  // Generate random topics
+  for (let i = 0; i < numTopics; i++) {
+    const randomIndex = Math.floor(Math.random() * possibleTopics.length);
+    const topic = possibleTopics[randomIndex];
+    if (!topics.includes(topic)) {
+      topics.push(topic);
+    }
+    // Remove selected topic to avoid duplicates
+    possibleTopics.splice(randomIndex, 1);
+    if (possibleTopics.length === 0) break;
+  }
+  
+  // Generate random entities
+  for (let i = 0; i < numEntities; i++) {
+    const randomIndex = Math.floor(Math.random() * possibleEntities.length);
+    entities.push(possibleEntities[randomIndex]);
+    // Remove selected entity to avoid duplicates
+    possibleEntities.splice(randomIndex, 1);
+    if (possibleEntities.length === 0) break;
+  }
+  
+  return {
+    topics,
+    key_entities: entities,
+    timeline: [],
+    sentiment_overview: sentiment
   };
 };
 
@@ -479,6 +586,18 @@ export const aiService = {
     } catch (error) {
       console.log('Using mock AI service for assistant response');
       return mockGetAssistantResponse(query, context);
+    }
+  },
+  
+  extractContextData: async (text: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/ai/extract-context`, {
+        text
+      });
+      return response.data;
+    } catch (error) {
+      console.log('Using mock AI service for context extraction');
+      return mockExtractContextData(text);
     }
   }
 };

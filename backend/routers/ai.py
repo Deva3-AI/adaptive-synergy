@@ -238,3 +238,61 @@ async def generate_performance_insights(data: Dict[str, Any] = Body(...)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating performance insights: {str(e)}"
         )
+
+@router.post("/assistant")
+async def ai_assistant(data: Dict[str, Any] = Body(...)):
+    """
+    AI Assistant endpoint that provides contextual responses based on user queries and system knowledge
+    """
+    try:
+        query = data.get("query", "")
+        context = data.get("context", {})
+        
+        if not query:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Query is required"
+            )
+        
+        # In a real implementation, this would use a language model with the context
+        # For demonstration, we'll return a mock response
+        user_role = context.get("user", {}).get("role", "employee")
+        knowledge_base = context.get("knowledgeBase", {})
+        
+        # Generate response based on query, user role, and knowledge
+        response = ai_service.generate_assistant_response(query, user_role, knowledge_base)
+        
+        return {
+            "message": response,
+            "confidence": 0.92,
+            "sources": []
+        }
+    except Exception as e:
+        logging.error(f"Error in AI assistant: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing assistant request: {str(e)}"
+        )
+
+@router.post("/extract-context")
+async def extract_context(data: Dict[str, Any] = Body(...)):
+    """
+    Extract structured context information from text
+    """
+    try:
+        text = data.get("text", "")
+        
+        if not text:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Text is required"
+            )
+        
+        result = ai_service.extract_context_from_text(text)
+        return result
+    except Exception as e:
+        logging.error(f"Error in extract-context: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error extracting context: {str(e)}"
+        )

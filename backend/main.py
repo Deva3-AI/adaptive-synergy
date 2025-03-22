@@ -93,6 +93,89 @@ async def get_platform_messages(platform: str, client_id: Optional[int] = None):
     
     return mock_data
 
+# Add a new endpoint for the enhanced AI assistant
+@app.post("/api/ai/assistant")
+async def ai_assistant(data: Dict[str, Any]):
+    """
+    Enhanced AI assistant endpoint that provides contextual responses
+    """
+    try:
+        query = data.get("query", "")
+        context = data.get("context", {})
+        
+        # In a real implementation, this would pass the query and context to an LLM
+        # For now, return a mock response
+        response = {
+            "message": f"I received your query: '{query}'. In a production environment, this would be processed by a language model to provide a helpful response based on your context.",
+            "confidence": 0.92
+        }
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error in AI assistant: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing assistant request: {str(e)}"
+        )
+
+# Add endpoint for platform integration discovery
+@app.get("/api/integrations/available")
+async def get_available_integrations():
+    """
+    Returns list of available platform integrations
+    """
+    return [
+        {
+            "id": "slack",
+            "name": "Slack",
+            "description": "Integrate with Slack channels and direct messages",
+            "icon": "slack",
+            "enabled": True
+        },
+        {
+            "id": "discord",
+            "name": "Discord",
+            "description": "Integrate with Discord servers and channels",
+            "icon": "discord",
+            "enabled": True
+        },
+        {
+            "id": "asana",
+            "name": "Asana",
+            "description": "Integrate with Asana projects and tasks",
+            "icon": "asana",
+            "enabled": True
+        },
+        {
+            "id": "trello",
+            "name": "Trello",
+            "description": "Integrate with Trello boards and cards",
+            "icon": "trello",
+            "enabled": True
+        },
+        {
+            "id": "gmail",
+            "name": "Gmail",
+            "description": "Integrate with Gmail emails and attachments",
+            "icon": "gmail",
+            "enabled": True
+        },
+        {
+            "id": "zoho",
+            "name": "Zoho Mail",
+            "description": "Integrate with Zoho Mail emails and attachments",
+            "icon": "zoho",
+            "enabled": True
+        },
+        {
+            "id": "whatsapp",
+            "name": "WhatsApp",
+            "description": "Integrate with WhatsApp business messages",
+            "icon": "whatsapp",
+            "enabled": True
+        }
+    ]
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
