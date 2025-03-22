@@ -19,6 +19,14 @@ export interface Task {
   priority?: 'low' | 'medium' | 'high';
 }
 
+export interface TaskTimeTracking {
+  tracking_id: number;
+  task_id: number;
+  start_time: string;
+  end_time?: string;
+  duration?: number;
+}
+
 const taskService = {
   // Tasks
   getTasks: async (status?: string) => {
@@ -61,6 +69,48 @@ const taskService = {
       return response.data;
     } catch (error) {
       console.error('Create task error:', error);
+      throw error;
+    }
+  },
+
+  // Task Time Tracking
+  startTaskWork: async (taskId: number) => {
+    try {
+      const response = await apiClient.post(`/employee/tasks/${taskId}/start`);
+      return response.data;
+    } catch (error) {
+      console.error('Start task work error:', error);
+      throw error;
+    }
+  },
+  
+  stopTaskWork: async (taskId: number) => {
+    try {
+      const response = await apiClient.post(`/employee/tasks/${taskId}/stop`);
+      return response.data;
+    } catch (error) {
+      console.error('Stop task work error:', error);
+      throw error;
+    }
+  },
+  
+  getActiveTask: async () => {
+    try {
+      const response = await apiClient.get('/employee/tasks/active');
+      return response.data;
+    } catch (error) {
+      console.error('Get active task error:', error);
+      // Return null instead of throwing to prevent UI errors
+      return null;
+    }
+  },
+  
+  getTaskTimeEntries: async (taskId: number) => {
+    try {
+      const response = await apiClient.get(`/employee/tasks/${taskId}/time-entries`);
+      return response.data;
+    } catch (error) {
+      console.error('Get task time entries error:', error);
       throw error;
     }
   },

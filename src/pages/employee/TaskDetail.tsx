@@ -1,6 +1,5 @@
-
-import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
   Clock, 
@@ -38,9 +37,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import taskService from "@/services/api/taskService";
+import employeeService from "@/services/api/employeeService";
 
-// Sample task data
-const task = {
+const sampleTask = {
   id: 1,
   title: "Website redesign for TechCorp",
   description: "Redesign the TechCorp website homepage and product pages with a modern, clean aesthetic. Focus on improving user experience and conversion rates.",
@@ -175,23 +176,129 @@ const getStatusBadgeVariant = (status: string) => {
 
 const EmployeeTaskDetail = () => {
   const { taskId } = useParams<{ taskId: string }>();
+  const navigate = useNavigate();
   const [comment, setComment] = useState("");
-  const [isWorking, setIsWorking] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [task, setTask] = useState(sampleTask);
+  const [isWorkingOnTask, setIsWorkingOnTask] = useState(false);
+  const [isOverallWorkStarted, setIsOverallWorkStarted] = useState(false);
+  const [attendanceId, setAttendanceId] = useState<number | null>(null);
+  const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleStartWork = () => {
-    setIsWorking(true);
+  useEffect(() => {
+    const fetchTaskAndWorkStatus = async () => {
+      if (!taskId) return;
+      
+      try {
+        setIsLoading(true);
+        
+        const attendance = await employeeService.getTodayAttendance();
+        if (attendance) {
+          setIsOverallWorkStarted(true);
+          setAttendanceId(attendance.attendance_id);
+          
+          if (!attendance.logout_time) {
+            const activeTask = await taskService.getActiveTask();
+            if (activeTask) {
+              setActiveTaskId(activeTask.task_id);
+              setIsWorkingOnTask(Number(taskId) === activeTask.task_id);
+            }
+          }
+        }
+        
+        setTask(sampleTask);
+      } catch (error) {
+        console.error("Error fetching task or work status:", error);
+        toast.error("Failed to load task details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTaskAndWorkStatus();
+  }, [taskId]);
+  
+  const handleStartDayWork = async () => {
+    try {
+      const response = await employeeService.startWork();
+      setAttendanceId(response.attendance_id);
+      setIsOverallWorkStarted(true);
+      toast.success("Work day started successfully");
+    } catch (error) {
+      console.error("Error starting work:", error);
+      toast.error("Failed to start work day");
+    }
   };
-
-  const handleStopWork = () => {
-    setIsWorking(false);
+  
+  const handleStopDayWork = async () => {
+    if (!attendanceId) return;
+    
+    try {
+      if (isWorkingOnTask && taskId) {
+        await handleStopTaskWork();
+      }
+      
+      await employeeService.stopWork(attendanceId);
+      setIsOverallWorkStarted(false);
+      setAttendanceId(null);
+      toast.success("Work day ended successfully");
+    } catch (error) {
+      console.error("Error stopping work:", error);
+      toast.error("Failed to end work day");
+    }
+  };
+  
+  const handleStartTaskWork = async () => {
+    if (!taskId) return;
+    
+    try {
+      if (!isOverallWorkStarted) {
+        await handleStartDayWork();
+      }
+      
+      if (activeTaskId && activeTaskId !== Number(taskId)) {
+        const switchTask = window.confirm(`You are currently working on another task. Switch to this task?`);
+        if (!switchTask) return;
+        
+        await taskService.stopTaskWork(activeTaskId);
+      }
+      
+      await taskService.startTaskWork(Number(taskId));
+      setIsWorkingOnTask(true);
+      setActiveTaskId(Number(taskId));
+      toast.success("Started working on this task");
+    } catch (error) {
+      console.error("Error starting task work:", error);
+      toast.error("Failed to start working on task");
+    }
+  };
+  
+  const handleStopTaskWork = async () => {
+    if (!taskId) return;
+    
+    try {
+      await taskService.stopTaskWork(Number(taskId));
+      setIsWorkingOnTask(false);
+      setActiveTaskId(null);
+      toast.success("Stopped working on this task");
+    } catch (error) {
+      console.error("Error stopping task work:", error);
+      toast.error("Failed to stop working on task");
+    }
   };
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle comment submission
     setComment("");
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-blur-in">
@@ -204,23 +311,45 @@ const EmployeeTaskDetail = () => {
         </Button>
         
         <div className="flex items-center space-x-2">
-          {!isWorking ? (
-            <Button 
-              onClick={handleStartWork} 
-              className="bg-green-500 hover:bg-green-600 text-white"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Start Working
-            </Button>
+          {isOverallWorkStarted ? (
+            <>
+              {!isWorkingOnTask ? (
+                <Button 
+                  onClick={handleStartTaskWork} 
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Working on Task
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleStopTaskWork} 
+                  variant="destructive"
+                >
+                  <Pause className="h-4 w-4 mr-2" />
+                  Stop Working on Task
+                </Button>
+              )}
+              
+              <Button 
+                onClick={handleStopDayWork} 
+                variant="outline"
+                className="bg-red-100 hover:bg-red-200 text-red-700 border-red-300"
+              >
+                <Pause className="h-4 w-4 mr-2" />
+                End Work Day
+              </Button>
+            </>
           ) : (
             <Button 
-              onClick={handleStopWork} 
-              variant="destructive"
+              onClick={handleStartDayWork} 
+              className="bg-blue-500 hover:bg-blue-600 text-white"
             >
-              <Pause className="h-4 w-4 mr-2" />
-              Stop Working
+              <Play className="h-4 w-4 mr-2" />
+              Start Work Day
             </Button>
           )}
+          
           <Button variant="outline">
             <Pencil className="h-4 w-4 mr-2" />
             Edit
@@ -453,6 +582,31 @@ const EmployeeTaskDetail = () => {
                   </div>
                 </div>
                 <Progress value={(task.hoursLogged / task.estimatedHours) * 100} className="h-1.5 mt-2" />
+                
+                <div className="mt-3 pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-2">Work Status</p>
+                  {isWorkingOnTask ? (
+                    <div className="flex items-center space-x-2 text-green-600">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                      <p className="text-sm font-medium">Currently working on this task</p>
+                    </div>
+                  ) : activeTaskId ? (
+                    <div className="flex items-center space-x-2 text-amber-600">
+                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                      <p className="text-sm font-medium">Working on another task</p>
+                    </div>
+                  ) : isOverallWorkStarted ? (
+                    <div className="flex items-center space-x-2 text-blue-600">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <p className="text-sm font-medium">Work day active (no task selected)</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 text-gray-500">
+                      <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                      <p className="text-sm font-medium">Not working</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

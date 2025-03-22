@@ -86,6 +86,28 @@ const employeeService = {
       throw error;
     }
   },
+
+  // Get total worked hours for today
+  getTodayWorkHours: async () => {
+    try {
+      const response = await apiClient.get('/employee/attendance/today/hours');
+      return response.data;
+    } catch (error) {
+      console.error('Get today work hours error:', error);
+      return { total_hours: 0 };
+    }
+  },
+
+  // Get worked hours for a specific date range
+  getWorkHoursByDateRange: async (startDate: string, endDate: string) => {
+    try {
+      const response = await apiClient.get(`/employee/attendance/hours?start_date=${startDate}&end_date=${endDate}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get work hours by date range error:', error);
+      throw error;
+    }
+  },
 };
 
 export default employeeService;
