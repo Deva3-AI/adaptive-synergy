@@ -8,7 +8,7 @@ import json
 import logging
 
 # Import routers
-from routers import auth, employee, client, marketing, hr, finance
+from routers import auth, employee, client, marketing, hr, finance, ai
 
 # Setup logging
 logging.basicConfig(
@@ -40,6 +40,7 @@ app.include_router(client.router, prefix="/api/client", tags=["Client"])
 app.include_router(marketing.router, prefix="/api/marketing", tags=["Marketing"])
 app.include_router(hr.router, prefix="/api/hr", tags=["HR"])
 app.include_router(finance.router, prefix="/api/finance", tags=["Finance"])
+app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 
 @app.get("/")
 async def root():
@@ -52,6 +53,45 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0"
     }
+
+# Add a new endpoint for platform integrations
+@app.get("/api/integrations/{platform}/messages")
+async def get_platform_messages(platform: str, client_id: Optional[int] = None):
+    """
+    Mock endpoint to simulate fetching messages from platforms
+    """
+    # In a real implementation, this would connect to the platform's API
+    # For now, return mock data
+    now = datetime.now()
+    
+    mock_data = [
+        {
+            "id": "msg1",
+            "platform": platform,
+            "sender": "Client User 1",
+            "content": "We need to update our website with the new product information.",
+            "timestamp": (now - timedelta(days=2)).isoformat(),
+            "clientId": client_id
+        },
+        {
+            "id": "msg2",
+            "platform": platform,
+            "sender": "Client User 2",
+            "content": "Can we schedule a meeting to discuss the marketing campaign?",
+            "timestamp": (now - timedelta(days=1, hours=4)).isoformat(),
+            "clientId": client_id
+        },
+        {
+            "id": "msg3",
+            "platform": platform,
+            "sender": "Client User 1",
+            "content": "Please make sure the mobile version works well on all devices.",
+            "timestamp": (now - timedelta(hours=12)).isoformat(),
+            "clientId": client_id
+        }
+    ]
+    
+    return mock_data
 
 if __name__ == "__main__":
     import uvicorn

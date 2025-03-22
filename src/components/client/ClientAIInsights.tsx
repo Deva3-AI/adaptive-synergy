@@ -7,6 +7,8 @@ import { Brain, RefreshCw, Sparkles } from "lucide-react";
 import AIInsightCard from '@/components/ai/AIInsightCard';
 import TaskSuggestionCard from '@/components/ai/TaskSuggestionCard';
 import { analyzeClientInput, generateSuggestedTasks } from '@/utils/aiUtils';
+import { platformService } from '@/utils/platformIntegrations';
+import platformAnalysisService from '@/services/api/platformAnalysisService';
 import { toast } from 'sonner';
 
 interface ClientAIInsightsProps {
@@ -32,6 +34,7 @@ const ClientAIInsights = ({
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [clientInsights, setClientInsights] = useState<any>(null);
   const [taskSuggestions, setTaskSuggestions] = useState<any[]>([]);
+  const [usePlatformData, setUsePlatformData] = useState(true);
 
   // Get recent communications for analysis
   const recentCommunications = communicationLogs
@@ -48,8 +51,43 @@ const ClientAIInsights = ({
 
   // Generate client insights
   const generateClientInsights = async () => {
+    if (usePlatformData) {
+      await generateInsightsFromPlatforms();
+    } else {
+      await generateInsightsFromText();
+    }
+  };
+
+  // Generate insights from integrated platforms
+  const generateInsightsFromPlatforms = async () => {
+    setIsLoadingInsights(true);
+    try {
+      const messages = await platformService.fetchAllClientMessages(clientId);
+      
+      if (messages.length === 0) {
+        toast.warning('No platform messages found. Using direct client data.');
+        await generateInsightsFromText();
+        return;
+      }
+      
+      const insights = await platformAnalysisService.analyzeMessages(messages);
+      setClientInsights(insights);
+    } catch (error) {
+      console.error('Error generating insights from platforms:', error);
+      toast.error('Failed to generate insights from platforms');
+      
+      // Fallback to direct text analysis
+      await generateInsightsFromText();
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
+
+  // Generate insights from direct text
+  const generateInsightsFromText = async () => {
     if (!combinedClientText.trim()) {
       toast.error('Not enough client data to generate insights');
+      setIsLoadingInsights(false);
       return;
     }
 
@@ -67,8 +105,43 @@ const ClientAIInsights = ({
 
   // Generate task suggestions
   const generateTaskSuggestions = async () => {
+    if (usePlatformData) {
+      await generateTasksFromPlatforms();
+    } else {
+      await generateTasksFromText();
+    }
+  };
+
+  // Generate tasks from integrated platforms
+  const generateTasksFromPlatforms = async () => {
+    setIsLoadingTasks(true);
+    try {
+      const messages = await platformService.fetchAllClientMessages(clientId);
+      
+      if (messages.length === 0) {
+        toast.warning('No platform messages found. Using direct client data.');
+        await generateTasksFromText();
+        return;
+      }
+      
+      const suggestions = await platformAnalysisService.generateTaskSuggestions(messages, clientId);
+      setTaskSuggestions(suggestions?.suggested_tasks || []);
+    } catch (error) {
+      console.error('Error generating tasks from platforms:', error);
+      toast.error('Failed to generate tasks from platforms');
+      
+      // Fallback to direct text analysis
+      await generateTasksFromText();
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
+
+  // Generate tasks from direct text
+  const generateTasksFromText = async () => {
     if (!combinedClientText.trim()) {
       toast.error('Not enough client data to generate task suggestions');
+      setIsLoadingTasks(false);
       return;
     }
 
@@ -97,6 +170,11 @@ const ClientAIInsights = ({
     return { animationDelay: `${(index + 1) * 150}ms` };
   };
 
+  const toggleDataSource = () => {
+    setUsePlatformData(!usePlatformData);
+    toast.info(`Using ${!usePlatformData ? 'platform' : 'direct'} data for analysis`);
+  };
+
   return (
     <Card className="overflow-hidden shadow-lg border-accent/10">
       <CardHeader className="flex flex-row items-center justify-between pb-2 bg-accent/5">
@@ -105,6 +183,14 @@ const ClientAIInsights = ({
           AI Insights & Suggestions
         </CardTitle>
         <div className="flex space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={toggleDataSource}
+            className="text-xs"
+          >
+            {usePlatformData ? "Using Platform Data" : "Using Direct Data"}
+          </Button>
           <Button 
             variant="outline" 
             size="sm"
@@ -132,8 +218,8 @@ const ClientAIInsights = ({
                 <AIInsightCard
                   title="Client Sentiment & Priority"
                   insights={[
-                    `Client sentiment: ${clientInsights.sentiment.charAt(0).toUpperCase() + clientInsights.sentiment.slice(1)}`,
-                    `Priority level: ${clientInsights.priority_level.charAt(0).toUpperCase() + clientInsights.priority_level.slice(1)}`
+                    `Client sentiment: ${clientInsights.sentiment?.charAt(0).toUpperCase() + clientInsights.sentiment?.slice(1) || 'Neutral'}`,
+                    `Priority level: ${clientInsights.priority_level?.charAt(0).toUpperCase() + clientInsights.priority_level?.slice(1) || 'Medium'}`
                   ]}
                   type={clientInsights.sentiment === 'positive' ? 'success' : clientInsights.sentiment === 'negative' ? 'danger' : 'info'}
                   isLoading={isLoadingInsights}

@@ -1,7 +1,6 @@
-
 import os
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import json
 import openai
 from datetime import datetime
@@ -27,11 +26,22 @@ sia = SentimentIntensityAnalyzer()
 
 class AIService:
     @staticmethod
-    def analyze_client_input(text: str, client_history: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def analyze_client_input(text: str, client_history: Optional[List[Dict[str, Any]]] = None, platform_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Analyze client input using NLP to extract requirements, sentiment, and priority.
+        Now supports platform communication data.
         """
         try:
+            # Combine platform data if available
+            if platform_data:
+                platform_text = f"\nPlatform Communications:\n"
+                for platform, messages in platform_data.items():
+                    platform_text += f"\n--- {platform.capitalize()} Messages ---\n"
+                    for msg in messages[:5]:  # Limit to 5 messages per platform
+                        platform_text += f"{msg.get('sender', 'Unknown')}: {msg.get('content', '')}\n"
+                
+                text = text + platform_text
+            
             # Extract key requirements using OpenAI
             requirements_prompt = f"Extract the key requirements or tasks from this client input:\n\n{text}\n\nList only the requirements, one per line."
             requirements_response = openai.ChatCompletion.create(
@@ -113,6 +123,52 @@ class AIService:
             
         except Exception as e:
             logging.error(f"Error analyzing client input: {str(e)}")
+            return {
+                "key_requirements": [],
+                "sentiment": "neutral",
+                "priority_level": "medium",
+                "suggested_tasks": []
+            }
+    
+    @staticmethod
+    def analyze_platform_messages(messages: List[Dict[str, Any]], client_name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Analyze messages from external platforms like Slack, Discord, etc.
+        """
+        try:
+            if not messages:
+                return {
+                    "key_requirements": [],
+                    "sentiment": "neutral", 
+                    "priority_level": "medium",
+                    "suggested_tasks": []
+                }
+            
+            # Format messages for analysis
+            text = f"Client: {client_name or 'Unknown'}\n\nMessages:\n"
+            
+            # Group messages by platform for better context
+            platforms = set([msg.get('platform', 'unknown') for msg in messages])
+            for platform in platforms:
+                platform_messages = [msg for msg in messages if msg.get('platform') == platform]
+                text += f"\n--- {platform.capitalize()} Messages ---\n"
+                for msg in platform_messages:
+                    sender = msg.get('sender', 'Unknown')
+                    content = msg.get('content', '')
+                    timestamp = msg.get('timestamp', '')
+                    if timestamp:
+                        try:
+                            timestamp = datetime.fromisoformat(timestamp).strftime('%Y-%m-%d %H:%M')
+                        except:
+                            pass
+                    
+                    text += f"{sender} ({timestamp}): {content}\n"
+            
+            # Use the existing client input analysis function with the formatted text
+            return AIService.analyze_client_input(text)
+            
+        except Exception as e:
+            logging.error(f"Error analyzing platform messages: {str(e)}")
             return {
                 "key_requirements": [],
                 "sentiment": "neutral",
