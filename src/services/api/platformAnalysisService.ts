@@ -1,7 +1,7 @@
 
 import { dateToString } from '@/utils/dateUtils';
 
-export type PlatformType = 'slack' | 'discord' | 'email' | 'trello' | 'asana' | 'all';
+export type PlatformType = 'slack' | 'discord' | 'gmail' | 'trello' | 'asana' | 'all';
 
 export interface PlatformMessage {
   id: string;
@@ -37,13 +37,11 @@ const platformAnalysisService = {
     let filteredMessages = [...messages];
     
     if (startDate || endDate) {
-      const start = startDate ? new Date(startDate).getTime() : 0;
-      const end = endDate ? new Date(endDate).getTime() : Date.now();
+      const start = startDate ? new Date(dateToString(startDate)).getTime() : 0;
+      const end = endDate ? new Date(dateToString(endDate)).getTime() : Date.now();
       
       filteredMessages = messages.filter(msg => {
-        const msgDate = typeof msg.timestamp === 'string' 
-          ? new Date(msg.timestamp) 
-          : msg.timestamp;
+        const msgDate = new Date(dateToString(msg.timestamp));
         const msgTime = msgDate.getTime();
         return msgTime >= start && msgTime <= end;
       });

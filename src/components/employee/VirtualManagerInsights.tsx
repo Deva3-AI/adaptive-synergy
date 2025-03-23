@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb, Clock, ThumbsUp, AlertCircle, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { aiUtils } from '@/utils/aiUtils';
+import aiUtils from '@/utils/aiUtils';
 import { Badge } from "@/components/ui/badge";
 
 interface VirtualManagerInsightsProps {

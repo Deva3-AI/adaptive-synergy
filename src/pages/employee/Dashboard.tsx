@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,9 +24,11 @@ import EmployeeWorkTracker from '@/components/dashboard/EmployeeWorkTracker';
 import TaskSuggestionCard from '@/components/ai/TaskSuggestionCard';
 import ClientRequirementsPanel from '@/components/employee/ClientRequirementsPanel';
 import VirtualManagerInsights from '@/components/employee/VirtualManagerInsights';
-import { employeeService, taskService } from '@/services/api';
+import { employeeService } from '@/services/api';
+import taskService from '@/services/api/taskService';  // Fixed import
 import { useAuth } from '@/hooks/use-auth';
-import { aiUtils } from '@/utils/aiUtils';
+import aiUtils from '@/utils/aiUtils';  // Fixed import
+import { Task } from '@/interfaces/task'; // Import the Task interface
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
@@ -56,7 +57,7 @@ const EmployeeDashboard = () => {
   });
 
   // Get active task
-  const { data: activeTask, isLoading: isLoadingActiveTask, refetch: refetchActiveTask } = useQuery({
+  const { data: activeTask, isLoading: isLoadingActiveTask, refetch: refetchActiveTask } = useQuery<Task | null>({
     queryKey: ['activeTask'],
     queryFn: taskService.getActiveTask,
   });
@@ -185,11 +186,11 @@ const EmployeeDashboard = () => {
                 ) : activeTask ? (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-lg font-medium">{activeTask.title}</h3>
-                      <p className="text-sm text-muted-foreground">{activeTask.description}</p>
-                      {activeTask.client_name && (
+                      <h3 className="text-lg font-medium">{activeTask?.title || ''}</h3>
+                      <p className="text-sm text-muted-foreground">{activeTask?.description || ''}</p>
+                      {activeTask?.client_name && (
                         <div className="flex items-center mt-1">
-                          <span className="text-xs text-muted-foreground">Client: {activeTask.client_name}</span>
+                          <span className="text-xs text-muted-foreground">Client: {activeTask?.client_name}</span>
                         </div>
                       )}
                     </div>
@@ -197,7 +198,7 @@ const EmployeeDashboard = () => {
                       <Button 
                         variant="destructive" 
                         size="sm"
-                        onClick={() => handleStopTask(activeTask.task_id)}
+                        onClick={() => handleStopTask(activeTask?.task_id || 0)}
                       >
                         <Pause className="h-4 w-4 mr-2" />
                         Stop Working
@@ -205,7 +206,7 @@ const EmployeeDashboard = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.location.href = `/employee/tasks/${activeTask.task_id}`}
+                        onClick={() => window.location.href = `/employee/tasks/${activeTask?.task_id || 0}`}
                       >
                         View Details
                         <ArrowUpRight className="h-4 w-4 ml-2" />

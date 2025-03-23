@@ -40,7 +40,20 @@ const clientService = {
   },
   
   getClientById: async (clientId: number) => {
-    return clientService.getClientDetails(clientId);
+    try {
+      const response = await apiClient.get(`/client/clients/${clientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get client by ID error:', error);
+      // Return mock data as fallback
+      return {
+        client_id: clientId,
+        client_name: 'Client ' + clientId,
+        description: 'Client description',
+        contact_info: 'client@example.com',
+        logo: '/placeholder.svg'
+      };
+    }
   },
   
   createClient: async (clientData: any) => {
@@ -80,7 +93,8 @@ const clientService = {
       return response.data;
     } catch (error) {
       console.error('Get client history error:', error);
-      return []; // Return empty array as fallback
+      // Return empty array as fallback
+      return [];
     }
   },
   
@@ -90,7 +104,8 @@ const clientService = {
       return response.data;
     } catch (error) {
       console.error('Get client preferences error:', error);
-      return []; // Return empty array as fallback
+      // Return empty array as fallback
+      return [];
     }
   },
   

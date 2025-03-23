@@ -44,6 +44,7 @@ const EmployeePerformanceInsights = ({
         return;
       }
 
+      // Fixed: Pass attendance and task data separately, not as an argument that's expected to be a number
       const results = await analyzeEmployeePerformance(
         filtered.attendanceData,
         filtered.taskData

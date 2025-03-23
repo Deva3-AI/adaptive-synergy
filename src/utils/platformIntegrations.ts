@@ -1,7 +1,6 @@
-
 import axios from 'axios';
 import { toast } from 'sonner';
-import { dateToString } from '@/utils/dateUtils';
+import { dateToString, dateToApiString } from '@/utils/dateUtils';
 
 // Platform integration types
 export type PlatformType = 'slack' | 'discord' | 'trello' | 'asana' | 'gmail' | 'zoho' | 'whatsapp';
@@ -318,10 +317,10 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
       },
       {
         id: '2',
-        platform: 'email',
+        platform: 'gmail' as const,
         content: 'Please ensure all designs maintain a minimalist aesthetic with plenty of whitespace.',
         sender: 'John Doe',
-        timestamp: dateToString(new Date(Date.now() - 86400000)), // 1 day ago
+        timestamp: dateToApiString(new Date(Date.now() - 86400000)), // Convert Date to string
         client_id: 2
       },
       {
@@ -329,7 +328,7 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
         platform: 'trello',
         content: 'Task needs to be completed by end of week. Client emphasized mobile responsiveness.',
         sender: 'Project Manager',
-        timestamp: dateToString(new Date(Date.now() - 172800000)), // 2 days ago
+        timestamp: dateToApiString(new Date(Date.now() - 172800000)), // Convert Date to string
         client_id: 1
       }
     ];
