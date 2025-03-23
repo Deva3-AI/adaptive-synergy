@@ -10,6 +10,20 @@ export interface Attendance {
   total_hours?: number;
 }
 
+export interface WorkSession {
+  session_id: number;
+  user_id: number;
+  start_time: string;
+  end_time?: string;
+  total_duration?: number;
+  active_task_id?: number;
+  tasks?: {
+    task_id: number;
+    title: string;
+    duration: number;
+  }[];
+}
+
 const employeeService = {
   // Attendance
   startWork: async () => {
@@ -108,6 +122,58 @@ const employeeService = {
       throw error;
     }
   },
+  
+  // Get current work session
+  getCurrentWorkSession: async () => {
+    try {
+      const response = await apiClient.get('/employee/work-session/current');
+      return response.data;
+    } catch (error) {
+      console.error('Get current work session error:', error);
+      return null;
+    }
+  },
+  
+  // Get work session history
+  getWorkSessionHistory: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/employee/work-session/history';
+      const params = new URLSearchParams();
+      
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get work session history error:', error);
+      throw error;
+    }
+  },
+  
+  // Get task time distribution
+  getTaskTimeDistribution: async (timeframe: 'day' | 'week' | 'month' = 'week') => {
+    try {
+      const response = await apiClient.get(`/employee/analytics/task-time-distribution?timeframe=${timeframe}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get task time distribution error:', error);
+      // Return mock data for development
+      return {
+        total_hours: 35,
+        distribution: [
+          { category: 'Design', hours: 12, percentage: 34 },
+          { category: 'Development', hours: 15, percentage: 43 },
+          { category: 'Content', hours: 5, percentage: 14 },
+          { category: 'Other', hours: 3, percentage: 9 }
+        ]
+      };
+    }
+  }
 };
 
 export default employeeService;

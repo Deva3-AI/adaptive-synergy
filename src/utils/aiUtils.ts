@@ -1,128 +1,151 @@
 
-/**
- * AI Utilities for performing AI-related operations throughout the application
- */
-import axios from 'axios';
-import { toast } from 'sonner';
 import { aiService } from '@/services/api/aiService';
-
-interface AIRequestOptions {
-  endpoint: string;
-  data: any;
-  onSuccess?: (response: any) => void;
-  onError?: (error: any) => void;
-}
-
-// Base URL for AI API calls
-const AI_API_BASE_URL = import.meta.env.VITE_AI_API_URL || 'http://localhost:8000/api/ai';
+import { clientService, taskService } from '@/services/api';
+import { toast } from 'sonner';
 
 /**
- * Makes a request to the AI API
+ * AI Utilities for task management and client insights
  */
-export const callAIService = async ({ endpoint, data, onSuccess, onError }: AIRequestOptions) => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(`${AI_API_BASE_URL}/${endpoint}`, data, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-    });
-    
-    if (onSuccess) {
-      onSuccess(response.data);
+export const aiUtils = {
+  /**
+   * Analyzes client requirements and generates task suggestions
+   */
+  analyzeClientRequirements: async (clientId: number, requirementText: string) => {
+    try {
+      // Get client history to provide context
+      const clientHistory = await clientService.getClientHistory(clientId);
+      
+      // Analyze the requirements using AI
+      const analysis = await aiService.analyzeClientInput(requirementText, clientHistory);
+      
+      return {
+        keyRequirements: analysis.key_requirements || [],
+        sentiment: analysis.sentiment || 'neutral',
+        priorityLevel: analysis.priority_level || 'medium',
+        suggestedTasks: analysis.suggested_tasks || []
+      };
+    } catch (error) {
+      console.error('Error analyzing client requirements:', error);
+      toast.error('Failed to analyze client requirements');
+      
+      // Return fallback data
+      return {
+        keyRequirements: [],
+        sentiment: 'neutral',
+        priorityLevel: 'medium',
+        suggestedTasks: []
+      };
     }
-    
-    return response.data;
-  } catch (error) {
-    console.error(`Error calling AI service (${endpoint}):`, error);
-    
-    if (onError) {
-      onError(error);
-    } else {
-      toast.error('AI service request failed. Please try again.');
+  },
+  
+  /**
+   * Gets virtual manager insights based on client and task
+   */
+  getManagerInsights: async ({ clientId, taskId }: { clientId?: number; taskId?: number }) => {
+    try {
+      let clientData = null;
+      let taskData = null;
+      
+      // Get client data if clientId is provided
+      if (clientId) {
+        clientData = await clientService.getClientById(clientId);
+      }
+      
+      // Get task data if taskId is provided
+      if (taskId) {
+        taskData = await taskService.getTaskDetails(taskId);
+        
+        // If task has client_id but no clientId was provided, get client data
+        if (taskData.client_id && !clientId) {
+          clientData = await clientService.getClientById(taskData.client_id);
+        }
+      }
+      
+      // If neither client nor task data is available, return empty insights
+      if (!clientData && !taskData) {
+        return [];
+      }
+      
+      // Mock insights for demo purposes
+      // In production, this would call the AI service
+      return [
+        {
+          id: '1',
+          type: 'tip',
+          content: `This client typically responds well to clean, minimalist designs with plenty of whitespace.`,
+          priority: 'medium'
+        },
+        {
+          id: '2',
+          type: 'warning',
+          content: 'Based on previous feedback, avoid serif fonts and dark background colors for this client.',
+          priority: 'high'
+        },
+        {
+          id: '3',
+          type: 'deadline',
+          content: `Similar tasks for this client have taken an average of ${taskData?.estimated_time || 8} hours to complete.`,
+          priority: 'medium'
+        },
+        {
+          id: '4',
+          type: 'preference',
+          content: 'Client has expressed preference for detailed progress updates throughout the project lifecycle.',
+          priority: 'low'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting manager insights:', error);
+      return [];
     }
-    
-    throw error;
+  },
+  
+  /**
+   * Predicts task completion time based on historical data
+   */
+  predictTaskTime: async (taskDescription: string, clientId?: number) => {
+    try {
+      let clientHistory = [];
+      
+      if (clientId) {
+        clientHistory = await clientService.getClientHistory(clientId);
+      }
+      
+      const prediction = await aiService.predictTaskTimeline(taskDescription, clientHistory);
+      
+      return {
+        estimatedTime: prediction.estimated_time || 8,
+        complexity: prediction.task_complexity || 'moderate',
+        recommendedSkills: prediction.recommended_skills || [],
+        potentialChallenges: prediction.potential_challenges || []
+      };
+    } catch (error) {
+      console.error('Error predicting task time:', error);
+      
+      // Return fallback data
+      return {
+        estimatedTime: 8,
+        complexity: 'moderate',
+        recommendedSkills: [],
+        potentialChallenges: []
+      };
+    }
+  },
+  
+  /**
+   * Analyzes task progress based on attachments and progress description
+   */
+  analyzeTaskProgress: async (taskId: number) => {
+    try {
+      return await taskService.analyzeTaskProgress(taskId);
+    } catch (error) {
+      console.error('Error analyzing task progress:', error);
+      return {
+        analysis: "Unable to analyze task progress at this time.",
+        suggestions: []
+      };
+    }
   }
 };
 
-/**
- * Analyzes client input to extract requirements, sentiment, and priority
- */
-export const analyzeClientInput = async (text: string, clientHistory?: any[]) => {
-  return aiService.analyzeClientInput(text, clientHistory);
-};
-
-/**
- * Predicts task timeline based on task description and historical data
- */
-export const predictTaskTimeline = async (taskDescription: string, clientHistory?: any[]) => {
-  try {
-    return callAIService({
-      endpoint: 'predict-task-timeline',
-      data: { task_description: taskDescription, client_history: clientHistory },
-    });
-  } catch (error) {
-    console.log('Error predicting task timeline, using fallback data');
-    return {
-      estimated_time: 8,
-      task_complexity: "moderate",
-      recommended_skills: ["development", "design", "content"],
-      potential_challenges: ["Timeline constraints", "Technical complexity"]
-    };
-  }
-};
-
-/**
- * Analyzes meeting transcript to extract summary, action items, and insights
- */
-export const analyzeMeetingTranscript = async (transcript: string, meetingType: string) => {
-  return aiService.analyzeMeetingTranscript(transcript, meetingType);
-};
-
-/**
- * Generates marketing insights from campaign data
- */
-export const generateMarketingInsights = async (campaignData: any, marketSegment?: string) => {
-  return aiService.generateMarketingInsights(campaignData, marketSegment);
-};
-
-/**
- * Analyzes financial data to generate insights and predictions
- */
-export const analyzeFinancialData = async (financialRecords: any[]) => {
-  return aiService.analyzeFinancialData(financialRecords);
-};
-
-/**
- * Analyzes employee performance based on attendance and task completion
- */
-export const analyzeEmployeePerformance = async (attendanceData: any[], taskData: any[]) => {
-  return aiService.analyzeEmployeePerformance(attendanceData, taskData);
-};
-
-/**
- * Generates suggested tasks based on client requirements
- */
-export const generateSuggestedTasks = async (clientRequirements: string, clientId?: number) => {
-  return aiService.generateSuggestedTasks(clientRequirements, clientId);
-};
-
-/**
- * Generates performance improvement insights for employees
- */
-export const generatePerformanceInsights = async (employeeId: number) => {
-  return aiService.generatePerformanceInsights(employeeId);
-};
-
-export default {
-  analyzeClientInput,
-  predictTaskTimeline,
-  analyzeMeetingTranscript,
-  generateMarketingInsights,
-  analyzeFinancialData,
-  analyzeEmployeePerformance,
-  generateSuggestedTasks,
-  generatePerformanceInsights
-};
+export default aiUtils;

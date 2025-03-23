@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -15,13 +14,11 @@ export interface PlatformConfig {
 
 export interface PlatformMessage {
   id: string;
-  platform: PlatformType;
-  sender: string;
+  platform: string;
   content: string;
-  timestamp: Date;
-  clientId?: number;
-  projectId?: string;
-  metadata?: any;
+  sender: string;
+  timestamp: string;
+  client_id?: number;
 }
 
 class PlatformIntegrationService {
@@ -184,19 +181,19 @@ class PlatformIntegrationService {
         {
           id: '1',
           platform,
-          sender: 'John Smith (Social Land)',
           content: 'We need to redesign our landing page to increase conversions. The current design is outdated and not mobile-friendly.',
+          sender: 'John Smith (Social Land)',
           timestamp: new Date(Date.now() - 86400000),
-          clientId: 1,
+          client_id: 1,
           projectId: 'proj-123'
         },
         {
           id: '2',
           platform,
-          sender: 'Sarah Johnson (Social Land)',
           content: 'Could we add some testimonials and case studies to the homepage? Our clients have been asking for more social proof.',
+          sender: 'Sarah Johnson (Social Land)',
           timestamp: new Date(Date.now() - 43200000),
-          clientId: 1,
+          client_id: 1,
           projectId: 'proj-123'
         }
       ],
@@ -204,19 +201,19 @@ class PlatformIntegrationService {
         {
           id: '3',
           platform,
-          sender: 'Mike Brown (Koala Digital)',
           content: 'We need to implement a new checkout flow for our e-commerce platform. The current one has a high abandonment rate.',
+          sender: 'Mike Brown (Koala Digital)',
           timestamp: new Date(Date.now() - 172800000),
-          clientId: 2,
+          client_id: 2,
           projectId: 'proj-456'
         },
         {
           id: '4',
           platform,
-          sender: 'Lisa Chen (Koala Digital)',
           content: 'Can we integrate PayPal and Apple Pay as payment options? Many customers have requested these methods.',
+          sender: 'Lisa Chen (Koala Digital)',
           timestamp: new Date(Date.now() - 64800000),
-          clientId: 2,
+          client_id: 2,
           projectId: 'proj-456'
         }
       ],
@@ -224,19 +221,19 @@ class PlatformIntegrationService {
         {
           id: '5',
           platform,
-          sender: 'David Wilson (AC Digital)',
           content: 'We need to optimize our product pages for better SEO. Our competitors are outranking us for important keywords.',
+          sender: 'David Wilson (AC Digital)',
           timestamp: new Date(Date.now() - 259200000),
-          clientId: 3,
+          client_id: 3,
           projectId: 'proj-789'
         },
         {
           id: '6',
           platform,
-          sender: 'Emily Taylor (AC Digital)',
           content: 'Let\'s add more detailed product descriptions and high-quality images. Customers have been asking for more information before purchasing.',
+          sender: 'Emily Taylor (AC Digital)',
           timestamp: new Date(Date.now() - 129600000),
-          clientId: 3,
+          client_id: 3,
           projectId: 'proj-789'
         }
       ],
@@ -244,19 +241,19 @@ class PlatformIntegrationService {
         {
           id: '7',
           platform,
-          sender: 'James Anderson (Muse Digital)',
           content: 'We need to create a content calendar for our blog. We want to publish at least 2 articles per week.',
+          sender: 'James Anderson (Muse Digital)',
           timestamp: new Date(Date.now() - 345600000),
-          clientId: 4,
+          client_id: 4,
           projectId: 'proj-101'
         },
         {
           id: '8',
           platform,
-          sender: 'Olivia Martinez (Muse Digital)',
           content: 'Can we focus on topics related to digital marketing and social media strategy? Our audience is mostly small business owners.',
+          sender: 'Olivia Martinez (Muse Digital)',
           timestamp: new Date(Date.now() - 172800000),
-          clientId: 4,
+          client_id: 4,
           projectId: 'proj-101'
         }
       ]
@@ -267,15 +264,15 @@ class PlatformIntegrationService {
       {
         id: '9',
         platform,
-        sender: 'Alex Johnson',
         content: 'Can we schedule a meeting to discuss the project timeline?',
+        sender: 'Alex Johnson',
         timestamp: new Date(Date.now() - 432000000)
       },
       {
         id: '10',
         platform,
-        sender: 'Sam Wilson',
         content: 'I\'ve shared the design mockups with you. Let me know what you think!',
+        sender: 'Sam Wilson',
         timestamp: new Date(Date.now() - 259200000)
       }
     ];
@@ -314,27 +311,34 @@ export const platformService = new PlatformIntegrationService();
 // Export a function to fetch messages from all platforms
 export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
   try {
-    // Get all connected platforms
-    const platforms = platformService.getPlatforms()
-      .filter(platform => platform.isConnected)
-      .map(platform => platform.type);
-    
-    if (platforms.length === 0) {
-      return [];
-    }
-    
-    // Fetch messages from all platforms
-    const messagesPromises = platforms.map(platform => 
-      platformService.fetchMessages(platform)
-    );
-    
-    const results = await Promise.allSettled(messagesPromises);
-    
-    return results
-      .filter((result): result is PromiseFulfilledResult<PlatformMessage[]> => 
-        result.status === 'fulfilled'
-      )
-      .flatMap(result => result.value);
+    // This would be replaced with an actual API call in production
+    // Mock implementation for development
+    return [
+      {
+        id: '1',
+        platform: 'slack',
+        content: 'The client prefers vibrant colors and bold typography for their website redesign.',
+        sender: 'Jane Smith',
+        timestamp: new Date().toISOString(),
+        client_id: 1
+      },
+      {
+        id: '2',
+        platform: 'email',
+        content: 'Please ensure all designs maintain a minimalist aesthetic with plenty of whitespace.',
+        sender: 'John Doe',
+        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        client_id: 2
+      },
+      {
+        id: '3',
+        platform: 'trello',
+        content: 'Task needs to be completed by end of week. Client emphasized mobile responsiveness.',
+        sender: 'Project Manager',
+        timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        client_id: 1
+      }
+    ];
   } catch (error) {
     console.error('Error fetching platform messages:', error);
     return [];
@@ -342,3 +346,4 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
 };
 
 export default platformService;
+
