@@ -8,6 +8,7 @@ import reportService from './reportService';
 import aiService from './aiService';
 import taskService from './taskService';
 import platformAnalysisService from './platformAnalysisService';
+import marketingService from './marketingService';
 
 export {
   authService,
@@ -18,5 +19,6 @@ export {
   reportService,
   aiService,
   taskService,
-  platformAnalysisService
+  platformAnalysisService,
+  marketingService
 };

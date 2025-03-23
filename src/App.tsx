@@ -1,18 +1,19 @@
+
 import React, { useEffect, useState } from "react";
 import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
 } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster"
-import { useAuth } from "@/hooks/useAuth";
+import { Toaster } from "@/components/ui/toaster";
+import { useAuth } from "@/hooks/use-auth";
 
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import PasswordRecovery from "@/pages/PasswordRecovery";
 import VerifyEmail from "@/pages/VerifyEmail";
-import AppLayout from "@/layouts/AppLayout";
+import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import EmployeeDirectory from "@/pages/employee/EmployeeDirectory";
 import EmployeeProfile from "@/pages/employee/EmployeeProfile";
@@ -23,9 +24,10 @@ import TaskDetail from "@/pages/tasks/TaskDetail";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
-import MarketingDashboard from "@/pages/marketing/MarketingDashboard";
+import MarketingDashboard from "@/pages/marketing/Dashboard";
 import Campaigns from "@/pages/marketing/Campaigns";
 import EmailTemplates from "@/pages/marketing/EmailTemplates";
+import Meetings from "@/pages/marketing/Meetings";
 import Analytics from "@/pages/marketing/Analytics";
 import FinancialDashboard from "@/pages/finance/FinancialDashboard";
 import Invoices from "@/pages/finance/Invoices";
@@ -130,6 +132,10 @@ const router = createBrowserRouter([
         element: <EmailTemplates />,
       },
       {
+        path: "marketing/meetings",
+        element: <Meetings />,
+      },
+      {
         path: "marketing/analytics",
         element: <Analytics />,
       },
@@ -183,7 +189,7 @@ function App() {
       <RouterProvider router={router} />
       <Toaster />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
