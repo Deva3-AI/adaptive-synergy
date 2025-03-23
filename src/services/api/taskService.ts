@@ -1,4 +1,3 @@
-
 import apiClient from '@/utils/apiUtils';
 
 export interface Task {
@@ -17,6 +16,19 @@ export interface Task {
   created_at?: string;
   updated_at?: string;
   priority?: 'low' | 'medium' | 'high';
+  drive_link?: string;
+  progress_description?: string;
+  attachments?: TaskAttachment[];
+}
+
+export interface TaskAttachment {
+  attachment_id: number;
+  task_id: number;
+  file_name: string;
+  file_url: string;
+  created_at: string;
+  file_type: string;
+  file_size: number;
 }
 
 export interface TaskTimeTracking {
@@ -100,7 +112,6 @@ const taskService = {
       return response.data;
     } catch (error) {
       console.error('Get active task error:', error);
-      // Return null instead of throwing to prevent UI errors
       return null;
     }
   },
@@ -114,6 +125,63 @@ const taskService = {
       throw error;
     }
   },
+  
+  uploadTaskScreenshot: async (taskId: number, file: File, description?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      if (description) {
+        formData.append('description', description);
+      }
+      
+      const response = await apiClient.post(`/employee/tasks/${taskId}/attachments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Upload task screenshot error:', error);
+      throw error;
+    }
+  },
+  
+  updateTaskProgress: async (taskId: number, progressData: { 
+    progress_description: string;
+    drive_link?: string;
+  }) => {
+    try {
+      const response = await apiClient.put(`/employee/tasks/${taskId}/progress`, progressData);
+      return response.data;
+    } catch (error) {
+      console.error('Update task progress error:', error);
+      throw error;
+    }
+  },
+  
+  getTaskAttachments: async (taskId: number) => {
+    try {
+      const response = await apiClient.get(`/employee/tasks/${taskId}/attachments`);
+      return response.data;
+    } catch (error) {
+      console.error('Get task attachments error:', error);
+      throw error;
+    }
+  },
+  
+  analyzeTaskProgress: async (taskId: number) => {
+    try {
+      const response = await apiClient.get(`/employee/tasks/${taskId}/analyze-progress`);
+      return response.data;
+    } catch (error) {
+      console.error('Analyze task progress error:', error);
+      return {
+        analysis: "Unable to analyze task progress at this time.",
+        suggestions: []
+      };
+    }
+  }
 };
 
 export default taskService;

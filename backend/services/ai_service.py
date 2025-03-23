@@ -568,3 +568,100 @@ class AIService:
                 "improvement_areas": ["Unable to determine improvement areas"],
                 "recommendations": ["Unable to generate recommendations"]
             }
+    
+    @staticmethod
+    def analyze_task_progress(context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze task progress and generate insights based on the progress description,
+        attachments, and drive links.
+        """
+        try:
+            # Extract relevant information from context
+            task_title = context.get('task_title', '')
+            task_description = context.get('task_description', '')
+            task_status = context.get('task_status', '')
+            progress_description = context.get('progress_description', '')
+            estimated_time = context.get('estimated_time', 0)
+            actual_time = context.get('actual_time', 0)
+            attachment_count = context.get('attachment_count', 0)
+            has_drive_link = context.get('has_drive_link', False)
+            
+            # If there is no progress description or attachments, return basic insight
+            if not progress_description and attachment_count == 0 and not has_drive_link:
+                return {
+                    "analysis": "No progress updates or attachments found for this task.",
+                    "suggestions": [
+                        "Upload screenshots of your work to provide visual progress updates.",
+                        "Add a progress description to explain your current status.",
+                        "Track time spent on this task for better estimation in future."
+                    ]
+                }
+            
+            # Generate prompt for OpenAI analysis
+            prompt = f"""
+            Analyze this task progress and provide insights:
+            
+            Task Title: {task_title}
+            Task Description: {task_description}
+            Current Status: {task_status}
+            Progress Description: {progress_description if progress_description else "None provided"}
+            Attachments: {attachment_count} file(s)
+            Drive Link Provided: {"Yes" if has_drive_link else "No"}
+            
+            Estimated Time: {estimated_time} hours
+            Actual Time (so far): {actual_time if actual_time else "Not tracked"} hours
+            
+            Provide:
+            1. An analysis of the current progress based on the available information
+            2. Specific suggestions to improve progress or documentation
+            3. Any potential issues or roadblocks that might need attention
+            
+            Format the response as valid JSON with these fields:
+            analysis (string),
+            suggestions (array of strings),
+            potential_issues (array of strings)
+            """
+            
+            response = openai.ChatCompletion.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an AI assistant that analyzes task progress and provides helpful insights. Be concise and practical with your insights."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            # Extract and parse the JSON response
+            response_text = response.choices[0].message.content.strip()
+            
+            # Extract JSON if embedded in text
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+            if json_match:
+                response_text = json_match.group(1)
+            
+            try:
+                analysis = json.loads(response_text)
+            except json.JSONDecodeError:
+                # If JSON parsing fails, create a structured response manually
+                analysis = {
+                    "analysis": "Based on the available information, progress appears to be ongoing. Continue documenting your work.",
+                    "suggestions": ["Update progress regularly", "Track time spent on tasks"],
+                    "potential_issues": ["None identified"]
+                }
+            
+            return {
+                "analysis": analysis.get("analysis", ""),
+                "suggestions": analysis.get("suggestions", []),
+                "potential_issues": analysis.get("potential_issues", [])
+            }
+            
+        except Exception as e:
+            logging.error(f"Error analyzing task progress: {str(e)}")
+            return {
+                "analysis": "Unable to analyze task progress at this time.",
+                "suggestions": [
+                    "Continue updating your progress regularly",
+                    "Document any challenges you encounter"
+                ],
+                "potential_issues": []
+            }

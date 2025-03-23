@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -20,7 +20,13 @@ import {
   PlusCircle,
   Pencil,
   CheckSquare,
-  Circle
+  Circle,
+  Upload,
+  Link as LinkIcon,
+  X,
+  FileText,
+  Image as ImageIcon,
+  File
 } from "lucide-react";
 import { 
   Card, 
@@ -37,8 +43,18 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import taskService from "@/services/api/taskService";
+import taskService, { TaskAttachment } from "@/services/api/taskService";
 import employeeService from "@/services/api/employeeService";
 
 const sampleTask = {
@@ -184,6 +200,19 @@ const EmployeeTaskDetail = () => {
   const [attendanceId, setAttendanceId] = useState<number | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressDescription, setProgressDescription] = useState("");
+  const [driveLink, setDriveLink] = useState("");
+  const [progressAnalysis, setProgressAnalysis] = useState<any>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showDriveLinkDialog, setShowDriveLinkDialog] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchTaskAndWorkStatus = async () => {
@@ -207,6 +236,23 @@ const EmployeeTaskDetail = () => {
         }
         
         setTask(sampleTask);
+        
+        try {
+          const attachmentsData = await taskService.getTaskAttachments(Number(taskId));
+          setAttachments(attachmentsData || []);
+        } catch (error) {
+          console.error("Error fetching attachments:", error);
+          // Don't show error toast as this isn't critical
+        }
+        
+        try {
+          const analysisData = await taskService.analyzeTaskProgress(Number(taskId));
+          setProgressAnalysis(analysisData);
+        } catch (error) {
+          console.error("Error fetching progress analysis:", error);
+          // Don't show error toast as this isn't critical
+        }
+        
       } catch (error) {
         console.error("Error fetching task or work status:", error);
         toast.error("Failed to load task details");
@@ -290,6 +336,132 @@ const EmployeeTaskDetail = () => {
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
     setComment("");
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      setSelectedFiles(prevFiles => [...prevFiles, ...files]);
+      
+      const newPreviewUrls = files.map(file => {
+        if (file.type.startsWith('image/')) {
+          return URL.createObjectURL(file);
+        }
+        return '';
+      });
+      
+      setPreviewUrls(prevUrls => [...prevUrls, ...newPreviewUrls]);
+    }
+  };
+  
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(files => files.filter((_, i) => i !== index));
+    
+    if (previewUrls[index]) {
+      URL.revokeObjectURL(previewUrls[index]);
+      setPreviewUrls(urls => urls.filter((_, i) => i !== index));
+    }
+  };
+  
+  const handleScreenshotUpload = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error("Please select at least one file to upload");
+      return;
+    }
+    
+    if (!taskId) return;
+    
+    setUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        await taskService.uploadTaskScreenshot(Number(taskId), file, progressDescription);
+        setUploadProgress(Math.round(((i + 1) / selectedFiles.length) * 100));
+      }
+      
+      if (progressDescription) {
+        await taskService.updateTaskProgress(Number(taskId), { progress_description: progressDescription });
+      }
+      
+      const updatedAttachments = await taskService.getTaskAttachments(Number(taskId));
+      setAttachments(updatedAttachments || []);
+      
+      setSelectedFiles([]);
+      setPreviewUrls([]);
+      setProgressDescription("");
+      setShowUploadDialog(false);
+      
+      toast.success("Screenshots uploaded successfully");
+      
+      const analysisData = await taskService.analyzeTaskProgress(Number(taskId));
+      setProgressAnalysis(analysisData);
+      
+    } catch (error) {
+      console.error("Error uploading screenshots:", error);
+      toast.error("Failed to upload screenshots");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+  
+  const handleDriveLinkSubmit = async () => {
+    if (!driveLink) {
+      toast.error("Please enter a Google Drive link");
+      return;
+    }
+    
+    if (!taskId) return;
+    
+    try {
+      await taskService.updateTaskProgress(Number(taskId), {
+        progress_description: progressDescription,
+        drive_link: driveLink
+      });
+      
+      if (task.status !== 'completed') {
+        await taskService.updateTaskStatus(Number(taskId), 'completed');
+      }
+      
+      setShowDriveLinkDialog(false);
+      setDriveLink("");
+      setProgressDescription("");
+      
+      toast.success("Task completed and Drive link added successfully");
+      
+      setTask({
+        ...task,
+        status: 'completed',
+        drive_link: driveLink,
+        progress_description: progressDescription
+      });
+      
+    } catch (error) {
+      console.error("Error submitting Drive link:", error);
+      toast.error("Failed to submit Drive link");
+    }
+  };
+  
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    
+    if (!ext) return <File className="h-5 w-5" />;
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+      return <ImageIcon className="h-5 w-5 text-blue-500" />;
+    } else if (['pdf'].includes(ext)) {
+      return <FileText className="h-5 w-5 text-red-500" />;
+    } else if (['doc', 'docx'].includes(ext)) {
+      return <FileText className="h-5 w-5 text-blue-700" />;
+    } else if (['xls', 'xlsx'].includes(ext)) {
+      return <FileText className="h-5 w-5 text-green-700" />;
+    } else if (['ppt', 'pptx'].includes(ext)) {
+      return <FileText className="h-5 w-5 text-orange-500" />;
+    }
+    
+    return <File className="h-5 w-5" />;
   };
 
   if (isLoading) {
@@ -405,6 +577,32 @@ const EmployeeTaskDetail = () => {
                 </div>
               </div>
               
+              {task.progress_description && (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Progress Update</h3>
+                  <div className="p-3 rounded-md border border-border bg-muted/30">
+                    <p className="text-sm text-muted-foreground">{task.progress_description}</p>
+                  </div>
+                </div>
+              )}
+              
+              {task.drive_link && (
+                <div className="space-y-4">
+                  <h3 className="font-medium">Completed Work</h3>
+                  <div className="flex items-center p-3 rounded-md border border-border bg-muted/30">
+                    <LinkIcon className="h-4 w-4 mr-2 text-blue-500" />
+                    <a 
+                      href={task.drive_link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      View completed work on Google Drive
+                    </a>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium">Checklist</h3>
@@ -435,29 +633,209 @@ const EmployeeTaskDetail = () => {
               </div>
               
               <div className="space-y-4">
-                <h3 className="font-medium">Attachments</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium">Task Screenshots & Attachments</h3>
+                  <div className="flex space-x-2">
+                    {task.status === 'completed' ? (
+                      <Dialog open={showDriveLinkDialog} onOpenChange={setShowDriveLinkDialog}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <LinkIcon className="h-4 w-4 mr-2" />
+                            Update Drive Link
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add Google Drive Link</DialogTitle>
+                            <DialogDescription>
+                              Provide a link to the completed work in Google Drive
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="drive-link">Google Drive Link</Label>
+                              <Input
+                                id="drive-link"
+                                placeholder="https://drive.google.com/..."
+                                value={driveLink}
+                                onChange={(e) => setDriveLink(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="completion-description">Completion Description</Label>
+                              <Textarea
+                                id="completion-description"
+                                placeholder="Describe what you accomplished and how the task was completed..."
+                                value={progressDescription}
+                                onChange={(e) => setProgressDescription(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowDriveLinkDialog(false)}>
+                              Cancel
+                            </Button>
+                            <Button onClick={handleDriveLinkSubmit}>
+                              Submit
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    ) : (
+                      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Screenshots
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px]">
+                          <DialogHeader>
+                            <DialogTitle>Upload Task Screenshots</DialogTitle>
+                            <DialogDescription>
+                              Upload screenshots of your work in progress to update the task status
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="progress-description">Progress Description</Label>
+                              <Textarea
+                                id="progress-description"
+                                placeholder="Describe your progress so far..."
+                                value={progressDescription}
+                                onChange={(e) => setProgressDescription(e.target.value)}
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Screenshots</Label>
+                              <div 
+                                className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                  Click to upload or drag and drop
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  PNG, JPG, GIF up to 10MB
+                                </p>
+                                <input
+                                  type="file"
+                                  accept="image/*,.pdf"
+                                  multiple
+                                  className="hidden"
+                                  ref={fileInputRef}
+                                  onChange={handleFileChange}
+                                />
+                              </div>
+                              
+                              {selectedFiles.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  {selectedFiles.map((file, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 rounded-md border bg-muted/30">
+                                      <div className="flex items-center">
+                                        {file.type.startsWith('image/') && previewUrls[index] ? (
+                                          <div className="h-10 w-10 rounded-md overflow-hidden mr-3 bg-muted">
+                                            <img 
+                                              src={previewUrls[index]} 
+                                              alt={file.name} 
+                                              className="h-full w-full object-cover"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className="h-10 w-10 rounded-md mr-3 bg-muted flex items-center justify-center">
+                                            {getFileIcon(file.name)}
+                                          </div>
+                                        )}
+                                        <div>
+                                          <p className="text-sm font-medium truncate max-w-[200px]">
+                                            {file.name}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeSelectedFile(index);
+                                        }}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {uploading && (
+                                <div className="mt-2">
+                                  <Progress value={uploadProgress} className="h-2" />
+                                  <p className="text-xs text-center mt-1">
+                                    Uploading: {uploadProgress}%
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
+                              Cancel
+                            </Button>
+                            <Button 
+                              onClick={handleScreenshotUpload} 
+                              disabled={selectedFiles.length === 0 || uploading}
+                            >
+                              {uploading ? 'Uploading...' : 'Upload'}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
-                  {task.attachments.map(attachment => (
-                    <div 
-                      key={attachment.id} 
-                      className="flex items-center justify-between p-3 rounded-md border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-                          <Paperclip className="h-5 w-5 text-muted-foreground" />
+                  {attachments.length > 0 ? (
+                    attachments.map(attachment => (
+                      <div 
+                        key={attachment.attachment_id} 
+                        className="flex items-center justify-between p-3 rounded-md border border-border hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                            {getFileIcon(attachment.file_name)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{attachment.file_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(attachment.created_at).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{attachment.name}</p>
-                          <p className="text-xs text-muted-foreground">{attachment.size}</p>
-                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          asChild
+                        >
+                          <a href={attachment.file_url} target="_blank" rel="noopener noreferrer">
+                            View
+                          </a>
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm">Download</Button>
+                    ))
+                  ) : (
+                    <div className="text-center p-4 rounded-md border border-dashed">
+                      <Paperclip className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        No attachments yet
+                      </p>
                     </div>
-                  ))}
-                  <Button variant="outline" size="sm" className="w-full mt-2">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add attachment
-                  </Button>
+                  )}
                 </div>
               </div>
               
@@ -641,24 +1019,50 @@ const EmployeeTaskDetail = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="p-3 bg-muted/50 rounded-md border border-border">
-                  <h4 className="text-sm font-medium mb-2">Time Forecast</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Based on your current pace, this task is likely to be completed in 3 more days, which is within the deadline.
-                  </p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-md border border-border">
-                  <h4 className="text-sm font-medium mb-2">Similar Past Tasks</h4>
-                  <p className="text-sm text-muted-foreground">
-                    You've completed 5 similar design tasks for TechCorp. Your average completion time was 22 hours.
-                  </p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-md border border-border">
-                  <h4 className="text-sm font-medium mb-2">Client Preferences</h4>
-                  <p className="text-sm text-muted-foreground">
-                    TechCorp typically prefers minimalist designs with blue color schemes and emphasized call-to-action buttons.
-                  </p>
-                </div>
+                {progressAnalysis ? (
+                  <>
+                    {progressAnalysis.analysis && (
+                      <div className="p-3 bg-muted/50 rounded-md border border-border">
+                        <h4 className="text-sm font-medium mb-2">Progress Analysis</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {progressAnalysis.analysis}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {progressAnalysis.suggestions && progressAnalysis.suggestions.length > 0 && (
+                      <div className="p-3 bg-muted/50 rounded-md border border-border">
+                        <h4 className="text-sm font-medium mb-2">Suggestions</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
+                          {progressAnalysis.suggestions.map((suggestion: string, idx: number) => (
+                            <li key={idx}>{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="p-3 bg-muted/50 rounded-md border border-border">
+                      <h4 className="text-sm font-medium mb-2">Time Forecast</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Based on your current pace, this task is likely to be completed in 3 more days, which is within the deadline.
+                      </p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-md border border-border">
+                      <h4 className="text-sm font-medium mb-2">Similar Past Tasks</h4>
+                      <p className="text-sm text-muted-foreground">
+                        You've completed 5 similar design tasks for TechCorp. Your average completion time was 22 hours.
+                      </p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-md border border-border">
+                      <h4 className="text-sm font-medium mb-2">Client Preferences</h4>
+                      <p className="text-sm text-muted-foreground">
+                        TechCorp typically prefers minimalist designs with blue color schemes and emphasized call-to-action buttons.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
