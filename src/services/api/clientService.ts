@@ -7,6 +7,15 @@ export interface Client {
   description?: string;
   contact_info?: string;
   created_at?: string;
+  logo?: string;
+}
+
+export interface ClientPreference {
+  id: number;
+  description: string;
+  type: 'like' | 'dislike' | 'requirement';
+  source: string;
+  date: string;
 }
 
 const clientService = {
@@ -28,6 +37,10 @@ const clientService = {
       console.error('Get client details error:', error);
       throw error;
     }
+  },
+  
+  getClientById: async (clientId: number) => {
+    return clientService.getClientDetails(clientId);
   },
   
   createClient: async (clientData: any) => {
@@ -60,6 +73,36 @@ const clientService = {
       throw error;
     }
   },
+  
+  getClientHistory: async (clientId: number) => {
+    try {
+      const response = await apiClient.get(`/client/clients/${clientId}/history`);
+      return response.data;
+    } catch (error) {
+      console.error('Get client history error:', error);
+      return []; // Return empty array as fallback
+    }
+  },
+  
+  getClientPreferences: async (clientId: number) => {
+    try {
+      const response = await apiClient.get(`/client/clients/${clientId}/preferences`);
+      return response.data;
+    } catch (error) {
+      console.error('Get client preferences error:', error);
+      return []; // Return empty array as fallback
+    }
+  },
+  
+  createTask: async (taskData: any) => {
+    try {
+      const response = await apiClient.post('/client/tasks', taskData);
+      return response.data;
+    } catch (error) {
+      console.error('Create task error:', error);
+      throw error;
+    }
+  }
 };
 
 export default clientService;

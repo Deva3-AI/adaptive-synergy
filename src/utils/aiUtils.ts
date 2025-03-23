@@ -1,6 +1,7 @@
 
 import { aiService } from '@/services/api/aiService';
-import { clientService, taskService } from '@/services/api';
+import clientService from '@/services/api/clientService';
+import taskService from '@/services/api/taskService';
 import { toast } from 'sonner';
 
 /**
@@ -13,7 +14,7 @@ export const aiUtils = {
   analyzeClientRequirements: async (clientId: number, requirementText: string) => {
     try {
       // Get client history to provide context
-      const clientHistory = await clientService.getClientHistory(clientId);
+      const clientHistory = await clientService.getClientDetails(clientId);
       
       // Analyze the requirements using AI
       const analysis = await aiService.analyzeClientInput(requirementText, clientHistory);
@@ -48,7 +49,7 @@ export const aiUtils = {
       
       // Get client data if clientId is provided
       if (clientId) {
-        clientData = await clientService.getClientById(clientId);
+        clientData = await clientService.getClientDetails(clientId);
       }
       
       // Get task data if taskId is provided
@@ -57,7 +58,7 @@ export const aiUtils = {
         
         // If task has client_id but no clientId was provided, get client data
         if (taskData.client_id && !clientId) {
-          clientData = await clientService.getClientById(taskData.client_id);
+          clientData = await clientService.getClientDetails(taskData.client_id);
         }
       }
       
@@ -108,10 +109,10 @@ export const aiUtils = {
       let clientHistory = [];
       
       if (clientId) {
-        clientHistory = await clientService.getClientHistory(clientId);
+        clientHistory = await clientService.getClientTasks(clientId);
       }
       
-      const prediction = await aiService.predictTaskTimeline(taskDescription, clientHistory);
+      const prediction = await aiService.analyzeClientInput(taskDescription, clientHistory);
       
       return {
         estimatedTime: prediction.estimated_time || 8,
@@ -144,6 +145,226 @@ export const aiUtils = {
         analysis: "Unable to analyze task progress at this time.",
         suggestions: []
       };
+    }
+  },
+
+  /**
+   * Analyzes employee performance data
+   */
+  analyzeEmployeePerformance: async (attendanceData: any[], taskData: any[]) => {
+    try {
+      // This would call the AI service in production
+      // For now returning mock data
+      return {
+        metrics: {
+          avg_hours_worked: 7.5,
+          task_completion_rate: 85,
+          efficiency_rate: 92
+        },
+        performance_assessment: {
+          rating: 'good',
+          explanation: 'Employee shows consistent performance with high task completion rate and good efficiency.'
+        },
+        strengths: [
+          'Completes tasks ahead of schedule',
+          'High quality of work',
+          'Good communication with clients'
+        ],
+        improvement_areas: [
+          'Could improve documentation',
+          'Occasional delays in status updates'
+        ],
+        recommendations: [
+          'Consider for more complex design tasks',
+          'Provide additional training on project management tools',
+          'Schedule regular check-ins to maintain consistency'
+        ]
+      };
+    } catch (error) {
+      console.error('Error analyzing employee performance:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Analyzes financial data to generate insights
+   */
+  analyzeFinancialData: async (financialRecords: any[]) => {
+    try {
+      // This would call the AI service in production
+      // For now returning mock data
+      return {
+        financial_health: {
+          status: 'Good',
+          explanation: 'Overall financial health is positive with stable revenue growth and controlled expenses.'
+        },
+        summary_metrics: {
+          net_profit: 24500,
+          profit_margin: 18.5,
+          recent_trend: 'upward'
+        },
+        key_insights: [
+          'Revenue has increased by 15% compared to previous quarter',
+          'Client acquisition cost has decreased by 8%',
+          'Recurring revenue streams show stability'
+        ],
+        recommendations: [
+          { area: 'Marketing', action: 'Increase budget allocation for high-performing channels' },
+          { area: 'Operations', action: 'Review resource allocation for better efficiency' },
+          { area: 'Client Retention', action: 'Implement loyalty program for long-term clients' }
+        ],
+        prediction: 'Based on current trends, projected growth of 12-15% expected in next quarter if market conditions remain stable.'
+      };
+    } catch (error) {
+      console.error('Error analyzing financial data:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Analyzes meeting transcripts
+   */
+  analyzeMeetingTranscript: async (transcript: string, meetingType: string) => {
+    try {
+      // This would call the AI service in production
+      // For now returning mock data
+      return {
+        summary: [
+          'Meeting focused on Q3 marketing strategy and upcoming product launch',
+          'Team agreed on shifting resources to digital channels',
+          'Budget approval needed for new campaign series'
+        ],
+        action_items: [
+          { task: 'Create detailed campaign calendar', assignee: 'Marketing Team' },
+          { task: 'Finalize budget proposal', assignee: 'Finance Team' },
+          { task: 'Schedule follow-up meeting next week', assignee: 'Project Manager' }
+        ],
+        key_insights: [
+          'Social media campaigns outperforming traditional channels',
+          'Customer feedback indicates preference for video content',
+          'Competitor analysis shows opportunity in mobile-first approach'
+        ],
+        sentiment_analysis: {
+          sentiment: 'positive',
+          confidence: 0.87
+        }
+      };
+    } catch (error) {
+      console.error('Error analyzing meeting transcript:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generates marketing insights based on campaign data
+   */
+  generateMarketingInsights: async (campaignData: any, marketSegment?: string) => {
+    try {
+      // This would call the AI service in production
+      // For now returning mock data
+      return {
+        performance_summary: 'Campaign shows strong engagement metrics with 23% higher CTR than industry average.',
+        audience_insights: [
+          'Highest engagement from 25-34 age group',
+          'Mobile users converting at 15% higher rate than desktop',
+          'Evening content consumption peaks between 7-9pm'
+        ],
+        content_analysis: {
+          top_performing: 'Video testimonials and case studies',
+          underperforming: 'Text-heavy blog posts',
+          recommendations: 'Focus on visual storytelling and interactive content'
+        },
+        channel_efficiency: [
+          { channel: 'Instagram', efficiency: 'High', roi: 3.2 },
+          { channel: 'Email', efficiency: 'Medium', roi: 2.1 },
+          { channel: 'Search', efficiency: 'High', roi: 2.8 }
+        ],
+        competitive_gap: 'Leading in social engagement, opportunity to improve in SEO visibility.',
+        next_steps: [
+          'Reallocate budget to high-performing channels',
+          'Develop more video content for key segments',
+          'A/B test landing pages for conversion optimization'
+        ]
+      };
+    } catch (error) {
+      console.error('Error generating marketing insights:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Analyzes client input data
+   */
+  analyzeClientInput: async (text: string, clientHistory?: any[]) => {
+    try {
+      // This would call the AI service in production
+      // For now returning mock data
+      return {
+        key_requirements: [
+          'Modern, minimalist design',
+          'Mobile-responsive layout',
+          'Interactive elements for user engagement'
+        ],
+        sentiment: 'positive',
+        priority_level: 'high',
+        estimated_time: 12,
+        task_complexity: 'moderate',
+        recommended_skills: ['UI/UX Design', 'Frontend Development'],
+        potential_challenges: ['Tight timeline', 'Complex responsive requirements'],
+        suggested_tasks: [
+          {
+            title: 'Create wireframes for homepage',
+            description: 'Develop low-fidelity wireframes focusing on content hierarchy and user flow',
+            estimated_time: 3
+          },
+          {
+            title: 'Design mobile-responsive components',
+            description: 'Create component library ensuring consistent experience across devices',
+            estimated_time: 4
+          },
+          {
+            title: 'Implement interactive prototype',
+            description: 'Develop clickable prototype to demonstrate key functionality',
+            estimated_time: 5
+          }
+        ]
+      };
+    } catch (error) {
+      console.error('Error analyzing client input:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generates suggested tasks based on requirements
+   */
+  generateSuggestedTasks: async (requirements: string, clientId?: number) => {
+    try {
+      // This would call the AI service in production
+      // For now returning mock data
+      return [
+        {
+          title: 'Create wireframes for homepage',
+          description: 'Develop low-fidelity wireframes focusing on content hierarchy and user flow',
+          estimated_time: 3,
+          priority: 'high'
+        },
+        {
+          title: 'Design mobile-responsive components',
+          description: 'Create component library ensuring consistent experience across devices',
+          estimated_time: 4,
+          priority: 'medium'
+        },
+        {
+          title: 'Implement interactive prototype',
+          description: 'Develop clickable prototype to demonstrate key functionality',
+          estimated_time: 5,
+          priority: 'medium'
+        }
+      ];
+    } catch (error) {
+      console.error('Error generating suggested tasks:', error);
+      return [];
     }
   }
 };
