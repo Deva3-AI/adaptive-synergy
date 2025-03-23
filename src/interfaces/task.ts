@@ -2,7 +2,7 @@
 export interface Task {
   task_id: number;
   title: string;
-  description?: string;
+  description: string;
   client_id?: number;
   client_name?: string;
   assigned_to?: number;
@@ -10,55 +10,45 @@ export interface Task {
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   estimated_time?: number;
   actual_time?: number;
-  start_time?: string;
-  end_time?: string;
-  created_at?: string;
-  updated_at?: string;
+  start_time?: string | Date;
+  end_time?: string | Date;
+  created_at?: string | Date;
+  updated_at?: string | Date;
   priority?: 'low' | 'medium' | 'high';
-  drive_link?: string;
-  progress_description?: string;
-  attachments?: TaskAttachment[];
-}
-
-export interface TaskAttachment {
-  attachment_id: number;
-  task_id: number;
-  file_name: string;
-  file_url: string;
-  created_at: string;
-  file_type: string;
-  file_size: number;
-}
-
-export interface TaskTimeTracking {
-  tracking_id: number;
-  task_id: number;
-  start_time: string;
-  end_time?: string;
-  duration?: number;
-}
-
-export interface TaskDetailState {
-  id: number;
-  title: string;
-  description: string;
-  client: string;
-  clientLogo: string;
-  clientId?: number;
-  dueDate: Date;
-  startDate: Date;
-  priority: string;
-  status: string;
-  progress: number;
-  estimatedHours: number;
-  actualHours: number;
-  assignedTo: string;
-  assignedToAvatar: string;
-  assignedToId?: number;
-  attachments: { id: string; name: string; url: string; type: string; size: number; }[];
-  recentActivity: { id: string; user: string; action: string; time: Date; }[];
+  progress?: number;
   progress_description?: string;
   drive_link?: string;
+  brand_id?: number;
+  brand_name?: string;
+  attachments?: Array<{
+    id: number;
+    filename: string;
+    url: string;
+    type: string;
+    uploaded_at: string | Date;
+  }>;
+  tags?: string[];
 }
 
-export default Task;
+export interface TaskDetailedView extends Task {
+  history?: Array<{
+    id: number;
+    user: string;
+    action: string;
+    timestamp: string | Date;
+    details?: string;
+  }>;
+  comments?: Array<{
+    id: number;
+    user: string;
+    message: string;
+    timestamp: string | Date;
+  }>;
+  recentActivity?: Array<{
+    id: number;
+    type: string;
+    user: string;
+    description: string;
+    timestamp: string | Date;
+  }>;
+}

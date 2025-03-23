@@ -1,20 +1,22 @@
 
 import authService from './authService';
-import clientService from './clientService';
+import userService from './userService';
 import employeeService from './employeeService';
+import clientService from './clientService';
 import financeService from './financeService';
 import reportService from './reportService';
-import taskService from './taskService';
-import userService from './userService';
 import aiService from './aiService';
+import taskService from './taskService';
+import platformAnalysisService from './platformAnalysisService';
 
 export {
   authService,
-  clientService,
+  userService,
   employeeService,
+  clientService,
   financeService,
   reportService,
+  aiService,
   taskService,
-  userService,
-  aiService
+  platformAnalysisService
 };

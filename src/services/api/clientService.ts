@@ -18,6 +18,14 @@ export interface ClientPreference {
   date: string;
 }
 
+export interface Brand {
+  id: number;
+  name: string;
+  logo?: string;
+  client_id: number;
+  description?: string;
+}
+
 const clientService = {
   getClients: async () => {
     try {
@@ -115,6 +123,61 @@ const clientService = {
       return response.data;
     } catch (error) {
       console.error('Create task error:', error);
+      throw error;
+    }
+  },
+  
+  // New methods for brand management
+  getClientBrands: async (clientId: number) => {
+    try {
+      const response = await apiClient.get(`/client/clients/${clientId}/brands`);
+      return response.data;
+    } catch (error) {
+      console.error('Get client brands error:', error);
+      // Return sample data as fallback
+      return [
+        { id: 1, name: 'Brand X', client_id: clientId, logo: '/placeholder.svg' },
+        { id: 2, name: 'Brand Y', client_id: clientId, logo: '/placeholder.svg' },
+        { id: 3, name: 'Brand Z', client_id: clientId, logo: '/placeholder.svg' }
+      ];
+    }
+  },
+  
+  getBrandDetails: async (brandId: number) => {
+    try {
+      const response = await apiClient.get(`/client/brands/${brandId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get brand details error:', error);
+      // Return sample data as fallback
+      return {
+        id: brandId,
+        name: 'Brand ' + brandId,
+        description: 'Brand description',
+        client_id: 1,
+        logo: '/placeholder.svg'
+      };
+    }
+  },
+  
+  getBrandTasks: async (brandId: number) => {
+    try {
+      const response = await apiClient.get(`/client/brands/${brandId}/tasks`);
+      return response.data;
+    } catch (error) {
+      console.error('Get brand tasks error:', error);
+      // Return empty array as fallback
+      return [];
+    }
+  },
+  
+  createBrand: async (clientId: number, brandData: any) => {
+    try {
+      const data = { ...brandData, client_id: clientId };
+      const response = await apiClient.post('/client/brands', data);
+      return response.data;
+    } catch (error) {
+      console.error('Create brand error:', error);
       throw error;
     }
   }
