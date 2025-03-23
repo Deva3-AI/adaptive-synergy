@@ -6,14 +6,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SlackIcon, MessageSquare, Trello, FileSpreadsheet, Mail } from "lucide-react";
 import { 
   platformService, 
-  PlatformMessage, 
+  PlatformMessage as PlatformIntegrationMessage,
   PlatformType 
 } from '@/utils/platformIntegrations';
-import platformAnalysisService from '@/services/api/platformAnalysisService';
+import platformAnalysisService, { PlatformMessage as AnalysisPlatformMessage } from '@/services/api/platformAnalysisService';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import AIInsightCard from '@/components/ai/AIInsightCard';
+import { dateToString, stringToDate } from '@/utils/dateUtils';
 
 interface ClientPlatformMessagesProps {
   clientId: number;
@@ -21,7 +22,7 @@ interface ClientPlatformMessagesProps {
   onGenerateTasks?: (tasks: any[]) => void;
 }
 
-const getPlatformIcon = (platform: PlatformType) => {
+const getPlatformIcon = (platform: string) => {
   switch (platform) {
     case 'slack':
       return <SlackIcon className="h-4 w-4 text-[#4A154B]" />;
@@ -50,12 +51,24 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
+// Helper function to convert between message types
+const convertToAnalysisMessages = (messages: PlatformIntegrationMessage[]): AnalysisPlatformMessage[] => {
+  return messages.map(msg => ({
+    id: msg.id,
+    content: msg.content,
+    sender: msg.sender,
+    timestamp: msg.timestamp,
+    platform: msg.platform as any, // Type assertion to handle platform type conversion
+    metadata: { clientId: msg.client_id }
+  }));
+};
+
 const ClientPlatformMessages: React.FC<ClientPlatformMessagesProps> = ({
   clientId,
   clientName,
   onGenerateTasks
 }) => {
-  const [messages, setMessages] = useState<PlatformMessage[]>([]);
+  const [messages, setMessages] = useState<PlatformIntegrationMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [insights, setInsights] = useState<any>(null);
@@ -85,7 +98,9 @@ const ClientPlatformMessages: React.FC<ClientPlatformMessagesProps> = ({
     
     setIsAnalyzing(true);
     try {
-      const analysis = await platformAnalysisService.analyzeMessages(messages);
+      // Convert message format for compatibility with analysis service
+      const analysisMessages = convertToAnalysisMessages(messages);
+      const analysis = await platformAnalysisService.analyzeMessages(analysisMessages);
       setInsights(analysis);
     } catch (error) {
       console.error('Error analyzing messages:', error);
@@ -103,7 +118,9 @@ const ClientPlatformMessages: React.FC<ClientPlatformMessagesProps> = ({
     
     setIsAnalyzing(true);
     try {
-      const suggestions = await platformAnalysisService.generateTaskSuggestions(messages, clientId);
+      // Convert message format for compatibility with analysis service
+      const analysisMessages = convertToAnalysisMessages(messages);
+      const suggestions = await platformAnalysisService.generateTaskSuggestions(analysisMessages, clientId);
       
       if (onGenerateTasks && suggestions && suggestions.suggested_tasks) {
         onGenerateTasks(suggestions.suggested_tasks);
@@ -117,7 +134,7 @@ const ClientPlatformMessages: React.FC<ClientPlatformMessagesProps> = ({
     }
   };
   
-  const getMessageDate = (timestamp: Date) => {
+  const getMessageDate = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();

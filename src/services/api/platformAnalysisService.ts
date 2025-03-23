@@ -41,7 +41,10 @@ const platformAnalysisService = {
       const end = endDate ? new Date(endDate).getTime() : Date.now();
       
       filteredMessages = messages.filter(msg => {
-        const msgTime = new Date(msg.timestamp).getTime();
+        const msgDate = typeof msg.timestamp === 'string' 
+          ? new Date(msg.timestamp) 
+          : msg.timestamp;
+        const msgTime = msgDate.getTime();
         return msgTime >= start && msgTime <= end;
       });
     }

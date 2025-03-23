@@ -1,5 +1,7 @@
+
 import axios from 'axios';
 import { toast } from 'sonner';
+import { dateToString } from '@/utils/dateUtils';
 
 // Platform integration types
 export type PlatformType = 'slack' | 'discord' | 'trello' | 'asana' | 'gmail' | 'zoho' | 'whatsapp';
@@ -14,7 +16,7 @@ export interface PlatformConfig {
 
 export interface PlatformMessage {
   id: string;
-  platform: string;
+  platform: PlatformType;
   content: string;
   sender: string;
   timestamp: string;
@@ -183,18 +185,16 @@ class PlatformIntegrationService {
           platform,
           content: 'We need to redesign our landing page to increase conversions. The current design is outdated and not mobile-friendly.',
           sender: 'John Smith (Social Land)',
-          timestamp: new Date(Date.now() - 86400000),
-          client_id: 1,
-          projectId: 'proj-123'
+          timestamp: dateToString(new Date(Date.now() - 86400000)),
+          client_id: 1
         },
         {
           id: '2',
           platform,
           content: 'Could we add some testimonials and case studies to the homepage? Our clients have been asking for more social proof.',
           sender: 'Sarah Johnson (Social Land)',
-          timestamp: new Date(Date.now() - 43200000),
-          client_id: 1,
-          projectId: 'proj-123'
+          timestamp: dateToString(new Date(Date.now() - 43200000)),
+          client_id: 1
         }
       ],
       2: [
@@ -203,18 +203,16 @@ class PlatformIntegrationService {
           platform,
           content: 'We need to implement a new checkout flow for our e-commerce platform. The current one has a high abandonment rate.',
           sender: 'Mike Brown (Koala Digital)',
-          timestamp: new Date(Date.now() - 172800000),
-          client_id: 2,
-          projectId: 'proj-456'
+          timestamp: dateToString(new Date(Date.now() - 172800000)),
+          client_id: 2
         },
         {
           id: '4',
           platform,
           content: 'Can we integrate PayPal and Apple Pay as payment options? Many customers have requested these methods.',
           sender: 'Lisa Chen (Koala Digital)',
-          timestamp: new Date(Date.now() - 64800000),
-          client_id: 2,
-          projectId: 'proj-456'
+          timestamp: dateToString(new Date(Date.now() - 64800000)),
+          client_id: 2
         }
       ],
       3: [
@@ -223,18 +221,16 @@ class PlatformIntegrationService {
           platform,
           content: 'We need to optimize our product pages for better SEO. Our competitors are outranking us for important keywords.',
           sender: 'David Wilson (AC Digital)',
-          timestamp: new Date(Date.now() - 259200000),
-          client_id: 3,
-          projectId: 'proj-789'
+          timestamp: dateToString(new Date(Date.now() - 259200000)),
+          client_id: 3
         },
         {
           id: '6',
           platform,
           content: 'Let\'s add more detailed product descriptions and high-quality images. Customers have been asking for more information before purchasing.',
           sender: 'Emily Taylor (AC Digital)',
-          timestamp: new Date(Date.now() - 129600000),
-          client_id: 3,
-          projectId: 'proj-789'
+          timestamp: dateToString(new Date(Date.now() - 129600000)),
+          client_id: 3
         }
       ],
       4: [
@@ -243,18 +239,16 @@ class PlatformIntegrationService {
           platform,
           content: 'We need to create a content calendar for our blog. We want to publish at least 2 articles per week.',
           sender: 'James Anderson (Muse Digital)',
-          timestamp: new Date(Date.now() - 345600000),
-          client_id: 4,
-          projectId: 'proj-101'
+          timestamp: dateToString(new Date(Date.now() - 345600000)),
+          client_id: 4
         },
         {
           id: '8',
           platform,
           content: 'Can we focus on topics related to digital marketing and social media strategy? Our audience is mostly small business owners.',
           sender: 'Olivia Martinez (Muse Digital)',
-          timestamp: new Date(Date.now() - 172800000),
-          client_id: 4,
-          projectId: 'proj-101'
+          timestamp: dateToString(new Date(Date.now() - 172800000)),
+          client_id: 4
         }
       ]
     };
@@ -266,14 +260,14 @@ class PlatformIntegrationService {
         platform,
         content: 'Can we schedule a meeting to discuss the project timeline?',
         sender: 'Alex Johnson',
-        timestamp: new Date(Date.now() - 432000000)
+        timestamp: dateToString(new Date(Date.now() - 432000000))
       },
       {
         id: '10',
         platform,
         content: 'I\'ve shared the design mockups with you. Let me know what you think!',
         sender: 'Sam Wilson',
-        timestamp: new Date(Date.now() - 259200000)
+        timestamp: dateToString(new Date(Date.now() - 259200000))
       }
     ];
     
@@ -319,7 +313,7 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
         platform: 'slack',
         content: 'The client prefers vibrant colors and bold typography for their website redesign.',
         sender: 'Jane Smith',
-        timestamp: new Date().toISOString(),
+        timestamp: dateToString(new Date()),
         client_id: 1
       },
       {
@@ -327,7 +321,7 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
         platform: 'email',
         content: 'Please ensure all designs maintain a minimalist aesthetic with plenty of whitespace.',
         sender: 'John Doe',
-        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        timestamp: dateToString(new Date(Date.now() - 86400000)), // 1 day ago
         client_id: 2
       },
       {
@@ -335,7 +329,7 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
         platform: 'trello',
         content: 'Task needs to be completed by end of week. Client emphasized mobile responsiveness.',
         sender: 'Project Manager',
-        timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        timestamp: dateToString(new Date(Date.now() - 172800000)), // 2 days ago
         client_id: 1
       }
     ];
@@ -346,4 +340,3 @@ export const fetchPlatformMessages = async (): Promise<PlatformMessage[]> => {
 };
 
 export default platformService;
-

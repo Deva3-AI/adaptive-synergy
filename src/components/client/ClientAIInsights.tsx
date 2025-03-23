@@ -7,8 +7,8 @@ import { Brain, RefreshCw, Sparkles } from "lucide-react";
 import AIInsightCard from '@/components/ai/AIInsightCard';
 import TaskSuggestionCard from '@/components/ai/TaskSuggestionCard';
 import { analyzeClientInput, generateSuggestedTasks } from '@/utils/aiUtils';
-import { platformService } from '@/utils/platformIntegrations';
-import platformAnalysisService from '@/services/api/platformAnalysisService';
+import { platformService, PlatformMessage as PlatformIntegrationMessage } from '@/utils/platformIntegrations';
+import platformAnalysisService, { PlatformMessage as AnalysisPlatformMessage } from '@/services/api/platformAnalysisService';
 import { toast } from 'sonner';
 
 interface ClientAIInsightsProps {
@@ -22,6 +22,18 @@ interface ClientAIInsightsProps {
   }>;
   onTaskCreated?: () => void;
 }
+
+// Helper function to convert between message types
+const convertToAnalysisMessages = (messages: PlatformIntegrationMessage[]): AnalysisPlatformMessage[] => {
+  return messages.map(msg => ({
+    id: msg.id,
+    content: msg.content,
+    sender: msg.sender,
+    timestamp: msg.timestamp,
+    platform: msg.platform as any, // Type assertion to handle platform type conversion
+    metadata: { clientId: msg.client_id }
+  }));
+};
 
 const ClientAIInsights = ({
   clientId,
@@ -70,7 +82,9 @@ const ClientAIInsights = ({
         return;
       }
       
-      const insights = await platformAnalysisService.analyzeMessages(messages);
+      // Convert messages to the format expected by platformAnalysisService
+      const analysisMessages = convertToAnalysisMessages(messages);
+      const insights = await platformAnalysisService.analyzeMessages(analysisMessages);
       setClientInsights(insights);
     } catch (error) {
       console.error('Error generating insights from platforms:', error);
@@ -124,7 +138,9 @@ const ClientAIInsights = ({
         return;
       }
       
-      const suggestions = await platformAnalysisService.generateTaskSuggestions(messages, clientId);
+      // Convert messages to the format expected by platformAnalysisService
+      const analysisMessages = convertToAnalysisMessages(messages);
+      const suggestions = await platformAnalysisService.generateTaskSuggestions(analysisMessages, clientId);
       setTaskSuggestions(suggestions?.suggested_tasks || []);
     } catch (error) {
       console.error('Error generating tasks from platforms:', error);
