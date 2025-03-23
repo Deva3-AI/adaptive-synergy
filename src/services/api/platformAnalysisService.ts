@@ -1,117 +1,144 @@
 
-import { dateToString, getTimeDifference } from '@/utils/dateUtils';
+import { dateToString } from '@/utils/dateUtils';
 
-// Platform types
-export type PlatformType = 'email' | 'slack' | 'trello' | 'discord' | 'asana';
+export type PlatformType = 'slack' | 'discord' | 'email' | 'trello' | 'asana' | 'all';
 
-// Interface for platform message
 export interface PlatformMessage {
   id: string;
-  platform: PlatformType;
-  client_id: number;
-  user_id: number;
   content: string;
-  timestamp: string;
-  sentiment?: 'positive' | 'negative' | 'neutral';
-  type: 'message' | 'comment' | 'task' | 'email';
-}
-
-// Interface for platform statistics
-export interface PlatformStatistics {
+  sender: string;
+  receiver?: string;
+  timestamp: string | Date;
   platform: PlatformType;
-  messageCount: number;
-  avgResponseTime: number;
-  clientSentiment: { positive: number; neutral: number; negative: number };
+  metadata?: Record<string, any>;
 }
 
-// Helper function to get random sentiment distribution
-const getRandomSentiment = () => {
-  return {
-    positive: Math.floor(Math.random() * 70) + 20,
-    neutral: Math.floor(Math.random() * 50) + 10,
-    negative: Math.floor(Math.random() * 30)
+export interface PlatformStatistics {
+  messageCount: number;
+  topSenders: Array<{ sender: string; count: number }>;
+  messagesByDay: Record<string, number>;
+  sentimentAnalysis: {
+    positive: number;
+    neutral: number;
+    negative: number;
   };
-};
+  keywordFrequency: Record<string, number>;
+  insights: string[];
+}
 
-// Calculate response time between messages
-const calculateResponseTime = (messages: PlatformMessage[]): number => {
-  if (messages.length < 2) return 0;
-  
-  let totalResponseTime = 0;
-  let responseCount = 0;
-  
-  for (let i = 1; i < messages.length; i++) {
-    const prevTimestamp = new Date(messages[i-1].timestamp);
-    const currTimestamp = new Date(messages[i].timestamp);
+const platformAnalysisService = {
+  analyzePlatformMessages: (
+    messages: PlatformMessage[],
+    platform: PlatformType,
+    startDate?: string | Date,
+    endDate?: string | Date
+  ): PlatformStatistics => {
+    // Filter messages by date range if provided
+    let filteredMessages = [...messages];
     
-    // Only count if messages are within 24 hours of each other
-    const diffMs = getTimeDifference(prevTimestamp, currTimestamp);
-    
-    if (diffMs > 0 && diffMs < 24 * 60 * 60 * 1000) {
-      totalResponseTime += diffMs;
-      responseCount++;
+    if (startDate || endDate) {
+      const start = startDate ? new Date(startDate).getTime() : 0;
+      const end = endDate ? new Date(endDate).getTime() : Date.now();
+      
+      filteredMessages = messages.filter(msg => {
+        const msgTime = new Date(msg.timestamp).getTime();
+        return msgTime >= start && msgTime <= end;
+      });
     }
-  }
+    
+    // Filter by platform if not 'all'
+    if (platform !== 'all') {
+      filteredMessages = filteredMessages.filter(msg => msg.platform === platform);
+    }
+    
+    // Return mock statistics for demo purposes
+    return {
+      messageCount: filteredMessages.length,
+      topSenders: [
+        { sender: 'John Doe', count: 42 },
+        { sender: 'Jane Smith', count: 36 },
+        { sender: 'Mike Johnson', count: 28 }
+      ],
+      messagesByDay: {
+        'Mon': 65,
+        'Tue': 78,
+        'Wed': 92,
+        'Thu': 86,
+        'Fri': 73,
+        'Sat': 35,
+        'Sun': 28
+      },
+      sentimentAnalysis: {
+        positive: 45,
+        neutral: 40,
+        negative: 15
+      },
+      keywordFrequency: {
+        'design': 37,
+        'responsive': 24,
+        'deadline': 18,
+        'feedback': 15,
+        'review': 12
+      },
+      insights: [
+        'Communication volume peaks on Wednesdays',
+        'Most discussions revolve around design considerations',
+        'Sentiment is generally positive with focus on collaboration',
+        'Response times are averaging 2.3 hours during work days'
+      ]
+    };
+  },
   
-  // Return average in minutes
-  return responseCount > 0 ? Math.round(totalResponseTime / responseCount / (1000 * 60)) : 0;
+  analyzeMessages: async (messages: PlatformMessage[]) => {
+    // Mock implementation for client insights
+    return {
+      key_requirements: [
+        'Modern, minimalist design',
+        'Mobile-responsive layout',
+        'Interactive elements for user engagement'
+      ],
+      sentiment: 'positive',
+      priority_level: 'high',
+      suggested_tasks: [
+        {
+          title: 'Create wireframes for homepage',
+          description: 'Develop low-fidelity wireframes focusing on content hierarchy and user flow',
+          estimated_time: 3
+        },
+        {
+          title: 'Design mobile-responsive components',
+          description: 'Create component library ensuring consistent experience across devices',
+          estimated_time: 4
+        }
+      ]
+    };
+  },
+  
+  generateTaskSuggestions: async (messages: PlatformMessage[], clientId: number) => {
+    // Mock implementation for task suggestions
+    return {
+      suggested_tasks: [
+        {
+          title: 'Create wireframes for homepage',
+          description: 'Develop low-fidelity wireframes focusing on content hierarchy and user flow',
+          estimated_time: 3,
+          priority: 'high'
+        },
+        {
+          title: 'Design mobile-responsive components',
+          description: 'Create component library ensuring consistent experience across devices',
+          estimated_time: 4,
+          priority: 'medium'
+        },
+        {
+          title: 'Implement interactive prototype',
+          description: 'Develop clickable prototype to demonstrate key functionality',
+          estimated_time: 5,
+          priority: 'medium'
+        }
+      ]
+    };
+  }
 };
 
-// Analyze platform messages
-export const analyzePlatformMessages = (
-  messages: PlatformMessage[],
-  platform: PlatformType,
-  startDate?: Date | string,
-  endDate?: Date | string
-): PlatformStatistics => {
-  // Filter messages by date range if provided
-  let filteredMessages = [...messages];
-  
-  if (startDate || endDate) {
-    filteredMessages = messages.filter(msg => {
-      const msgDate = new Date(msg.timestamp);
-      
-      if (startDate && endDate) {
-        const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
-        const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-        return msgDate >= start && msgDate <= end;
-      } else if (startDate) {
-        const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
-        return msgDate >= start;
-      } else if (endDate) {
-        const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-        return msgDate <= end;
-      }
-      
-      return true;
-    });
-  }
-  
-  // Filter by platform if specified
-  if (platform) {
-    filteredMessages = filteredMessages.filter(msg => msg.platform === platform);
-  }
-  
-  // Calculate statistics
-  const messageCount = filteredMessages.length;
-  const avgResponseTime = calculateResponseTime(filteredMessages);
-  
-  // Count sentiment distribution - in real system this would be from actual sentiment analysis
-  const sentiments = filteredMessages.map(msg => msg.sentiment || 'neutral');
-  const clientSentiment = {
-    positive: sentiments.filter(s => s === 'positive').length,
-    neutral: sentiments.filter(s => s === 'neutral').length,
-    negative: sentiments.filter(s => s === 'negative').length
-  };
-  
-  return {
-    platform,
-    messageCount,
-    avgResponseTime,
-    clientSentiment: messageCount > 0 ? clientSentiment : getRandomSentiment()
-  };
-};
-
-export default {
-  analyzePlatformMessages
-};
+export default platformAnalysisService;

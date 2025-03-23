@@ -1,22 +1,28 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Play, Pause, Clock } from "lucide-react";
+import { formatDuration } from '@/utils/dateUtils';
+import { toast } from 'sonner';
 import { employeeService } from '@/services/api';
-import { toast } from "sonner";
-import { Clock, Play, Square } from "lucide-react";
-import { format } from 'date-fns';
-import { QueryObserverResult, RefetchOptions } from '@tanstack/react-query';
 
 interface AttendanceTrackerProps {
-  attendance: any;
-  onAttendanceUpdate: (options?: RefetchOptions) => Promise<QueryObserverResult<any, Error>>;
+  attendance?: {
+    attendance_id: number;
+    login_time: string;
+    logout_time?: string;
+  };
+  onAttendanceUpdate: () => void;
 }
 
 const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTrackerProps) => {
+  const isWorking = attendance && !attendance.logout_time;
+  
   const handleStartWork = async () => {
     try {
       await employeeService.startWork();
-      await onAttendanceUpdate();
+      onAttendanceUpdate();
       toast.success('Work session started');
     } catch (error) {
       console.error('Error starting work:', error);
@@ -25,14 +31,11 @@ const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTracker
   };
   
   const handleStopWork = async () => {
-    if (!attendance?.attendance_id) {
-      toast.error('No active work session to end');
-      return;
-    }
+    if (!attendance) return;
     
     try {
       await employeeService.stopWork(attendance.attendance_id);
-      await onAttendanceUpdate();
+      onAttendanceUpdate();
       toast.success('Work session ended');
     } catch (error) {
       console.error('Error stopping work:', error);
@@ -40,56 +43,55 @@ const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTracker
     }
   };
   
-  const formatDuration = () => {
-    if (!attendance?.login_time) return '0h 0m';
-    
-    const start = new Date(attendance.login_time);
-    const end = attendance.logout_time ? new Date(attendance.logout_time) : new Date();
-    const diffMs = end.getTime() - start.getTime();
-    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${diffHrs}h ${diffMins}m`;
+  // Calculate current duration if working
+  const calculateDuration = () => {
+    if (!attendance || !attendance.login_time) return '0h 0m';
+    return formatDuration(new Date(attendance.login_time));
   };
   
   return (
-    <div className="flex items-center gap-2 text-sm p-2 border rounded-md bg-background">
-      <div className="flex items-center gap-2 pr-2 border-r">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <span>Today:</span>
-        <span className="font-medium">
-          {formatDuration()}
-        </span>
-      </div>
-      
-      {attendance ? (
-        <div className="flex items-center gap-1">
-          <div className="text-green-600 font-medium flex items-center">
-            <span className="h-2 w-2 bg-green-600 rounded-full mr-1.5"></span>
-            Working since {format(new Date(attendance.login_time), 'h:mm a')}
+    <Card className="border-accent/40">
+      <CardContent className="pt-4 flex items-center gap-3">
+        <div className="flex flex-col">
+          <div className="text-sm text-muted-foreground mb-1">Today's Status</div>
+          <div className="font-semibold text-md flex items-center">
+            <Clock className="h-4 w-4 mr-1 text-accent" />
+            {isWorking ? (
+              <span className="text-green-600">Working</span>
+            ) : (
+              <span className="text-amber-600">Not Working</span>
+            )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleStopWork}
-            className="h-7 gap-1"
-          >
-            <Square className="h-3.5 w-3.5" />
-            Stop
-          </Button>
+          {isWorking && (
+            <div className="text-xs text-muted-foreground mt-1">
+              Duration: {calculateDuration()}
+            </div>
+          )}
         </div>
-      ) : (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleStartWork}
-          className="h-7 gap-1"
-        >
-          <Play className="h-3.5 w-3.5" />
-          Start Work
-        </Button>
-      )}
-    </div>
+        
+        {isWorking ? (
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={handleStopWork}
+            className="ml-auto"
+          >
+            <Pause className="h-4 w-4 mr-1" />
+            End Work
+          </Button>
+        ) : (
+          <Button 
+            variant="default" 
+            size="sm"
+            onClick={handleStartWork}
+            className="ml-auto"
+          >
+            <Play className="h-4 w-4 mr-1" />
+            Start Work
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

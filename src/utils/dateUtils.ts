@@ -58,9 +58,18 @@ export const getTimeDifference = (start: Date | string, end?: Date | string): nu
   return endDate.getTime() - startDate.getTime();
 };
 
+/**
+ * Convert Date to string for platform integrations
+ * This is needed to convert Date objects to strings for platform APIs
+ */
+export const dateToApiString = (date: Date): string => {
+  return date.toISOString();
+};
+
 export default {
   dateToString,
   stringToDate,
   formatDuration,
-  getTimeDifference
+  getTimeDifference,
+  dateToApiString
 };
