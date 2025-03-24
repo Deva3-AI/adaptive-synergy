@@ -1,226 +1,132 @@
 
-// HR Service API functions
+import apiClient from '@/utils/apiUtils';
+
+// HR Service Types
+export interface Attendance {
+  attendance_id: number;
+  user_id: number;
+  employee_name: string;
+  login_time: string;
+  logout_time: string | null;
+  work_date: string;
+  total_hours?: number;
+}
+
+export interface Payslip {
+  payslip_id: number;
+  employee_id: number;
+  employee_name: string;
+  month: string;
+  year: string;
+  basic_salary: number;
+  allowances: number;
+  deductions: number;
+  net_salary: number;
+  status: 'draft' | 'approved' | 'paid';
+  generated_at: string;
+}
+
+export interface JobPosting {
+  posting_id: number;
+  title: string;
+  department: string;
+  location: string;
+  description: string;
+  requirements: string;
+  salary_range?: string;
+  status: 'active' | 'filled' | 'closed';
+  created_at: string;
+  applications_count: number;
+}
+
+export interface JobCandidate {
+  candidate_id: number;
+  posting_id: number;
+  name: string;
+  email: string;
+  phone: string;
+  resume_url: string;
+  status: 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected';
+  applied_at: string;
+  notes?: string;
+}
+
+export interface HRTask {
+  task_id: number;
+  title: string;
+  description: string;
+  type: 'recruitment' | 'payroll' | 'onboarding' | 'offboarding' | 'general';
+  priority: 'low' | 'medium' | 'high';
+  status: 'pending' | 'in_progress' | 'completed';
+  due_date: string;
+  assigned_to?: number;
+  created_at: string;
+}
 
 const hrService = {
-  // Attendance related functions
+  // Attendance management
   getEmployeeAttendance: async (userId?: number, startDate?: string, endDate?: string) => {
     try {
-      // Mock API call - in a real app, this would call your backend API
-      return [
-        {
-          id: 1,
-          user_id: 1,
-          login_time: '2023-06-01T09:00:00',
-          logout_time: '2023-06-01T17:30:00',
-          work_date: '2023-06-01'
-        },
-        {
-          id: 2,
-          user_id: 1,
-          login_time: '2023-06-02T08:45:00',
-          logout_time: '2023-06-02T17:15:00',
-          work_date: '2023-06-02'
-        },
-        {
-          id: 3,
-          user_id: 2,
-          login_time: '2023-06-01T09:15:00',
-          logout_time: '2023-06-01T18:00:00',
-          work_date: '2023-06-01'
-        }
-      ];
+      let url = '/hr/attendance';
+      const params = new URLSearchParams();
+      
+      if (userId) params.append('user_id', userId.toString());
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Error getting employee attendance:', error);
+      console.error('Get employee attendance error:', error);
       throw error;
     }
   },
   
-  // Payroll related functions
-  getPayrollData: async (month?: string, year?: string) => {
+  // Payroll management
+  getPayroll: async (month?: string, year?: string) => {
     try {
-      // Mock API call - in a real app, this would call your backend API
-      return [
-        {
-          id: 1,
-          employee_id: 1,
-          employee_name: 'John Doe',
-          salary: 5000,
-          bonus: 500,
-          deductions: 1000,
-          net_pay: 4500,
-          payment_date: '2023-06-30',
-          status: 'processed'
-        },
-        {
-          id: 2,
-          employee_id: 2,
-          employee_name: 'Jane Smith',
-          salary: 6000,
-          bonus: 600,
-          deductions: 1200,
-          net_pay: 5400,
-          payment_date: '2023-06-30',
-          status: 'processed'
-        }
-      ];
+      let url = '/hr/payroll';
+      const params = new URLSearchParams();
+      
+      if (month) params.append('month', month);
+      if (year) params.append('year', year);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Error getting payroll data:', error);
+      console.error('Get payroll error:', error);
       throw error;
     }
   },
   
-  generatePayslips: async (month: string, year: string) => {
+  // Recruitment management
+  getRecruitment: async () => {
     try {
-      // Mock API call - in a real app, this would call your backend API
-      return {
-        success: true,
-        message: 'Payslips generated successfully',
-        count: 25
-      };
+      const response = await apiClient.get('/hr/recruitment');
+      return response.data;
     } catch (error) {
-      console.error('Error generating payslips:', error);
+      console.error('Get recruitment error:', error);
       throw error;
     }
   },
   
-  // Recruitment related functions
-  getRecruitmentData: async () => {
+  createJobPosting: async (jobData: any) => {
     try {
-      // Mock API call - in a real app, this would call your backend API
-      return [
-        {
-          id: 1,
-          position: 'Frontend Developer',
-          department: 'Engineering',
-          status: 'open',
-          applications: 12,
-          shortlisted: 5,
-          interviewed: 3,
-          created_at: '2023-05-15'
-        },
-        {
-          id: 2,
-          position: 'UX Designer',
-          department: 'Design',
-          status: 'closed',
-          applications: 20,
-          shortlisted: 8,
-          interviewed: 4,
-          created_at: '2023-04-10'
-        }
-      ];
+      const response = await apiClient.post('/hr/recruitment', jobData);
+      return response.data;
     } catch (error) {
-      console.error('Error getting recruitment data:', error);
+      console.error('Create job posting error:', error);
       throw error;
     }
   },
-  
-  getCandidates: async (positionId?: number) => {
-    try {
-      // Mock API call - in a real app, this would call your backend API
-      return [
-        {
-          id: 1,
-          name: 'Alice Johnson',
-          email: 'alice@example.com',
-          position_id: 1,
-          status: 'shortlisted',
-          applied_date: '2023-05-20',
-          resume_url: 'https://example.com/resume/alice.pdf'
-        },
-        {
-          id: 2,
-          name: 'Bob Williams',
-          email: 'bob@example.com',
-          position_id: 1,
-          status: 'interviewed',
-          applied_date: '2023-05-22',
-          resume_url: 'https://example.com/resume/bob.pdf'
-        }
-      ];
-    } catch (error) {
-      console.error('Error getting candidates:', error);
-      throw error;
-    }
-  },
-  
-  // HR tasks management
-  getHRTasks: async () => {
-    try {
-      // Mock API call - in a real app, this would call your backend API
-      return [
-        {
-          id: 1,
-          title: 'Review job applications',
-          description: 'Review applications for the Frontend Developer position',
-          status: 'in_progress',
-          assignee_id: 3,
-          due_date: '2023-06-10',
-          priority: 'high'
-        },
-        {
-          id: 2,
-          title: 'Prepare monthly payroll',
-          description: 'Process payroll for June 2023',
-          status: 'pending',
-          assignee_id: 3,
-          due_date: '2023-06-25',
-          priority: 'high'
-        }
-      ];
-    } catch (error) {
-      console.error('Error getting HR tasks:', error);
-      throw error;
-    }
-  },
-  
-  // Reports
-  getAttendanceReports: async (startDate?: string, endDate?: string) => {
-    try {
-      // Mock API call - in a real app, this would call your backend API
-      return {
-        summary: {
-          total_working_days: 22,
-          avg_attendance: 94,
-          avg_working_hours: 7.8
-        },
-        departments: [
-          { name: 'Engineering', attendance_rate: 96, avg_hours: 8.1 },
-          { name: 'Design', attendance_rate: 92, avg_hours: 7.6 },
-          { name: 'Marketing', attendance_rate: 90, avg_hours: 7.5 }
-        ],
-        employees: [
-          { id: 1, name: 'John Doe', attendance_rate: 100, avg_hours: 8.5 },
-          { id: 2, name: 'Jane Smith', attendance_rate: 95, avg_hours: 8.0 }
-        ]
-      };
-    } catch (error) {
-      console.error('Error getting attendance reports:', error);
-      throw error;
-    }
-  },
-  
-  getRecruitmentReports: async (year?: string) => {
-    try {
-      // Mock API call - in a real app, this would call your backend API
-      return {
-        summary: {
-          total_positions: 10,
-          filled_positions: 7,
-          open_positions: 3,
-          avg_time_to_hire: 32 // days
-        },
-        departments: [
-          { name: 'Engineering', positions: 5, filled: 4, time_to_hire: 35 },
-          { name: 'Design', positions: 3, filled: 2, time_to_hire: 28 },
-          { name: 'Marketing', positions: 2, filled: 1, time_to_hire: 40 }
-        ]
-      };
-    } catch (error) {
-      console.error('Error getting recruitment reports:', error);
-      throw error;
-    }
-  }
 };
 
 export default hrService;

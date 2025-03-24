@@ -17,11 +17,23 @@ interface VirtualManagerInsightsProps {
   employeeName?: string;
 }
 
+type InsightType = 'tip' | 'warning' | 'deadline' | 'preference';
+type PriorityLevel = 'low' | 'medium' | 'high';
+
 interface Insight {
   id: string;
-  type: 'tip' | 'warning' | 'deadline' | 'preference';
+  type: InsightType;
   content: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: PriorityLevel;
+  acknowledgable?: boolean;
+}
+
+// Interface for insights from the API
+interface ApiInsight {
+  id: string;
+  type: string;
+  content: string;
+  priority: string;
   acknowledgable?: boolean;
 }
 
@@ -29,7 +41,7 @@ const VirtualManagerInsights = ({ clientId, taskId, employeeName }: VirtualManag
   const [acknowledgedInsights, setAcknowledgedInsights] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
-  const { data: insights = [], isLoading, refetch } = useQuery({
+  const { data: apiInsights = [], isLoading, refetch } = useQuery({
     queryKey: ['virtualManagerInsights', clientId, taskId, refreshKey],
     queryFn: async () => {
       if (!clientId && !taskId) return [];
@@ -39,6 +51,9 @@ const VirtualManagerInsights = ({ clientId, taskId, employeeName }: VirtualManag
     },
     enabled: !!(clientId || taskId),
   });
+
+  // Convert API insights to strongly-typed insights
+  const insights: ApiInsight[] = apiInsights as ApiInsight[];
 
   const handleRefreshInsights = () => {
     setRefreshKey(prev => prev + 1);
@@ -87,12 +102,12 @@ const VirtualManagerInsights = ({ clientId, taskId, employeeName }: VirtualManag
   };
 
   // Filter out acknowledged insights for the main display
-  const activeInsights = insights.filter((insight: Insight) => 
+  const activeInsights = insights.filter((insight) => 
     !isAcknowledged(insight.id) || !insight.acknowledgable
   );
 
   // Count by type
-  const insightCounts = insights.reduce((acc: Record<string, number>, insight: Insight) => {
+  const insightCounts = insights.reduce((acc: Record<string, number>, insight) => {
     acc[insight.type] = (acc[insight.type] || 0) + 1;
     return acc;
   }, {});
@@ -174,7 +189,7 @@ const VirtualManagerInsights = ({ clientId, taskId, employeeName }: VirtualManag
           </div>
         ) : (
           <div className="space-y-3">
-            {activeInsights.map((insight: Insight) => (
+            {activeInsights.map((insight) => (
               <div key={insight.id} className="flex items-start gap-3 pb-3 border-b last:border-0 last:pb-0">
                 <div className="mt-0.5">{getInsightIcon(insight.type)}</div>
                 <div className="flex-1">

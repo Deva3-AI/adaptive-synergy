@@ -15,6 +15,12 @@ export type AuthContextType = {
   isAuthenticated: boolean;
   isLoggedIn: boolean;
   loading: boolean;
+  isEmployee: boolean;
+  isClient: boolean;
+  isMarketing: boolean;
+  isHR: boolean;
+  isFinance: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   signup: (userData: any) => Promise<void>;
@@ -26,6 +32,12 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoggedIn: false,
   loading: true,
+  isEmployee: false,
+  isClient: false,
+  isMarketing: false,
+  isHR: false,
+  isFinance: false,
+  isAdmin: false,
   login: async () => {},
   logout: () => {},
   signup: async () => {},
@@ -107,6 +119,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Added isAuthenticated property
   const isAuthenticated = !!user;
   
+  // Role check helper functions
+  const isEmployee = user?.role === 'employee';
+  const isClient = user?.role === 'client';
+  const isMarketing = user?.role === 'marketing';
+  const isHR = user?.role === 'hr';
+  const isFinance = user?.role === 'finance';
+  const isAdmin = user?.role === 'admin';
+  
   return (
     <AuthContext.Provider
       value={{
@@ -114,6 +134,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated,
         isLoggedIn: !!user,
         loading,
+        isEmployee,
+        isClient,
+        isMarketing,
+        isHR,
+        isFinance,
+        isAdmin,
         login,
         logout,
         signup,
