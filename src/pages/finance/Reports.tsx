@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart, PieChart, LineChart, TrendingUp, FileText, Download, Filter, Calendar, ChevronDown } from "lucide-react";
+import { BarChart, PieChart, LineChart, TrendingUp, FileText, Download, Filter, Calendar, ChevronDown, Plus, ArrowRight, Check } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -28,8 +27,8 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
-// Create a DateRangePicker component
 const DateRangePicker = ({ 
   date, 
   setDate 
@@ -93,7 +92,6 @@ const FinanceReports = () => {
     queryFn: financeService.getFinancialPlans
   });
 
-  // Transform monthly breakdown data for the chart
   const chartData = metrics?.monthly_breakdown?.map((item) => ({
     name: format(new Date(item.month), 'MMM yyyy'),
     revenue: item.income,
@@ -325,7 +323,9 @@ const FinanceReports = () => {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {financialPlans?.map((plan: any) => (
+              {(financialPlans && Array.isArray(financialPlans) ? 
+                financialPlans : 
+                []).map((plan: any) => (
                 <Card key={plan.plan_id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex justify-between items-start">

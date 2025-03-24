@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,7 +18,7 @@ import { format, parseISO, isBefore, formatDistanceToNow } from 'date-fns';
 const TasksManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   
   const { data: hrTasks, isLoading } = useQuery({
     queryKey: ['hr-tasks'],
@@ -31,29 +30,24 @@ const TasksManagement = () => {
     queryFn: () => hrService.getEmployees(),
   });
   
-  // Filter tasks
   const filteredTasks = hrTasks ? hrTasks.filter((task: HRTask) => {
-    // Filter by status
     if (statusFilter !== 'all' && task.status !== statusFilter) {
       return false;
     }
     
-    // Filter by category
     if (categoryFilter !== 'all' && task.category !== categoryFilter) {
       return false;
     }
     
-    // Search by title or description
-    if (searchQuery && 
-        !task.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !task.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchTerm && 
+        !task.title.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !task.description.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
     return true;
   }) : [];
   
-  // Group tasks by status for Kanban view
   const pendingTasks = filteredTasks.filter(task => task.status === 'pending');
   const inProgressTasks = filteredTasks.filter(task => task.status === 'in_progress');
   const completedTasks = filteredTasks.filter(task => task.status === 'completed');
@@ -220,11 +214,11 @@ const TasksManagement = () => {
           </TabsList>
           
           <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
-            <Input
+            <InputWithIcon
               placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-[250px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-xs"
               icon={<Search className="h-4 w-4" />}
             />
             <div className="flex gap-2">

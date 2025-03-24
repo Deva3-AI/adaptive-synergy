@@ -53,7 +53,6 @@ export const aiService = {
     }
   },
 
-  // Add the getAssistantResponse method that's missing
   getAssistantResponse: async (message: string, context: any) => {
     try {
       const response = await apiClient.post('/ai/assistant', {
@@ -69,3 +68,5 @@ export const aiService = {
     }
   }
 };
+
+export default aiService;

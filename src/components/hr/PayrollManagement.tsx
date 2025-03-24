@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input, InputWithIcon, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +15,7 @@ import { format, parseISO, isAfter, isBefore, startOfMonth, endOfMonth, subMonth
 const PayrollManagement = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   
   const periodStart = format(selectedMonth, 'yyyy-MM-dd');
   const periodEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
@@ -27,15 +25,12 @@ const PayrollManagement = () => {
     queryFn: () => hrService.getPayslips(periodStart, periodEnd),
   });
   
-  // Filter payslips
   const filteredPayslips = payslips ? payslips.filter((payslip: Payslip) => {
-    // Filter by status
     if (statusFilter !== 'all' && payslip.status !== statusFilter) {
       return false;
     }
     
-    // Search by employee name
-    if (searchQuery && !payslip.employee_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchTerm && !payslip.employee_name.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
@@ -64,6 +59,17 @@ const PayrollManagement = () => {
   
   const handleMonthChange = (offset: number) => {
     setSelectedMonth(startOfMonth(subMonths(selectedMonth, -offset)));
+  };
+  
+  const handleGeneratePayslip = async (employeeId: number, month: string) => {
+    try {
+      await hrService.generatePayslip(employeeId, month);
+      refetch();
+      toast.success("Payslip generated successfully");
+    } catch (error) {
+      console.error("Failed to generate payslip:", error);
+      toast.error("Failed to generate payslip");
+    }
   };
   
   return (
@@ -157,11 +163,11 @@ const PayrollManagement = () => {
         <TabsContent value="payslips" className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
             <div className="flex flex-1 gap-2">
-              <Input
-                placeholder="Search employee..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-[250px]"
+              <InputWithIcon
+                placeholder="Search payslips..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-xs"
                 icon={<Search className="h-4 w-4" />}
               />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -231,7 +237,7 @@ const PayrollManagement = () => {
                           <td className="px-4 py-3">{getStatusBadge(payslip.status)}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-2">
-                              {payslip.status === 'generated' && (
+                              {payslip.status === "generated" || payslip.status === "draft" && (
                                 <Button variant="ghost" size="sm">
                                   <Mail className="h-4 w-4 mr-1" />
                                   Send
@@ -394,7 +400,6 @@ const PayrollManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Example history data */}
                   {[
                     {
                       id: 1,

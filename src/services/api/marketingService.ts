@@ -59,7 +59,7 @@ export const marketingService = {
     }
   },
   
-  // Add missing methods
+  // Email templates
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
@@ -70,6 +70,7 @@ export const marketingService = {
     }
   },
   
+  // Email outreach
   getEmailOutreach: async (status?: string) => {
     try {
       const params = new URLSearchParams();
@@ -83,6 +84,7 @@ export const marketingService = {
     }
   },
   
+  // Leads management
   getLeads: async (status?: string) => {
     try {
       const params = new URLSearchParams();
@@ -96,6 +98,7 @@ export const marketingService = {
     }
   },
   
+  // Marketing plans
   getMarketingPlans: async () => {
     try {
       const response = await apiClient.get('/marketing/plans');
@@ -116,6 +119,7 @@ export const marketingService = {
     }
   },
   
+  // Trends and insights
   getMarketingTrends: async () => {
     try {
       const response = await apiClient.get('/marketing/trends');
@@ -150,9 +154,9 @@ export const marketingService = {
     }
   },
   
-  getMarketingMetrics: async () => {
+  getMarketingMetrics: async (period: string = 'month') => {
     try {
-      const response = await apiClient.get('/marketing/metrics');
+      const response = await apiClient.get(`/marketing/metrics?period=${period}`);
       return response.data;
     } catch (error) {
       console.error('Get marketing metrics error:', error);

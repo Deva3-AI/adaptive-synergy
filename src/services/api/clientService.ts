@@ -33,7 +33,13 @@ const clientService = {
   },
   
   getClientById: async (clientId: number) => {
-    return clientService.getClientDetails(clientId);
+    try {
+      const response = await apiClient.get(`/client/clients/${clientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get client by ID error:', error);
+      throw error;
+    }
   },
   
   getClientPreferences: async (clientId: number) => {
@@ -87,7 +93,7 @@ const clientService = {
     }
   },
 
-  // Add the missing methods
+  // Brand related methods
   getClientBrands: async (clientId: number) => {
     try {
       const response = await apiClient.get(`/client/clients/${clientId}/brands`);

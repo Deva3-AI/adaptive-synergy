@@ -194,7 +194,9 @@ const EmployeeTaskDetail = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const [comment, setComment] = useState("");
-  const [task, setTask] = useState(sampleTask);
+  const [progressNote, setProgressNote] = useState("");
+  const [driveLink, setDriveLink] = useState("");
+  const [task, setTask] = useState(sampleTask as DetailedTask);
   const [isWorkingOnTask, setIsWorkingOnTask] = useState(false);
   const [isOverallWorkStarted, setIsOverallWorkStarted] = useState(false);
   const [attendanceId, setAttendanceId] = useState<number | null>(null);
@@ -443,7 +445,51 @@ const EmployeeTaskDetail = () => {
       toast.error("Failed to submit Drive link");
     }
   };
-  
+
+  const addProgressNote = () => {
+    if (!progressNote.trim()) return;
+    
+    setTask(prevTask => ({
+      ...prevTask,
+      progressDescription: progressNote,
+      recentActivity: [
+        {
+          id: Date.now(),
+          type: 'progress_update',
+          content: progressNote,
+          date: new Date(),
+          user: 'You'
+        },
+        ...prevTask.recentActivity
+      ]
+    }));
+    
+    setProgressNote('');
+    toast.success('Progress note added');
+  };
+
+  const addDriveLink = () => {
+    if (!driveLink.trim()) return;
+    
+    setTask(prevTask => ({
+      ...prevTask,
+      driveLink: driveLink,
+      recentActivity: [
+        {
+          id: Date.now(),
+          type: 'link_added',
+          content: `Added Google Drive link: ${driveLink}`,
+          date: new Date(),
+          user: 'You'
+        },
+        ...prevTask.recentActivity
+      ]
+    }));
+    
+    setDriveLink('');
+    toast.success('Google Drive link added');
+  };
+
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
     

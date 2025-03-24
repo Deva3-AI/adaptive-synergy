@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Download, Search, Filter } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +19,7 @@ interface AttendanceTrackerProps {
 
 const AttendanceTracker = ({ selectedDate = new Date(), onDateChange, employeeId }: AttendanceTrackerProps) => {
   const [filter, setFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   
   const startDate = subDays(selectedDate, 7);
   const endDate = selectedDate;
@@ -42,15 +41,12 @@ const AttendanceTracker = ({ selectedDate = new Date(), onDateChange, employeeId
     ),
   });
   
-  // Filter and search records
   const filteredRecords = attendanceRecords ? attendanceRecords.filter((record: Attendance) => {
-    // Filter by status
     if (filter !== 'all' && record.status !== filter) {
       return false;
     }
     
-    // Search by name
-    if (searchQuery && !record.employee_name?.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchTerm && !record.employee_name?.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
@@ -110,11 +106,11 @@ const AttendanceTracker = ({ selectedDate = new Date(), onDateChange, employeeId
       <TabsContent value="daily" className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex flex-1 gap-2">
-            <Input
-              placeholder="Search employee..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-[250px]"
+            <InputWithIcon
+              placeholder="Search employees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-xs"
               icon={<Search className="h-4 w-4" />}
             />
             <Select value={filter} onValueChange={setFilter}>
@@ -204,7 +200,6 @@ const AttendanceTracker = ({ selectedDate = new Date(), onDateChange, employeeId
                 </tr>
               </thead>
               <tbody>
-                {/* Example weekly view data - would be computed from attendanceRecords */}
                 {isLoading ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-3 text-center">Loading...</td>

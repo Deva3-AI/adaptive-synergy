@@ -39,18 +39,9 @@ const BrandsDashboard = () => {
   });
 
   // Fetch client brands
-  const { data: brands = [], isLoading: isBrandsLoading, refetch: refetchBrands } = useQuery({
-    queryKey: ['clientBrands', clientId],
+  const { data: brands, isLoading } = useQuery({
+    queryKey: ['brands', clientId],
     queryFn: () => clientService.getClientBrands(Number(clientId)),
-    meta: {
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: "Failed to load brands",
-          variant: "destructive"
-        });
-      }
-    }
   });
 
   // Fetch brand tasks if a brand is selected
@@ -83,7 +74,6 @@ const BrandsDashboard = () => {
       setIsAddBrandDialogOpen(false);
       setNewBrandName('');
       setNewBrandDescription('');
-      refetchBrands();
     } catch (error) {
       console.error('Error adding brand:', error);
       toast({
@@ -128,7 +118,7 @@ const BrandsDashboard = () => {
               <CardTitle>Brands</CardTitle>
             </CardHeader>
             <CardContent>
-              {isBrandsLoading ? (
+              {isLoading ? (
                 <div className="animate-pulse space-y-4">
                   <div className="h-12 bg-muted rounded-md"></div>
                   <div className="h-12 bg-muted rounded-md"></div>

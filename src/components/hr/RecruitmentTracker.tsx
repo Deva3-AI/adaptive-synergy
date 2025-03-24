@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -19,7 +19,7 @@ import { format, parseISO, formatDistanceToNow } from 'date-fns';
 const RecruitmentTracker = () => {
   const [selectedPosting, setSelectedPosting] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   
   const { data: jobPostings, isLoading: loadingPostings } = useQuery({
     queryKey: ['hr-job-postings'],
@@ -32,17 +32,14 @@ const RecruitmentTracker = () => {
     enabled: !!selectedPosting,
   });
   
-  // Filter candidates
   const filteredCandidates = candidates ? candidates.filter((candidate: JobCandidate) => {
-    // Filter by status
     if (statusFilter !== 'all' && candidate.status !== statusFilter) {
       return false;
     }
     
-    // Search by name or email
-    if (searchQuery && 
-        !candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !candidate.email.toLowerCase().includes(searchQuery.toLowerCase())) {
+    if (searchTerm && 
+        !candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !candidate.email.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
@@ -298,11 +295,11 @@ const RecruitmentTracker = () => {
         <TabsContent value="candidates" className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
             <div className="flex flex-1 gap-2">
-              <Input
-                placeholder="Search candidates..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-[250px]"
+              <InputWithIcon
+                placeholder="Search job postings..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-xs mb-4"
                 icon={<Search className="h-4 w-4" />}
               />
               <Select value={statusFilter} onValueChange={setStatusFilter}>

@@ -14,6 +14,7 @@ import {
   ChevronRight, 
   BarChart, 
   LineChart,
+  PieChart,
   BriefcaseBusiness
 } from "lucide-react";
 import { toast } from "sonner";

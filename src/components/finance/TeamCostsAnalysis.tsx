@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
@@ -357,7 +356,10 @@ const TeamCostsAnalysis = () => {
                           <span className="text-muted-foreground">Task Hours:</span> {emp.task_hours.toLocaleString()}
                         </div>
                         <div>
-                          <span className="text-muted-foreground">Productivity:</span> {(emp.productivity_ratio * 100).toFixed(1)}%
+                          <span className="text-muted-foreground">Productivity:</span> 
+                          <div className="text-xs font-medium">
+                            {typeof value === 'number' ? `${value.toFixed(1)}%` : value}
+                          </div>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Cost Rate:</span> ${(emp.cost / emp.hours_worked).toFixed(2)}/hr

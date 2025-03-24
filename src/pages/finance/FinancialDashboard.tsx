@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +36,16 @@ const FinanceDashboard = () => {
     queryKey: ['upsell-opportunities'],
     queryFn: financeService.getUpsellOpportunities
   });
+
+  // Type safe handling of financial overview data
+  const formatFinancialOverview = (data: any) => {
+    return {
+      monthly_revenue: data?.monthly_revenue || 0,
+      growth_rate: data?.growth_rate || 0,
+      expenses: data?.expenses || 0,
+      profit: data?.profit || 0
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -83,7 +92,7 @@ const FinanceDashboard = () => {
             ) : (
               <div className="flex items-baseline justify-between">
                 <div className="text-2xl font-bold">
-                  ${overview?.monthly_revenue.toLocaleString()}
+                  ${formatFinancialOverview(overview).monthly_revenue.toLocaleString()}
                 </div>
                 <div className={`flex items-center text-xs ${overview?.growth_rate > 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {overview?.growth_rate > 0 ? (
@@ -91,7 +100,7 @@ const FinanceDashboard = () => {
                   ) : (
                     <ArrowDown className="h-3 w-3 mr-1" />
                   )}
-                  {Math.abs(overview?.growth_rate || 0)}%
+                  {Math.abs(formatFinancialOverview(overview).growth_rate)}%
                 </div>
               </div>
             )}
@@ -221,7 +230,9 @@ const FinanceDashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {upsellOpportunities?.slice(0, 3).map((opportunity: any) => (
+                  {(upsellOpportunities && Array.isArray(upsellOpportunities) ? 
+                    upsellOpportunities.slice(0, 3) : 
+                    []).map((opportunity: any, index: number) => (
                     <div key={opportunity.client_id} className="border-b border-border pb-3 last:border-0 last:pb-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium">{opportunity.client_name}</span>
