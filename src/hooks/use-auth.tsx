@@ -1,231 +1,122 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import authService from '@/services/api/authService';
-import { useToast } from '@/components/ui/use-toast';
-import { toast } from 'sonner';
+import { createContext, useContext, useState, useEffect } from 'react';
 
-interface User {
+// Define the user type
+export type User = {
   id: number;
   name: string;
   email: string;
   role: string;
-}
+};
 
-interface AuthContextType {
+// Define the authentication context type
+export type AuthContextType = {
   user: User | null;
+  isAuthenticated: boolean;
+  isLoggedIn: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  isAdmin: boolean;
-  isEmployee: boolean;
-  isClient: boolean;
-  isMarketing: boolean;
-  isHR: boolean;
-  isFinance: boolean;
-  hasRole: (role: string | string[]) => boolean;
-}
+  signup: (userData: any) => Promise<void>;
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create the context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isLoggedIn: false,
+  loading: true,
+  login: async () => {},
+  logout: () => {},
+  signup: async () => {},
+});
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+// Create the provider component
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-
+  const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
-    const initAuth = async () => {
+    // Check if user is logged in from localStorage or token
+    const checkAuth = async () => {
       try {
-        setIsLoading(true);
-        const currentUser = authService.getCurrentUser();
-        
-        if (currentUser) {
-          setUser(currentUser);
-        } else if (import.meta.env.DEV) {
-          // For development purposes only, use a mock user
-          console.log('Using mock user for development');
-          const mockUser = {
-            id: 1,
-            name: 'Test User',
-            email: 'test@example.com',
-            role: 'admin'
-          };
-          localStorage.setItem('user', JSON.stringify(mockUser));
-          localStorage.setItem('token', 'mock-token');
-          setUser(mockUser);
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        console.error('Failed to get current user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        console.error('Error checking authentication:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
-    initAuth();
+    
+    checkAuth();
   }, []);
-
+  
+  // Login function
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
+    setLoading(true);
     try {
-      // For development purposes, use a mock login if backend is not available
-      if (import.meta.env.DEV && !import.meta.env.VITE_USE_REAL_API) {
-        console.log('Using mock login for development');
-        
-        // Map employee emails to mock roles
-        let mockRole = 'employee';
-        if (email.includes('admin') || email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
-          mockRole = 'admin';
-        } else if (email.includes('hr') || email.includes('athira') || email.includes('shalini')) {
-          mockRole = 'hr';
-        } else if (email.includes('marketing') || email.includes('priya') || email.includes('vishnu')) {
-          mockRole = 'marketing';
-        } else if (email.includes('finance')) {
-          mockRole = 'finance';
-        } else if (email.includes('client')) {
-          mockRole = 'client';
-        }
-        
-        const mockUser = {
-          id: 1,
-          name: email.split('@')[0],
-          email: email,
-          role: mockRole,
-        };
-        
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        localStorage.setItem('token', 'mock-token');
-        setUser(mockUser);
-        
-        // Redirect based on role
-        redirectBasedOnRole(mockUser.role);
-        
-        toast.success(`Welcome, ${mockUser.name}! (Development Mode)`);
-        
-        setIsLoading(false);
-        return;
-      }
-      
-      // Real login process
-      const data = await authService.login(email, password);
-      
-      const userData = {
-        id: data.user_id,
-        name: data.name,
-        email: data.email,
-        role: data.role,
+      // Mock login - in a real app, this would call your auth API
+      const mockUser = {
+        id: 1,
+        name: 'Test User',
+        email,
+        role: 'admin',
       };
       
-      setUser(userData);
-      
-      // Redirect based on role
-      redirectBasedOnRole(data.role);
-      
-      toast.success(`Welcome back, ${data.name}!`);
-    } catch (error: any) {
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(mockUser);
+    } catch (error) {
       console.error('Login error:', error);
-      
-      // For development, allow login if the backend is not available
-      if (error.message === 'Network Error' && import.meta.env.DEV) {
-        console.log('Backend not available, using mock login');
-        
-        // Determine role based on email
-        let mockRole = 'employee';
-        if (email.includes('admin') || email.includes('raje') || email.includes('charan') || email.includes('gopal')) {
-          mockRole = 'admin';
-        } else if (email.includes('hr') || email.includes('athira') || email.includes('shalini')) {
-          mockRole = 'hr';
-        } else if (email.includes('marketing') || email.includes('priya') || email.includes('vishnu')) {
-          mockRole = 'marketing';
-        } else if (email.includes('finance')) {
-          mockRole = 'finance';
-        } else if (email.includes('client')) {
-          mockRole = 'client';
-        }
-        
-        const mockUser = {
-          id: 1,
-          name: email.split('@')[0],
-          email: email,
-          role: mockRole,
-        };
-        
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        localStorage.setItem('token', 'mock-token');
-        setUser(mockUser);
-        
-        redirectBasedOnRole(mockRole);
-        
-        toast.success('Development Mode Login (backend not available)');
-      } else {
-        toast.error(error.response?.data?.detail || 'Invalid credentials');
-        throw error;
-      }
+      throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const redirectBasedOnRole = (role: string) => {
-    if (role === 'admin') {
-      navigate('/dashboard');
-    } else if (role === 'employee') {
-      navigate('/employee/dashboard');
-    } else if (role === 'client') {
-      navigate('/client/dashboard');
-    } else if (role === 'marketing') {
-      navigate('/marketing/dashboard');
-    } else if (role === 'hr') {
-      navigate('/hr/dashboard');
-    } else if (role === 'finance') {
-      navigate('/finance/dashboard');
-    } else {
-      navigate('/dashboard');
-    }
-  };
-
+  
+  // Logout function
   const logout = () => {
-    authService.logout();
+    localStorage.removeItem('user');
     setUser(null);
-    navigate('/login');
-    toast.success('You have been logged out successfully');
   };
-
-  const hasRole = (role: string | string[]): boolean => {
-    if (!user) return false;
-    
-    if (Array.isArray(role)) {
-      return role.includes(user.role);
+  
+  // Signup function
+  const signup = async (userData: any) => {
+    setLoading(true);
+    try {
+      // Mock signup - in a real app, this would call your auth API
+      const mockUser = {
+        id: 1,
+        name: userData.name,
+        email: userData.email,
+        role: 'user',
+      };
+      
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(mockUser);
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-    
-    return user.role === role;
   };
-
+  
+  // Added isAuthenticated and isEmployee properties
   const isAuthenticated = !!user;
-  const isAdmin = user?.role === 'admin';
-  const isEmployee = user?.role === 'employee';
-  const isClient = user?.role === 'client';
-  const isMarketing = user?.role === 'marketing';
-  const isHR = user?.role === 'hr';
-  const isFinance = user?.role === 'finance';
-
+  
   return (
     <AuthContext.Provider
       value={{
         user,
+        isAuthenticated,
+        isLoggedIn: !!user,
+        loading,
         login,
         logout,
-        isAuthenticated,
-        isLoading,
-        isAdmin,
-        isEmployee,
-        isClient,
-        isMarketing,
-        isHR,
-        isFinance,
-        hasRole,
+        signup,
       }}
     >
       {children}
@@ -233,12 +124,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export default useAuth;
+// Custom hook for using the auth context
+export const useAuth = () => useContext(AuthContext);
