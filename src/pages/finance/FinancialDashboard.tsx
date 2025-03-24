@@ -13,6 +13,7 @@ import InvoicesDashboard from "@/components/finance/InvoicesDashboard";
 import ExpensesDashboard from "@/components/finance/ExpensesDashboard";
 import TeamCostsAnalysis from "@/components/finance/TeamCostsAnalysis";
 import FinancialMetricsCard from "@/components/finance/FinancialMetricsCard";
+import { Link } from "react-router-dom";
 
 const FinanceDashboard = () => {
   const [timeframe, setTimeframe] = useState<'month' | 'quarter' | 'year'>('month');
@@ -180,6 +181,12 @@ const FinanceDashboard = () => {
               <TabsTrigger value="team-costs">Team Costs</TabsTrigger>
             </TabsList>
             <TabsContent value="sales" className="pt-4">
+              <div className="mb-4 flex justify-between items-center">
+                <p className="text-muted-foreground">Overview of recent sales performance</p>
+                <Button asChild>
+                  <Link to="/app/finance/sales">View Full Sales Dashboard</Link>
+                </Button>
+              </div>
               <SalesDashboard />
             </TabsContent>
             <TabsContent value="invoices" className="pt-4">

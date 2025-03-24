@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   createBrowserRouter,
@@ -41,6 +40,7 @@ import Recruitment from "@/pages/hr/Recruitment";
 import PerformanceReviews from "@/pages/hr/PerformanceReviews";
 import HRReports from "@/pages/hr/Reports";
 import BrandsDashboard from "./pages/client/BrandsDashboard";
+import SalesDashboard from "./pages/finance/SalesDashboard";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isLoggedIn, loading } = useAuth();
@@ -190,6 +190,10 @@ const router = createBrowserRouter([
         path: "settings",
         element: <Settings />,
       },
+      {
+        path: "finance/sales",
+        element: <SalesDashboard />
+      }
     ],
   },
   {
