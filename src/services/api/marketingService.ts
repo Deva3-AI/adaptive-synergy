@@ -157,7 +157,7 @@ export const marketingService = {
           recipient: 'jane.smith@example.com',
           recipientCompany: 'XYZ Corp',
           subject: 'Follow-up on our discussion',
-          content: 'Hello Jane, I'm following up on our conversation...',
+          content: 'Hello Jane, I\'m following up on our conversation...',
           status: 'opened',
           sentAt: '2023-06-03T14:15:00',
           source: 'referral',
@@ -222,7 +222,7 @@ export const marketingService = {
           id: 2,
           name: 'Follow-up Template',
           subject: 'Following up on our conversation',
-          content: 'Hello {{name}}, I'm following up on our conversation about {{topic}}...',
+          content: 'Hello {{name}}, I\'m following up on our conversation about {{topic}}...',
           variables: ['name', 'topic', 'meeting_date'],
           category: 'follow_up',
           created_at: '2023-05-15T14:30:00'
