@@ -48,7 +48,7 @@ const clientService = {
       return response.data;
     } catch (error) {
       console.error('Get client preferences error:', error);
-      throw error;
+      return []; // Return empty array to prevent UI errors
     }
   },
   

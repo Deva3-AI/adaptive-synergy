@@ -16,20 +16,16 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        success: "border-transparent bg-green-100 text-green-800 hover:bg-green-200/80",
-        accent: "border-transparent bg-accent text-accent-foreground hover:bg-accent/80",
-        warning: "border-transparent bg-amber-100 text-amber-800 hover:bg-amber-200/80",
-        danger: "border-transparent bg-red-100 text-red-800 hover:bg-red-100/80",
-      },
-      size: {
-        default: "px-2.5 py-0.5 text-xs",
-        sm: "px-1.5 py-px text-xs",
-        lg: "px-3 py-0.5 text-sm",
+        success:
+          "border-transparent bg-green-500 text-white hover:bg-green-500/80",
+        accent:
+          "border-transparent bg-accent text-accent-foreground hover:bg-accent/80",
+        warning:
+          "border-transparent bg-amber-500 text-white hover:bg-amber-500/80",
       },
     },
     defaultVariants: {
       variant: "default",
-      size: "default",
     },
   }
 )
@@ -38,9 +34,9 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, size, ...props }: BadgeProps) {
+function Badge({ className, variant, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant, size }), className)} {...props} />
+    <div className={cn(badgeVariants({ variant }), className)} {...props} />
   )
 }
 

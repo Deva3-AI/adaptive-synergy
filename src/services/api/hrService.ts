@@ -2,82 +2,103 @@
 import apiClient from '@/utils/apiUtils';
 
 export interface Attendance {
-  attendance_id: number;
+  attendance_id?: number;
+  id?: number;
   user_id: number;
-  employee_name?: string;
-  login_time?: string;
+  login_time: string;
   logout_time?: string;
   work_date: string;
-  hours_worked?: number;
+  total_hours?: number;
   status?: string;
 }
 
 export interface Payslip {
-  payslip_id: number;
+  payslip_id?: number;
+  id?: number;
   user_id: number;
   employeeName: string;
-  period_start: string;
-  period_end: string;
-  basic_salary: number;
+  employee_name?: string; // For compatibility
+  month: string;
+  year: number;
+  period_start?: string;
+  period_end?: string;
+  basicSalary: number;
+  basic_salary?: number; // For compatibility
   allowances: number;
   deductions: number;
-  net_salary: number;
-  status: 'draft' | 'approved' | 'paid' | 'generated';
+  netSalary: number;
+  net_salary?: number; // For compatibility
+  paidDate?: string;
+  status: 'draft' | 'generated' | 'sent' | 'paid' | 'approved';
   document_url?: string;
-  created_at: string;
 }
 
 export interface JobPosting {
-  posting_id: number;
+  posting_id?: number;
+  id?: number;
   title: string;
   department: string;
   description: string;
-  requirements: string[];
-  status: 'active' | 'filled' | 'closed';
+  requirements: string;
+  salary_range?: string;
   location: string;
-  salary_range: string;
-  created_at: string;
-  applications_count: number;
+  posting_date: string;
+  closing_date?: string;
+  status: 'active' | 'filled' | 'closed' | 'open';
+  applications_count?: number;
   platform?: string;
 }
 
 export interface JobCandidate {
-  candidate_id: number;
+  candidate_id?: number;
+  id?: number;
   name: string;
   email: string;
-  phone: string;
-  status: string;
+  phone?: string;
   resume_url?: string;
-  position_applied: string;
-  application_date: string;
-  source: string;
-  skills: string[];
-  match_score: number;
+  applied_for: string;
+  position_applied?: string; // For compatibility
+  status: string;
+  interview_date?: string;
+  notes?: string;
+  assessment_score?: number;
+  application_date?: string;
+  source?: string;
+  skills?: string[];
+  match_score?: number;
   interview_notes?: string;
 }
 
 export interface HRTask {
-  task_id: number;
+  task_id?: number;
+  id?: number;
   title: string;
-  description: string;
-  due_date: string;
-  status: string;
-  priority: string;
-  assignee_id?: number;
+  description?: string;
+  assigned_to?: number;
   assignee_name?: string;
-  category: string;
-  created_at: string;
+  deadline?: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  created_at?: string;
+  updated_at?: string;
+  category?: string;
 }
 
 export const hrService = {
-  // Attendance management
+  // Attendance
   getAttendance: async (startDate?: string, endDate?: string) => {
     try {
+      let url = '/hr/attendance';
       const params = new URLSearchParams();
+      
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
       
-      const response = await apiClient.get(`/hr/attendance?${params.toString()}`);
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get attendance error:', error);
@@ -85,7 +106,7 @@ export const hrService = {
     }
   },
   
-  markAttendance: async (data: { user_id: number, status: string, date: string }) => {
+  markAttendance: async (data: { user_id: number; status: string; date: string }) => {
     try {
       const response = await apiClient.post('/hr/attendance', data);
       return response.data;
@@ -95,7 +116,43 @@ export const hrService = {
     }
   },
   
-  // Employee management
+  getAttendanceRecords: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/hr/attendance/records';
+      const params = new URLSearchParams();
+      
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get attendance records error:', error);
+      return [];
+    }
+  },
+  
+  getAttendanceStats: async (period: string = 'month') => {
+    try {
+      const response = await apiClient.get(`/hr/attendance/stats?period=${period}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get attendance stats error:', error);
+      return {
+        total_workdays: 0,
+        present: 0,
+        absent: 0,
+        late: 0,
+        attendance_rate: 0
+      };
+    }
+  },
+  
+  // Employees
   getEmployees: async () => {
     try {
       const response = await apiClient.get('/hr/employees');
@@ -126,14 +183,55 @@ export const hrService = {
     }
   },
   
-  // Payroll management
-  getPayslips: async (status?: string, month?: string) => {
+  // Leave requests
+  getLeaveRequests: async (status?: string) => {
     try {
+      let url = '/hr/leave-requests';
+      if (status) {
+        url += `?status=${status}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get leave requests error:', error);
+      return [];
+    }
+  },
+  
+  createLeaveRequest: async (requestData: any) => {
+    try {
+      const response = await apiClient.post('/hr/leave-requests', requestData);
+      return response.data;
+    } catch (error) {
+      console.error('Create leave request error:', error);
+      throw error;
+    }
+  },
+  
+  updateLeaveRequestStatus: async (requestId: number, status: string) => {
+    try {
+      const response = await apiClient.put(`/hr/leave-requests/${requestId}/status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error('Update leave request status error:', error);
+      throw error;
+    }
+  },
+  
+  // Payroll
+  getPayslips: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/hr/payslips';
       const params = new URLSearchParams();
-      if (status) params.append('status', status);
-      if (month) params.append('month', month);
       
-      const response = await apiClient.get(`/hr/payroll/payslips?${params.toString()}`);
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get payslips error:', error);
@@ -143,7 +241,7 @@ export const hrService = {
   
   generatePayslip: async (employeeId: number, month: string) => {
     try {
-      const response = await apiClient.post('/hr/payroll/generate', { employee_id: employeeId, month });
+      const response = await apiClient.post('/hr/payslips/generate', { employee_id: employeeId, month });
       return response.data;
     } catch (error) {
       console.error('Generate payslip error:', error);
@@ -151,21 +249,24 @@ export const hrService = {
     }
   },
   
-  approvePayslip: async (payslipId: number) => {
+  sendPayslip: async (payslipId: number) => {
     try {
-      const response = await apiClient.patch(`/hr/payroll/payslips/${payslipId}/approve`);
+      const response = await apiClient.post(`/hr/payslips/${payslipId}/send`);
       return response.data;
     } catch (error) {
-      console.error('Approve payslip error:', error);
+      console.error('Send payslip error:', error);
       throw error;
     }
   },
   
-  // Recruitment management
+  // Recruitment
   getJobPostings: async (status?: string) => {
     try {
-      const params = status ? `?status=${status}` : '';
-      const response = await apiClient.get(`/hr/recruitment/postings${params}`);
+      let url = '/hr/job-postings';
+      if (status) {
+        url += `?status=${status}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get job postings error:', error);
@@ -175,7 +276,7 @@ export const hrService = {
   
   createJobPosting: async (postingData: any) => {
     try {
-      const response = await apiClient.post('/hr/recruitment/postings', postingData);
+      const response = await apiClient.post('/hr/job-postings', postingData);
       return response.data;
     } catch (error) {
       console.error('Create job posting error:', error);
@@ -183,10 +284,23 @@ export const hrService = {
     }
   },
   
-  getCandidates: async (postingId?: number) => {
+  updateJobPostingStatus: async (postingId: number, status: string) => {
     try {
-      const params = postingId ? `?posting_id=${postingId}` : '';
-      const response = await apiClient.get(`/hr/recruitment/candidates${params}`);
+      const response = await apiClient.put(`/hr/job-postings/${postingId}/status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error('Update job posting status error:', error);
+      throw error;
+    }
+  },
+  
+  getCandidates: async (status?: string) => {
+    try {
+      let url = '/hr/candidates';
+      if (status) {
+        url += `?status=${status}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get candidates error:', error);
@@ -194,31 +308,49 @@ export const hrService = {
     }
   },
   
+  getJobCandidates: async (jobPostingId?: number) => {
+    try {
+      let url = '/hr/candidates';
+      if (jobPostingId) {
+        url += `?job_posting_id=${jobPostingId}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get job candidates error:', error);
+      return [];
+    }
+  },
+  
   updateCandidateStatus: async (candidateId: number, status: string, notes?: string) => {
     try {
-      const response = await apiClient.patch(`/hr/recruitment/candidates/${candidateId}`, { 
-        status, 
-        interview_notes: notes 
-      });
+      const data: any = { status };
+      if (notes) {
+        data.notes = notes;
+      }
+      const response = await apiClient.put(`/hr/candidates/${candidateId}/status`, data);
       return response.data;
     } catch (error) {
       console.error('Update candidate status error:', error);
       throw error;
     }
   },
-
-  // HR Tasks
+  
+  // HR tasks
   getHRTasks: async (status?: string) => {
     try {
-      const params = status ? `?status=${status}` : '';
-      const response = await apiClient.get(`/hr/tasks${params}`);
+      let url = '/hr/tasks';
+      if (status) {
+        url += `?status=${status}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get HR tasks error:', error);
       return [];
     }
   },
-
+  
   createHRTask: async (taskData: any) => {
     try {
       const response = await apiClient.post('/hr/tasks', taskData);
@@ -228,28 +360,18 @@ export const hrService = {
       throw error;
     }
   },
-
-  updateHRTask: async (taskId: number, taskData: any) => {
+  
+  updateHRTaskStatus: async (taskId: number, status: string) => {
     try {
-      const response = await apiClient.put(`/hr/tasks/${taskId}`, taskData);
+      const response = await apiClient.put(`/hr/tasks/${taskId}/status`, { status });
       return response.data;
     } catch (error) {
-      console.error('Update HR task error:', error);
+      console.error('Update HR task status error:', error);
       throw error;
     }
   },
-
-  // HR Metrics and Stats
-  getAttendanceStats: async (period: string = 'month') => {
-    try {
-      const response = await apiClient.get(`/hr/stats/attendance?period=${period}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get attendance stats error:', error);
-      return {};
-    }
-  },
-
+  
+  // HR metrics and reports
   getHRMetrics: async () => {
     try {
       const response = await apiClient.get('/hr/metrics');
@@ -259,19 +381,15 @@ export const hrService = {
       return {};
     }
   },
-
-  getHRTrends: async () => {
+  
+  getHRTrends: async (period: string = 'month') => {
     try {
-      const response = await apiClient.get('/hr/trends');
+      const response = await apiClient.get(`/hr/trends?period=${period}`);
       return response.data;
     } catch (error) {
       console.error('Get HR trends error:', error);
-      return [];
+      return {};
     }
-  },
-  
-  getAttendanceRecords: async (startDate?: string, endDate?: string) => {
-    return hrService.getAttendance(startDate, endDate);
   }
 };
 

@@ -78,28 +78,6 @@ const employeeService = {
       throw error;
     }
   },
-  
-  // Get all employees
-  getEmployees: async () => {
-    try {
-      const response = await apiClient.get('/employees');
-      return response.data;
-    } catch (error) {
-      console.error('Get employees error:', error);
-      throw error;
-    }
-  },
-  
-  // Get employee by id
-  getEmployeeById: async (id: number) => {
-    try {
-      const response = await apiClient.get(`/employees/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get employee error:', error);
-      throw error;
-    }
-  },
 
   // Get total worked hours for today
   getTodayWorkHours: async () => {

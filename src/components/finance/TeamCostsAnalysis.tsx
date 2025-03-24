@@ -1,453 +1,372 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { financeService } from '@/services/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, DownloadIcon, FileText, Users, Clock, DollarSign, BarChart2 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
-import { format, subMonths } from 'date-fns';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { financeService } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { 
+  BarChart, PieChart, TrendingUp, Users, Briefcase, Calendar, 
+  ArrowUpRight, ArrowDownRight, DollarSign, Clock, AlertCircle
+} from "lucide-react";
+import { 
+  BarChart as RechartsBarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell
+} from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DashboardCard from "@/components/dashboard/DashboardCard";
+import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const TeamCostsAnalysis = () => {
-  const [timeRange, setTimeRange] = useState('month');
-  const [currentView, setCurrentView] = useState('overview');
+  const [dateRange, setDateRange] = useState<"week" | "month" | "quarter" | "year">("month");
   
-  // Calculate default date range
-  const endDate = new Date();
-  const startDate = subMonths(endDate, 1); // Default to last month
-  
+  // Fetch team costs analysis data
   const { data: teamCosts, isLoading } = useQuery({
-    queryKey: ['team-costs', timeRange],
-    queryFn: () => financeService.analyzeTeamCosts(
-      format(startDate, 'yyyy-MM-dd'),
-      format(endDate, 'yyyy-MM-dd')
-    ),
+    queryKey: ["team-costs", dateRange],
+    queryFn: () => financeService.analyzeTeamCosts(dateRange),
   });
   
-  // Prepare chart data for role distribution
-  const roleChartData = teamCosts?.role_distribution?.map(role => ({
-    name: role.role,
-    value: role.cost,
-    hours: role.hours,
-    headcount: role.count,
-  }));
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
   
-  // Prepare chart data for employee costs
-  const employeeChartData = teamCosts?.employee_data?.map(emp => ({
-    name: emp.name,
-    cost: emp.cost,
-    hours: emp.hours_worked,
-    productivity: emp.productivity_ratio * 100,
-  }));
-  
-  // Prepare chart data for client costs
-  const clientChartData = teamCosts?.client_costs?.map(client => ({
-    name: client.client_name,
-    cost: client.cost,
-    hours: client.hours,
-    tasks: client.task_count,
-  }));
+  // Custom tooltip formatter to handle the display of currency
+  const currencyTooltipFormatter = (value: any) => {
+    if (typeof value === 'number') {
+      return [formatCurrency(value), ''];
+    }
+    return [value, ''];
+  };
+
+  // Render a loading skeleton when data is loading
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-[300px] w-full rounded-lg" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-[300px] rounded-lg" />
+          <Skeleton className="h-[300px] rounded-lg" />
+          <Skeleton className="h-[300px] rounded-lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <Calendar className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Time Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Last Week</SelectItem>
-              <SelectItem value="month">Last Month</SelectItem>
-              <SelectItem value="quarter">Last Quarter</SelectItem>
-              <SelectItem value="year">Last Year</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline">
-            <Calendar className="h-4 w-4 mr-2" />
-            Custom Range
-          </Button>
-        </div>
-        
-        <Button>
-          <DownloadIcon className="h-4 w-4 mr-2" />
-          Export Report
-        </Button>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold">Team Costs Analysis</h2>
+        <Select
+          value={dateRange}
+          onValueChange={(value) => setDateRange(value as "week" | "month" | "quarter" | "year")}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select timeframe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="quarter">This Quarter</SelectItem>
+            <SelectItem value="year">This Year</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Team Hours
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <div className="flex items-baseline justify-between">
-                <div className="text-2xl font-bold">
-                  {teamCosts?.summary?.total_hours.toLocaleString()} hrs
-                </div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5 mr-1" />
-                  This period
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Team Cost
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <div className="flex items-baseline justify-between">
-                <div className="text-2xl font-bold">
-                  ${teamCosts?.summary?.total_cost.toLocaleString()}
-                </div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <DollarSign className="h-3.5 w-3.5 mr-1" />
-                  This period
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Team Size
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <div className="flex items-baseline justify-between">
-                <div className="text-2xl font-bold">
-                  {teamCosts?.summary?.total_employees}
-                </div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <Users className="h-3.5 w-3.5 mr-1" />
-                  Active employees
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Productivity Ratio
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <div className="flex items-baseline justify-between">
-                <div className="text-2xl font-bold">
-                  {(teamCosts?.summary?.productivity_ratio * 100).toFixed(1)}%
-                </div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <BarChart2 className="h-3.5 w-3.5 mr-1" />
-                  Task hours / worked hours
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Tab Navigation */}
-      <Tabs defaultValue="overview" onValueChange={setCurrentView}>
-        <TabsList>
+      <Tabs defaultValue="overview">
+        <TabsList className="mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="byRole">By Role</TabsTrigger>
-          <TabsTrigger value="byEmployee">By Employee</TabsTrigger>
-          <TabsTrigger value="byClient">By Client</TabsTrigger>
+          <TabsTrigger value="departments">Departments</TabsTrigger>
+          <TabsTrigger value="trends">Trends & Analysis</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="pt-4">
-          {isLoading ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="h-[350px] flex items-center justify-center">
-                  <Skeleton className="h-64 w-full" />
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Cost Distribution Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={roleChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={120}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {roleChartData?.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="byRole" className="pt-4">
-          {isLoading ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="h-[350px] flex items-center justify-center">
-                  <Skeleton className="h-64 w-full" />
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Cost by Department/Role</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={roleChartData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                      <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                      <Tooltip formatter={(value, name) => {
-                        if (name === 'cost') return [`$${value.toLocaleString()}`, 'Cost'];
-                        if (name === 'hours') return [`${value.toLocaleString()} hrs`, 'Hours'];
-                        return [value, name];
-                      }} />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="cost" name="Cost" fill="#8884d8" />
-                      <Bar yAxisId="right" dataKey="hours" name="Hours" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="byEmployee" className="pt-4">
-          {isLoading ? (
-            <div className="space-y-4">
+        <TabsContent value="overview" className="space-y-6">
+          <DashboardCard
+            title="Total Team Costs"
+            icon={<DollarSign className="h-5 w-5" />}
+            badgeText={`This ${dateRange}`}
+            badgeVariant="outline"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
-                <CardContent className="p-6">
-                  <div className="h-[350px] flex items-center justify-center">
-                    <Skeleton className="h-64 w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Employee Cost Analysis</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={employeeChartData}
-                        margin={{
-                          top: 20,
-                          right: 30,
-                          left: 20,
-                          bottom: 5,
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value, name) => {
-                            if (name === 'cost') return [`$${value.toLocaleString()}`, 'Cost'];
-                            if (name === 'hours') return [`${value.toLocaleString()} hrs`, 'Hours'];
-                            if (name === 'productivity') return [`${value.toFixed(1)}%`, 'Productivity'];
-                            return [value, name];
-                          }}
-                        />
-                        <Legend />
-                        <Bar dataKey="cost" name="Cost" fill="#8884d8" />
-                        <Bar dataKey="hours" name="Hours" fill="#82ca9d" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(teamCosts?.total_cost || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    For {dateRange === 'week' ? 'this week' : dateRange === 'month' ? 'this month' : dateRange === 'quarter' ? 'this quarter' : 'this year'}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Average Cost per Employee</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(teamCosts?.average_cost_per_employee || 0)}
+                  </div>
+                  <div className="mt-2 flex items-center text-xs">
+                    {teamCosts?.cost_trend > 0 ? (
+                      <div className="text-red-500 flex items-center">
+                        <ArrowUpRight className="h-3 w-3 mr-1" />
+                        <span>{teamCosts?.cost_trend}% vs previous {dateRange}</span>
+                      </div>
+                    ) : (
+                      <div className="text-green-500 flex items-center">
+                        <ArrowDownRight className="h-3 w-3 mr-1" />
+                        <span>{Math.abs(teamCosts?.cost_trend || 0)}% vs previous {dateRange}</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {teamCosts?.employee_data?.map((emp) => (
-                  <Card key={emp.user_id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium text-base">{emp.name}</h3>
-                        <span className="text-sm font-medium">${emp.cost.toLocaleString()}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Hours:</span> {emp.hours_worked.toLocaleString()}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Task Hours:</span> {emp.task_hours.toLocaleString()}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Productivity:</span> 
-                          <div className="text-xs font-medium">
-                            {typeof value === 'number' ? `${value.toFixed(1)}%` : value}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Cost Rate:</span> ${(emp.cost / emp.hours_worked).toFixed(2)}/hr
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Cost Efficiency</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {teamCosts?.cost_efficiency || 0}%
+                  </div>
+                  <div className="mt-1">
+                    <Progress value={teamCosts?.cost_efficiency || 0} className="h-2" />
+                  </div>
+                  <div className="mt-2">
+                    <Badge className={teamCosts?.cost_efficiency > 75 ? "bg-green-500" : teamCosts?.cost_efficiency > 50 ? "bg-amber-500" : "bg-red-500"}>
+                      {teamCosts?.cost_efficiency > 75 ? "Excellent" : teamCosts?.cost_efficiency > 50 ? "Good" : "Needs Improvement"}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
+            
+            <div className="mt-6">
+              <h3 className="text-lg font-medium mb-4">Department Cost Breakdown</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={teamCosts?.departments || []}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={currencyTooltipFormatter} />
+                  <Legend />
+                  <Bar dataKey="cost" fill="#8884d8" name="Cost" />
+                  <Bar dataKey="budget" fill="#82ca9d" name="Budget" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </DashboardCard>
         </TabsContent>
         
-        <TabsContent value="byClient" className="pt-4">
-          {isLoading ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="h-[350px] flex items-center justify-center">
-                  <Skeleton className="h-64 w-full" />
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Client Cost Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={clientChartData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                      <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                      <Tooltip 
-                        formatter={(value, name) => {
-                          if (name === 'cost') return [`$${value.toLocaleString()}`, 'Cost'];
-                          if (name === 'hours') return [`${value.toLocaleString()} hrs`, 'Hours'];
-                          if (name === 'tasks') return [`${value} tasks`, 'Task Count'];
-                          return [value, name];
-                        }}
+        <TabsContent value="departments" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DashboardCard
+              title="Department Cost Distribution"
+              icon={<PieChart className="h-5 w-5" />}
+              badgeText={`This ${dateRange}`}
+              badgeVariant="outline"
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPieChart>
+                  <Pie
+                    data={teamCosts?.departments || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    label={({ name, percent }) => {
+                      if (typeof percent === 'number') {
+                        return `${name}: ${(percent * 100).toFixed(0)}%`;
+                      }
+                      return `${name}: ${percent}%`;
+                    }}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="cost"
+                    nameKey="name"
+                  >
+                    {(teamCosts?.departments || []).map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'][index % 6]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={currencyTooltipFormatter} />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </DashboardCard>
+            
+            <DashboardCard
+              title="Budget vs. Actual Cost"
+              icon={<BarChart className="h-5 w-5" />}
+              badgeText={`This ${dateRange}`}
+              badgeVariant="outline"
+            >
+              <div className="space-y-4">
+                {(teamCosts?.departments || []).map((dept: any) => (
+                  <div key={dept.name} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">{dept.name}</div>
+                      <div className="text-sm">
+                        {formatCurrency(dept.cost)} / {formatCurrency(dept.budget)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress 
+                        value={(dept.cost / dept.budget) * 100} 
+                        className={`h-2 ${dept.cost > dept.budget ? "bg-red-200" : "bg-slate-200"}`}
                       />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="cost" name="Cost" fill="#8884d8" />
-                      <Bar yAxisId="right" dataKey="hours" name="Hours" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="mt-4 space-y-2">
-                  <h4 className="text-sm font-medium">Client Cost Breakdown</h4>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">Client</th>
-                        <th className="text-right py-2">Hours</th>
-                        <th className="text-right py-2">Cost</th>
-                        <th className="text-right py-2">Tasks</th>
-                        <th className="text-right py-2">Cost/Task</th>
+                      <span className={`text-xs ${dept.cost > dept.budget ? "text-red-500" : "text-green-500"}`}>
+                        {((dept.cost / dept.budget) * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          </div>
+          
+          <DashboardCard
+            title="Department Details"
+            icon={<Briefcase className="h-5 w-5" />}
+            badgeText={`This ${dateRange}`}
+            badgeVariant="outline"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4">Department</th>
+                    <th className="text-left py-3 px-4">Headcount</th>
+                    <th className="text-left py-3 px-4">Avg. Cost/Employee</th>
+                    <th className="text-left py-3 px-4">Total Cost</th>
+                    <th className="text-left py-3 px-4">Budget</th>
+                    <th className="text-left py-3 px-4">Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(teamCosts?.departments || []).map((dept: any) => {
+                    const variance = dept.budget - dept.cost;
+                    const variancePercent = (variance / dept.budget) * 100;
+                    
+                    return (
+                      <tr key={dept.name} className="border-b">
+                        <td className="py-3 px-4 font-medium">{dept.name}</td>
+                        <td className="py-3 px-4">{dept.headcount}</td>
+                        <td className="py-3 px-4">{formatCurrency(dept.cost / dept.headcount)}</td>
+                        <td className="py-3 px-4">{formatCurrency(dept.cost)}</td>
+                        <td className="py-3 px-4">{formatCurrency(dept.budget)}</td>
+                        <td className="py-3 px-4">
+                          <div className={`flex items-center ${variance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {variance >= 0 ? 
+                              <ArrowUpRight className="h-4 w-4 mr-1" /> : 
+                              <ArrowDownRight className="h-4 w-4 mr-1" />
+                            }
+                            <span>{formatCurrency(Math.abs(variance))}</span>
+                            <span className="ml-1">({Math.abs(variancePercent).toFixed(1)}%)</span>
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {teamCosts?.client_costs?.map((client) => (
-                        <tr key={client.client_id} className="border-b">
-                          <td className="py-2">{client.client_name}</td>
-                          <td className="text-right py-2">{client.hours}</td>
-                          <td className="text-right py-2">${client.cost.toLocaleString()}</td>
-                          <td className="text-right py-2">{client.task_count}</td>
-                          <td className="text-right py-2">
-                            ${(client.cost / client.task_count).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </DashboardCard>
+        </TabsContent>
+        
+        <TabsContent value="trends" className="space-y-6">
+          <DashboardCard
+            title="Cost Trends Over Time"
+            icon={<TrendingUp className="h-5 w-5" />}
+            badgeText={`This ${dateRange}`}
+            badgeVariant="outline"
+          >
+            <AnalyticsChart
+              data={teamCosts?.trend || []}
+              height={300}
+              defaultType="line"
+            />
+          </DashboardCard>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DashboardCard
+              title="Efficiency Analysis"
+              icon={<Clock className="h-5 w-5" />}
+              badgeText={`This ${dateRange}`}
+              badgeVariant="outline"
+            >
+              <div className="space-y-4">
+                {(teamCosts?.efficiency || []).map((item: any) => (
+                  <div key={item.metric} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium">{item.metric}</div>
+                      <div className="text-sm">
+                        {typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress value={item.percentage} className="h-2" />
+                      <span className="text-xs">{item.percentage}%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+            
+            <DashboardCard
+              title="Cost Optimization Recommendations"
+              icon={<AlertCircle className="h-5 w-5" />}
+              badgeText="AI Generated"
+              badgeVariant="outline"
+            >
+              <div className="space-y-4">
+                {(teamCosts?.recommendations || []).map((rec: any, index: number) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex items-start gap-2">
+                      <div className={`p-1 rounded-full mt-0.5 ${rec.priority === 'high' ? 'bg-red-100' : rec.priority === 'medium' ? 'bg-amber-100' : 'bg-green-100'}`}>
+                        <AlertCircle className={`h-4 w-4 ${rec.priority === 'high' ? 'text-red-500' : rec.priority === 'medium' ? 'text-amber-500' : 'text-green-500'}`} />
+                      </div>
+                      <div>
+                        <div className="font-medium">{rec.title}</div>
+                        <p className="text-sm text-muted-foreground">{rec.description}</p>
+                        <div className="flex items-center mt-1">
+                          <Badge variant={rec.priority === 'high' ? 'destructive' : rec.priority === 'medium' ? 'warning' : 'success'} className="mr-2">
+                            {rec.priority}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Potential Savings: {formatCurrency(rec.potential_savings)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
