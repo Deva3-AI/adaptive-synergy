@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
   
-  // Added isAuthenticated and isEmployee properties
+  // Added isAuthenticated property
   const isAuthenticated = !!user;
   
   return (
