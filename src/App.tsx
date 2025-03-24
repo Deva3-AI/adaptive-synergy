@@ -33,6 +33,8 @@ import FinancialDashboard from "@/pages/finance/FinancialDashboard";
 import Invoices from "@/pages/finance/Invoices";
 import Expenses from "@/pages/finance/Expenses";
 import Budgets from "@/pages/finance/Budgets";
+import FinanceReports from "@/pages/finance/Reports";
+import FinancePerformance from "@/pages/finance/Performance";
 import HRDashboard from "@/pages/hr/HRDashboard";
 import EmployeeManagement from "@/pages/hr/EmployeeManagement";
 import Recruitment from "@/pages/hr/Recruitment";
@@ -155,6 +157,14 @@ const router = createBrowserRouter([
       {
         path: "finance/budgets",
         element: <Budgets />,
+      },
+      {
+        path: "finance/reports",
+        element: <FinanceReports />,
+      },
+      {
+        path: "finance/performance",
+        element: <FinancePerformance />,
       },
       {
         path: "hr/dashboard",
