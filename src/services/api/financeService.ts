@@ -1,479 +1,459 @@
 
-import apiClient from '@/utils/apiUtils';
-
-export interface Invoice {
-  invoice_id: number;
-  client_id: number;
-  client_name?: string;
-  invoice_number: string;
-  amount: number;
-  due_date: string;
-  status: 'pending' | 'paid' | 'overdue';
-  created_at: string;
-}
-
-export interface FinancialRecord {
-  record_id: number;
-  record_type: 'expense' | 'income';
-  amount: number;
-  description: string;
-  record_date: string;
-  created_at: string;
-}
-
-export interface TeamCost {
-  user_id: number;
-  name: string;
-  hours_worked: number;
-  task_hours: number;
-  productivity_ratio: number;
-  cost: number;
-}
-
-export interface ClientCost {
-  client_id: number;
-  client_name: string;
-  hours: number;
-  cost: number;
-  task_count: number;
-}
-
-export interface FinancialMetrics {
-  total_revenue: number;
-  total_expenses: number;
-  net_profit: number;
-  profit_margin: number;
-  collection_rate: number;
-  average_invoice_value: number;
-  monthly_growth_rate: number;
-  cash_flow: number;
-  outstanding_invoices: number;
-  health_status: 'excellent' | 'good' | 'satisfactory' | 'concerning' | 'critical';
-}
-
-export interface FinancialOverview {
-  monthly_revenue: number;
-  annual_target: number;
-  growth_rate: number;
-  client_acquisition: number;
-  profit_margin: number;
-  cash_flow_status: 'positive' | 'negative' | 'neutral';
-  top_clients: Array<{client_name: string, revenue: number}>;
-  monthly_trend: Array<{month: string, revenue: number, expenses?: number}>;
-  sales_by_service: Array<{service: string, value: number}>;
-}
-
-export interface UpsellOpportunity {
-  client_id: number;
-  client_name: string;
-  current_services: string[];
-  suggested_services: string[];
-  potential_value: number;
-  confidence_score: number;
-  last_purchase_date: string;
-}
-
-export interface FinancialPlan {
-  plan_id: number;
-  title: string;
-  description: string;
-  goals: {
-    revenue_increase: number;
-    cost_reduction: number;
-    profit_margin_target: number;
-  };
-  strategies: Array<{
-    title: string;
-    description: string;
-    priority: 'high' | 'medium' | 'low';
-    estimated_impact: number;
-  }>;
-  timeline: string;
-  created_at: string;
-  status: 'draft' | 'active' | 'completed';
-}
+// Financial Service API functions
 
 const financeService = {
-  // Invoice management
+  // Invoice related functions
   getInvoices: async (status?: string) => {
     try {
-      let url = '/finance/invoices';
+      // Mock API call - in a real app, this would call your backend API
+      const allInvoices = [
+        {
+          id: 1,
+          invoice_number: 'INV-2023-001',
+          client_id: 1,
+          client_name: 'ABC Corporation',
+          amount: 5000,
+          issue_date: '2023-06-01',
+          due_date: '2023-06-15',
+          status: 'paid',
+          payment_date: '2023-06-10'
+        },
+        {
+          id: 2,
+          invoice_number: 'INV-2023-002',
+          client_id: 2,
+          client_name: 'XYZ Inc',
+          amount: 7500,
+          issue_date: '2023-06-05',
+          due_date: '2023-06-20',
+          status: 'pending',
+          payment_date: null
+        },
+        {
+          id: 3,
+          invoice_number: 'INV-2023-003',
+          client_id: 3,
+          client_name: 'Acme Ltd',
+          amount: 3000,
+          issue_date: '2023-05-20',
+          due_date: '2023-06-04',
+          status: 'overdue',
+          payment_date: null
+        }
+      ];
+      
       if (status) {
-        url += `?status=${status}`;
+        return allInvoices.filter(inv => inv.status === status);
       }
-      const response = await apiClient.get(url);
-      return response.data;
+      
+      return allInvoices;
     } catch (error) {
-      console.error('Get invoices error:', error);
+      console.error('Error getting invoices:', error);
       throw error;
     }
   },
   
   getInvoiceDetails: async (invoiceId: number) => {
     try {
-      const response = await apiClient.get(`/finance/invoices/${invoiceId}`);
-      return response.data;
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        id: invoiceId,
+        invoice_number: 'INV-2023-001',
+        client_id: 1,
+        client_name: 'ABC Corporation',
+        client_email: 'billing@abccorp.com',
+        client_address: '123 Business St, City, Country',
+        amount: 5000,
+        tax: 500,
+        total: 5500,
+        issue_date: '2023-06-01',
+        due_date: '2023-06-15',
+        status: 'paid',
+        payment_date: '2023-06-10',
+        payment_method: 'bank_transfer',
+        items: [
+          {
+            id: 1,
+            description: 'Web Development Services',
+            quantity: 1,
+            unit_price: 3000,
+            amount: 3000
+          },
+          {
+            id: 2,
+            description: 'UI/UX Design',
+            quantity: 1,
+            unit_price: 2000,
+            amount: 2000
+          }
+        ],
+        notes: 'Thank you for your business!'
+      };
     } catch (error) {
-      console.error('Get invoice details error:', error);
+      console.error('Error getting invoice details:', error);
       throw error;
     }
   },
   
   createInvoice: async (invoiceData: any) => {
     try {
-      const response = await apiClient.post('/finance/invoices', invoiceData);
-      return response.data;
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        id: 4,
+        invoice_number: 'INV-2023-004',
+        ...invoiceData,
+        created_at: new Date().toISOString()
+      };
     } catch (error) {
-      console.error('Create invoice error:', error);
+      console.error('Error creating invoice:', error);
       throw error;
     }
   },
   
   updateInvoiceStatus: async (invoiceId: number, status: string) => {
     try {
-      const response = await apiClient.put(`/finance/invoices/${invoiceId}/status`, { status });
-      return response.data;
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        id: invoiceId,
+        status,
+        updated_at: new Date().toISOString()
+      };
     } catch (error) {
-      console.error('Update invoice status error:', error);
+      console.error('Error updating invoice status:', error);
+      throw error;
+    }
+  },
+  
+  // Report related functions
+  getRevenueReports: async (startDate?: string, endDate?: string) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        total_revenue: 85000,
+        period: {
+          start_date: startDate || '2023-01-01',
+          end_date: endDate || '2023-06-30'
+        },
+        monthly_breakdown: [
+          { month: 'January', revenue: 12000 },
+          { month: 'February', revenue: 14000 },
+          { month: 'March', revenue: 15000 },
+          { month: 'April', revenue: 13500 },
+          { month: 'May', revenue: 16500 },
+          { month: 'June', revenue: 14000 }
+        ],
+        client_breakdown: [
+          { client_name: 'ABC Corporation', revenue: 25000 },
+          { client_name: 'XYZ Inc', revenue: 20000 },
+          { client_name: 'Acme Ltd', revenue: 15000 },
+          { client_name: 'Others', revenue: 25000 }
+        ],
+        service_breakdown: [
+          { service: 'Web Development', revenue: 35000 },
+          { service: 'UI/UX Design', revenue: 25000 },
+          { service: 'Content Creation', revenue: 15000 },
+          { service: 'Maintenance', revenue: 10000 }
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting revenue reports:', error);
+      throw error;
+    }
+  },
+  
+  getExpenseReports: async (startDate?: string, endDate?: string) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        total_expenses: 65000,
+        period: {
+          start_date: startDate || '2023-01-01',
+          end_date: endDate || '2023-06-30'
+        },
+        monthly_breakdown: [
+          { month: 'January', expenses: 10000 },
+          { month: 'February', expenses: 11000 },
+          { month: 'March', expenses: 10500 },
+          { month: 'April', expenses: 11500 },
+          { month: 'May', expenses: 11000 },
+          { month: 'June', expenses: 11000 }
+        ],
+        category_breakdown: [
+          { category: 'Salaries', expenses: 45000 },
+          { category: 'Office Rent', expenses: 12000 },
+          { category: 'Software Subscriptions', expenses: 5000 },
+          { category: 'Marketing', expenses: 3000 }
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting expense reports:', error);
+      throw error;
+    }
+  },
+  
+  // Additional functions to address the missing methods
+  getFinancialOverview: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        monthly_revenue: 25000,
+        monthly_expenses: 18000,
+        monthly_profit: 7000,
+        growth_rate: 0.15,
+        cash_flow: 'positive',
+        accounts_receivable: 45000,
+        accounts_payable: 15000,
+        cash_on_hand: 80000
+      };
+    } catch (error) {
+      console.error('Error getting financial overview:', error);
+      throw error;
+    }
+  },
+  
+  getFinancialMetrics: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        profitability: {
+          gross_margin: 0.65,
+          net_margin: 0.22,
+          operating_margin: 0.28
+        },
+        liquidity: {
+          current_ratio: 2.5,
+          quick_ratio: 2.0,
+          cash_ratio: 1.2
+        },
+        efficiency: {
+          asset_turnover: 1.8,
+          inventory_turnover: 12,
+          receivables_turnover: 8.5
+        },
+        growth: {
+          revenue_growth: 0.18,
+          profit_growth: 0.22,
+          client_growth: 0.15
+        },
+        projections: {
+          revenue_next_quarter: 85000,
+          expenses_next_quarter: 65000,
+          profit_next_quarter: 20000
+        }
+      };
+    } catch (error) {
+      console.error('Error getting financial metrics:', error);
+      throw error;
+    }
+  },
+  
+  getFinancialRecords: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          record_type: 'income',
+          amount: 15000,
+          description: 'Client payment - ABC Corp',
+          category: 'services',
+          date: '2023-06-10',
+          recorded_by: 'Finance Team'
+        },
+        {
+          id: 2,
+          record_type: 'expense',
+          amount: 5000,
+          description: 'Office rent',
+          category: 'facilities',
+          date: '2023-06-01',
+          recorded_by: 'Finance Team'
+        },
+        {
+          id: 3,
+          record_type: 'expense',
+          amount: 2500,
+          description: 'Software subscriptions',
+          category: 'software',
+          date: '2023-06-05',
+          recorded_by: 'Finance Team'
+        },
+        {
+          id: 4,
+          record_type: 'income',
+          amount: 8000,
+          description: 'Client payment - XYZ Inc',
+          category: 'services',
+          date: '2023-06-15',
+          recorded_by: 'Finance Team'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting financial records:', error);
+      throw error;
+    }
+  },
+  
+  getUpsellOpportunities: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          client_id: 1,
+          client_name: 'ABC Corporation',
+          current_services: ['Web Development', 'UI/UX Design'],
+          potential_services: ['Maintenance Plan', 'SEO Services'],
+          estimated_value: 10000,
+          probability: 'high'
+        },
+        {
+          client_id: 2,
+          client_name: 'XYZ Inc',
+          current_services: ['Content Creation'],
+          potential_services: ['Social Media Management', 'Email Marketing'],
+          estimated_value: 8000,
+          probability: 'medium'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting upsell opportunities:', error);
+      throw error;
+    }
+  },
+  
+  getFinancialPlans: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          title: 'Q3 Financial Plan',
+          description: 'Financial strategy for Q3 2023',
+          status: 'active',
+          period: {
+            start_date: '2023-07-01',
+            end_date: '2023-09-30'
+          },
+          targets: {
+            revenue: 100000,
+            expenses: 70000,
+            profit: 30000
+          },
+          initiatives: [
+            {
+              title: 'Implement new invoicing system',
+              status: 'in_progress',
+              impact: 'Reduce invoicing time by 50%'
+            },
+            {
+              title: 'Review subscription costs',
+              status: 'not_started',
+              impact: 'Reduce monthly expenses by 10%'
+            }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Annual Budget Plan',
+          description: 'Budget planning for fiscal year 2023',
+          status: 'active',
+          period: {
+            start_date: '2023-01-01',
+            end_date: '2023-12-31'
+          },
+          targets: {
+            revenue: 400000,
+            expenses: 280000,
+            profit: 120000
+          },
+          initiatives: [
+            {
+              title: 'Diversify client portfolio',
+              status: 'in_progress',
+              impact: 'Reduce dependency on top 3 clients from 60% to 40%'
+            },
+            {
+              title: 'Implement profit-sharing program',
+              status: 'completed',
+              impact: 'Improve employee retention and performance'
+            }
+          ]
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting financial plans:', error);
       throw error;
     }
   },
   
   sendInvoiceReminder: async (invoiceId: number) => {
     try {
-      const response = await apiClient.post(`/finance/invoices/${invoiceId}/reminder`);
-      return response.data;
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        success: true,
+        message: 'Reminder sent successfully',
+        sent_at: new Date().toISOString()
+      };
     } catch (error) {
-      console.error('Send invoice reminder error:', error);
+      console.error('Error sending invoice reminder:', error);
       throw error;
     }
   },
   
-  // Financial records
-  getFinancialRecords: async (recordType?: string, startDate?: string, endDate?: string) => {
-    try {
-      let url = '/finance/financial-records';
-      const params = new URLSearchParams();
-      
-      if (recordType) params.append('record_type', recordType);
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get financial records error:', error);
-      throw error;
-    }
-  },
-  
-  createFinancialRecord: async (recordData: Omit<FinancialRecord, 'record_id' | 'created_at'>) => {
-    try {
-      const response = await apiClient.post('/finance/financial-records', recordData);
-      return response.data;
-    } catch (error) {
-      console.error('Create financial record error:', error);
-      throw error;
-    }
-  },
-  
-  // Team cost analysis
   analyzeTeamCosts: async (startDate?: string, endDate?: string) => {
     try {
-      let url = '/finance/analyze-cost';
-      const params = new URLSearchParams();
-      
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await apiClient.post(url);
-      return response.data;
-    } catch (error) {
-      console.error('Analyze team costs error:', error);
-      // Return mock data as fallback
+      // Mock API call - in a real app, this would call your backend API
       return {
+        total_costs: 150000,
         period: {
-          start_date: startDate || '2023-06-01',
+          start_date: startDate || '2023-01-01',
           end_date: endDate || '2023-06-30'
         },
-        summary: {
-          total_employees: 5,
-          total_hours: 840,
-          total_cost: 21000,
-          total_task_hours: 756,
-          productivity_ratio: 0.9
-        },
-        employee_data: [
+        departments: [
           {
-            user_id: 1,
-            name: "John Doe",
-            hours_worked: 168,
-            task_hours: 150,
-            productivity_ratio: 0.89,
-            cost: 4200
+            name: 'Development',
+            headcount: 5,
+            cost: 75000,
+            productivity: {
+              hours_logged: 4000,
+              tasks_completed: 120,
+              cost_per_hour: 18.75
+            }
           },
           {
-            user_id: 2,
-            name: "Jane Smith",
-            hours_worked: 160,
-            task_hours: 152,
-            productivity_ratio: 0.95,
-            cost: 4000
+            name: 'Design',
+            headcount: 3,
+            cost: 45000,
+            productivity: {
+              hours_logged: 2400,
+              tasks_completed: 80,
+              cost_per_hour: 18.75
+            }
+          },
+          {
+            name: 'Marketing',
+            headcount: 2,
+            cost: 30000,
+            productivity: {
+              hours_logged: 1600,
+              tasks_completed: 60,
+              cost_per_hour: 18.75
+            }
           }
         ],
-        role_distribution: [
-          {
-            role: "Developer",
-            count: 2,
-            hours: 328,
-            cost: 8200
-          },
-          {
-            role: "Designer",
-            count: 1,
-            hours: 160,
-            cost: 4000
-          }
+        insights: [
+          'Development team has the highest efficiency rate',
+          'Design team shows consistent performance',
+          'Marketing team has the highest cost per task'
         ],
-        client_costs: [
-          {
-            client_id: 1,
-            client_name: "Social Land",
-            hours: 320,
-            cost: 8000,
-            task_count: 15
-          },
-          {
-            client_id: 2,
-            client_name: "Koala Digital",
-            hours: 280,
-            cost: 7000,
-            task_count: 12
-          }
+        recommendations: [
+          'Consider additional training for marketing team',
+          'Development team capacity could be increased',
+          'Implement time tracking improvements for better analysis'
         ]
       };
-    }
-  },
-  
-  // Financial metrics and health
-  getFinancialMetrics: async (timeframe: 'month' | 'quarter' | 'year' = 'month') => {
-    try {
-      const response = await apiClient.get(`/finance/financial-summary?timeframe=${timeframe}`);
-      return response.data;
     } catch (error) {
-      console.error('Get financial metrics error:', error);
-      // Return mock data as fallback
-      return {
-        period: {
-          start_date: '2023-04-01',
-          end_date: '2023-06-30'
-        },
-        summary: {
-          total_revenue: 85000,
-          total_expenses: 52000,
-          net_profit: 33000,
-          profit_margin: 38.8
-        },
-        invoices: {
-          total_invoiced: 95000,
-          paid_invoices: 85000,
-          pending_invoices: 8000,
-          overdue_invoices: 2000,
-          collection_rate: 89.5
-        },
-        monthly_breakdown: [
-          {
-            month: '2023-04',
-            income: 28000,
-            expense: 17000,
-            profit: 11000
-          },
-          {
-            month: '2023-05',
-            income: 27000,
-            expense: 16500,
-            profit: 10500
-          },
-          {
-            month: '2023-06',
-            income: 30000,
-            expense: 18500,
-            profit: 11500
-          }
-        ],
-        analysis: {
-          financial_health: {
-            status: 'good',
-            explanation: 'Overall financial health is good with positive trends in revenue and profitability.'
-          },
-          key_insights: [
-            'Revenue has increased by 7.1% in the last month',
-            'Expenses have slightly increased but at a slower rate than revenue',
-            'Collection rate is solid at 89.5%',
-            'Overdue invoices are at a manageable level'
-          ],
-          areas_of_concern: [
-            'Cash flow could be improved by reducing pending invoices'
-          ],
-          recommendations: [
-            {
-              area: 'Invoicing',
-              action: 'Send reminders for pending invoices over 15 days old'
-            },
-            {
-              area: 'Expenses',
-              action: 'Review recurring software subscriptions for possible consolidation'
-            }
-          ]
-        }
-      };
-    }
-  },
-  
-  getFinancialOverview: async () => {
-    try {
-      const response = await apiClient.get('/finance/data');
-      return response.data;
-    } catch (error) {
-      console.error('Get financial overview error:', error);
-      // Return sample data as fallback
-      return {
-        monthly_revenue: 42500,
-        annual_target: 500000,
-        growth_rate: 8.5,
-        client_acquisition: 3,
-        profit_margin: 38.5,
-        cash_flow_status: 'positive',
-        top_clients: [
-          { client_name: "Social Land", revenue: 12500 },
-          { client_name: "Koala Digital", revenue: 9800 },
-          { client_name: "Website Architect", revenue: 8750 },
-          { client_name: "AC Digital", revenue: 7200 },
-          { client_name: "Muse Digital", revenue: 4250 }
-        ],
-        monthly_trend: [
-          { month: "Jan", revenue: 38000, expenses: 23000 },
-          { month: "Feb", revenue: 39500, expenses: 24000 },
-          { month: "Mar", revenue: 37800, expenses: 23500 },
-          { month: "Apr", revenue: 40200, expenses: 24500 },
-          { month: "May", revenue: 41100, expenses: 25000 },
-          { month: "Jun", revenue: 42500, expenses: 26000 }
-        ],
-        sales_by_service: [
-          { service: "Web Development", value: 35 },
-          { service: "Graphic Design", value: 25 },
-          { service: "SEO", value: 20 },
-          { service: "Social Media", value: 15 },
-          { service: "Content Writing", value: 5 }
-        ]
-      };
-    }
-  },
-  
-  // Upsell opportunities
-  getUpsellOpportunities: async () => {
-    try {
-      const response = await apiClient.get('/finance/upsell-opportunities');
-      return response.data;
-    } catch (error) {
-      console.error('Get upsell opportunities error:', error);
-      // Return mock data as fallback
-      return [
-        {
-          client_id: 1,
-          client_name: "Social Land",
-          current_services: ["Web Development", "SEO"],
-          suggested_services: ["Social Media Management", "Content Creation"],
-          potential_value: 2800,
-          confidence_score: 0.85,
-          last_purchase_date: "2023-05-15"
-        },
-        {
-          client_id: 2,
-          client_name: "Koala Digital",
-          current_services: ["Graphic Design", "Web Development"],
-          suggested_services: ["SEO", "PPC Advertising"],
-          potential_value: 3500,
-          confidence_score: 0.78,
-          last_purchase_date: "2023-06-01"
-        },
-        {
-          client_id: 3,
-          client_name: "AC Digital",
-          current_services: ["Web Development"],
-          suggested_services: ["Maintenance Package", "SEO"],
-          potential_value: 1800,
-          confidence_score: 0.92,
-          last_purchase_date: "2023-04-22"
-        }
-      ];
-    }
-  },
-  
-  // Financial improvement plans
-  getFinancialPlans: async (status?: 'draft' | 'active' | 'completed') => {
-    try {
-      let url = '/finance/plans';
-      if (status) {
-        url += `?status=${status}`;
-      }
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get financial plans error:', error);
-      // Return mock data as fallback
-      return [
-        {
-          plan_id: 1,
-          title: "Q3 Profitability Improvement",
-          description: "Plan to increase profitability through cost optimization and revenue growth in Q3 2023",
-          goals: {
-            revenue_increase: 15,
-            cost_reduction: 8,
-            profit_margin_target: 45
-          },
-          strategies: [
-            {
-              title: "Optimize Service Delivery",
-              description: "Streamline workflows to reduce hours spent on recurring tasks",
-              priority: "high",
-              estimated_impact: 5000
-            },
-            {
-              title: "Focus on Upsell Opportunities",
-              description: "Target existing clients for additional services",
-              priority: "medium",
-              estimated_impact: 8000
-            },
-            {
-              title: "Review Software Subscriptions",
-              description: "Audit and consolidate software tools",
-              priority: "low",
-              estimated_impact: 1200
-            }
-          ],
-          timeline: "July - September 2023",
-          created_at: "2023-06-15",
-          status: "active"
-        }
-      ];
-    }
-  },
-  
-  createFinancialPlan: async (planData: Omit<FinancialPlan, 'plan_id' | 'created_at'>) => {
-    try {
-      const response = await apiClient.post('/finance/plans', planData);
-      return response.data;
-    } catch (error) {
-      console.error('Create financial plan error:', error);
+      console.error('Error analyzing team costs:', error);
       throw error;
     }
   }

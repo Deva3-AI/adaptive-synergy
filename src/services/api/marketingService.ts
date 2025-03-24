@@ -1,734 +1,440 @@
 
-import axios from 'axios';
-import { toast } from 'sonner';
+// Marketing Service API functions
 
-// Types for Marketing Service
-export interface MarketingLead {
-  id: string;
-  name: string;
-  company: string;
-  email: string;
-  phone: string;
-  status: 'new' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'closed' | 'lost';
-  source: string;
-  notes: string;
-  lastContactDate: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MarketingCampaign {
-  id: string;
-  name: string;
-  description: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
-  type: 'email' | 'social' | 'content' | 'event' | 'other';
-  startDate: string;
-  endDate: string;
-  budget: number;
-  spent: number;
-  roi: number;
-  leads: number;
-  conversions: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MarketingMeeting {
-  id: string;
-  title: string;
-  leadId: string;
-  leadName: string;
-  date: string;
-  time: string;
-  duration: number;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
-  notes: string;
-  summary: string;
-  actionItems: ActionItem[];
-  recordingUrl?: string;
-  transcriptUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ActionItem {
-  id: string;
-  description: string;
-  assignedTo: string;
-  dueDate: string;
-  status: 'pending' | 'in-progress' | 'completed';
-}
-
-export interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  body: string;
-  category: 'outreach' | 'follow-up' | 'proposal' | 'newsletter' | 'other';
-  variables: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MarketingAnalytics {
-  emailStats: {
-    sent: number;
-    opened: number;
-    clicked: number;
-    responded: number;
-    openRate: number;
-    clickRate: number;
-    responseRate: number;
-  };
-  leadStats: {
-    new: number;
-    contacted: number;
-    qualified: number;
-    proposal: number;
-    negotiation: number;
-    closed: number;
-    lost: number;
-    conversionRate: number;
-  };
-  meetingStats: {
-    scheduled: number;
-    completed: number;
-    cancelled: number;
-    noShow: number;
-    completionRate: number;
-  };
-  campaignPerformance: {
-    campaignId: string;
-    campaignName: string;
-    leads: number;
-    conversions: number;
-    roi: number;
-  }[];
-  trends: {
-    date: string;
-    leads: number;
-    meetings: number;
-    conversions: number;
-  }[];
-}
-
-export interface MarketingTrend {
-  id: string;
-  title: string;
-  description: string;
-  category: 'industry' | 'competitor' | 'market' | 'technology' | 'consumer';
-  impact: 'low' | 'medium' | 'high';
-  source: string;
-  date: string;
-}
-
-export interface MarketingStrategy {
-  id: string;
-  title: string;
-  description: string;
-  objectives: string[];
-  targetAudience: string[];
-  channels: string[];
-  tactics: {
-    name: string;
-    description: string;
-    priority: 'low' | 'medium' | 'high';
-    estimatedImpact: 'low' | 'medium' | 'high';
-    timeline: string;
-  }[];
-  kpis: {
-    name: string;
-    target: string;
-    currentValue: string;
-  }[];
-  budget: number;
-  timeline: {
-    startDate: string;
-    endDate: string;
-    milestones: {
-      name: string;
-      date: string;
-      status: 'pending' | 'in-progress' | 'completed' | 'delayed';
-    }[];
-  };
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Mock data
-const MOCK_MARKETING_LEADS: MarketingLead[] = [
-  {
-    id: '1',
-    name: 'John Smith',
-    company: 'Acme Corp',
-    email: 'john.smith@acmecorp.com',
-    phone: '(555) 123-4567',
-    status: 'contacted',
-    source: 'BNI Network',
-    notes: 'Met at networking event. Interested in web development services.',
-    lastContactDate: '2023-09-15T10:30:00',
-    createdAt: '2023-09-10T14:25:00',
-    updatedAt: '2023-09-15T10:35:00'
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    company: 'Johnson & Partners',
-    email: 'sarah@johnsonpartners.com',
-    phone: '(555) 987-6543',
-    status: 'qualified',
-    source: 'Website Contact Form',
-    notes: 'Looking for a complete rebrand and website redesign.',
-    lastContactDate: '2023-09-18T14:00:00',
-    createdAt: '2023-09-17T09:15:00',
-    updatedAt: '2023-09-18T14:10:00'
-  },
-  {
-    id: '3',
-    name: 'Michael Chen',
-    company: 'InnoTech Solutions',
-    email: 'mchen@innotech.com',
-    phone: '(555) 456-7890',
-    status: 'proposal',
-    source: 'LinkedIn',
-    notes: 'Needs help with digital marketing strategy. Budget: $10K-15K.',
-    lastContactDate: '2023-09-20T11:30:00',
-    createdAt: '2023-09-12T13:45:00',
-    updatedAt: '2023-09-20T11:40:00'
-  },
-  {
-    id: '4',
-    name: 'Emily Rodriguez',
-    company: 'Bright Ideas Marketing',
-    email: 'emily@brightideas.com',
-    phone: '(555) 234-5678',
-    status: 'negotiation',
-    source: 'Master Networks',
-    notes: 'Discussing partnership opportunities for client referrals.',
-    lastContactDate: '2023-09-22T15:30:00',
-    createdAt: '2023-09-05T10:00:00',
-    updatedAt: '2023-09-22T15:45:00'
-  },
-  {
-    id: '5',
-    name: 'David Wilson',
-    company: 'Wilson Enterprises',
-    email: 'david@wilsonent.com',
-    phone: '(555) 345-6789',
-    status: 'new',
-    source: 'Referral',
-    notes: 'Referred by Sarah Johnson. Needs e-commerce website.',
-    lastContactDate: '',
-    createdAt: '2023-09-23T09:30:00',
-    updatedAt: '2023-09-23T09:30:00'
-  }
-];
-
-const MOCK_MARKETING_CAMPAIGNS: MarketingCampaign[] = [
-  {
-    id: '1',
-    name: 'Fall 2023 Email Outreach',
-    description: 'Targeted email campaign to past clients and warm leads',
-    status: 'active',
-    type: 'email',
-    startDate: '2023-09-01',
-    endDate: '2023-10-31',
-    budget: 2500,
-    spent: 1200,
-    roi: 2.4,
-    leads: 15,
-    conversions: 3,
-    createdAt: '2023-08-15T10:00:00',
-    updatedAt: '2023-09-22T14:30:00'
-  },
-  {
-    id: '2',
-    name: 'LinkedIn Thought Leadership',
-    description: 'Regular posts and articles demonstrating expertise',
-    status: 'active',
-    type: 'social',
-    startDate: '2023-08-15',
-    endDate: '2023-12-15',
-    budget: 1000,
-    spent: 450,
-    roi: 3.1,
-    leads: 8,
-    conversions: 2,
-    createdAt: '2023-08-01T09:15:00',
-    updatedAt: '2023-09-21T11:20:00'
-  },
-  {
-    id: '3',
-    name: 'Local Business Networking',
-    description: 'BNI and Chamber of Commerce event attendance',
-    status: 'active',
-    type: 'event',
-    startDate: '2023-09-01',
-    endDate: '2023-11-30',
-    budget: 1500,
-    spent: 600,
-    roi: 1.8,
-    leads: 12,
-    conversions: 1,
-    createdAt: '2023-08-20T14:30:00',
-    updatedAt: '2023-09-23T09:45:00'
-  },
-  {
-    id: '4',
-    name: 'Website SEO Optimization',
-    description: 'Improving search rankings for key services',
-    status: 'draft',
-    type: 'content',
-    startDate: '2023-10-01',
-    endDate: '2023-12-31',
-    budget: 3000,
-    spent: 0,
-    roi: 0,
-    leads: 0,
-    conversions: 0,
-    createdAt: '2023-09-15T13:20:00',
-    updatedAt: '2023-09-15T13:20:00'
-  }
-];
-
-const MOCK_MARKETING_MEETINGS: MarketingMeeting[] = [
-  {
-    id: '1',
-    title: 'Initial Consultation',
-    leadId: '3',
-    leadName: 'Michael Chen',
-    date: '2023-09-20',
-    time: '11:30:00',
-    duration: 60,
-    status: 'completed',
-    notes: 'Discussed digital marketing needs for Q4 2023',
-    summary: 'Client needs complete digital marketing strategy including social media, content, and email marketing. Budget of $10K-15K for Q4.',
-    actionItems: [
-      {
-        id: '1a',
-        description: 'Send proposal with detailed scope and pricing',
-        assignedTo: 'John Doe',
-        dueDate: '2023-09-25',
-        status: 'pending'
-      },
-      {
-        id: '1b',
-        description: 'Share case studies of similar clients',
-        assignedTo: 'Jane Smith',
-        dueDate: '2023-09-22',
-        status: 'completed'
-      }
-    ],
-    recordingUrl: 'https://example.com/recordings/meeting1',
-    transcriptUrl: 'https://example.com/transcripts/meeting1',
-    createdAt: '2023-09-19T10:15:00',
-    updatedAt: '2023-09-20T12:45:00'
-  },
-  {
-    id: '2',
-    title: 'Project Kickoff',
-    leadId: '4',
-    leadName: 'Emily Rodriguez',
-    date: '2023-09-22',
-    time: '15:30:00',
-    duration: 45,
-    status: 'completed',
-    notes: 'Discussed partnership terms and referral process',
-    summary: 'Agreed to establish formal referral partnership. They will refer web design clients, we refer marketing clients. 10% commission on projects that convert.',
-    actionItems: [
-      {
-        id: '2a',
-        description: 'Draft partnership agreement',
-        assignedTo: 'John Doe',
-        dueDate: '2023-09-29',
-        status: 'in-progress'
-      },
-      {
-        id: '2b',
-        description: 'Create shared resource folder',
-        assignedTo: 'Jane Smith',
-        dueDate: '2023-09-26',
-        status: 'pending'
-      }
-    ],
-    recordingUrl: 'https://example.com/recordings/meeting2',
-    transcriptUrl: 'https://example.com/transcripts/meeting2',
-    createdAt: '2023-09-21T09:30:00',
-    updatedAt: '2023-09-22T16:15:00'
-  },
-  {
-    id: '3',
-    title: 'Discovery Call',
-    leadId: '5',
-    leadName: 'David Wilson',
-    date: '2023-09-25',
-    time: '10:00:00',
-    duration: 30,
-    status: 'scheduled',
-    notes: 'Initial call to discuss e-commerce website needs',
-    summary: '',
-    actionItems: [],
-    createdAt: '2023-09-23T10:15:00',
-    updatedAt: '2023-09-23T10:15:00'
-  }
-];
-
-const MOCK_EMAIL_TEMPLATES: EmailTemplate[] = [
-  {
-    id: '1',
-    name: 'Initial Outreach',
-    subject: 'Let\'s connect about your {{business_type}} business',
-    body: 'Hi {{first_name}},\n\nI hope this email finds you well. I recently came across {{company_name}} and was impressed by your work in the {{industry}} industry.\n\nOur team at Hive specializes in helping businesses like yours with digital growth and streamlined operations.\n\nWould you be open to a quick 15-minute call to explore if we might be a good fit to work together?\n\nBest regards,\n{{sender_name}}',
-    category: 'outreach',
-    variables: ['first_name', 'company_name', 'business_type', 'industry', 'sender_name'],
-    createdAt: '2023-08-10T09:00:00',
-    updatedAt: '2023-09-05T14:30:00'
-  },
-  {
-    id: '2',
-    name: 'Meeting Follow-up',
-    subject: 'Thank you for our conversation about {{topic}}',
-    body: 'Hi {{first_name}},\n\nThank you for taking the time to meet with me today. I enjoyed learning more about {{company_name}} and your goals for the upcoming {{timeframe}}.\n\nAs promised, I\'ve attached {{attachment_description}} for your review.\n\nPlease let me know if you have any questions or need additional information. I look forward to our next steps.\n\nBest regards,\n{{sender_name}}',
-    category: 'follow-up',
-    variables: ['first_name', 'company_name', 'topic', 'timeframe', 'attachment_description', 'sender_name'],
-    createdAt: '2023-08-15T10:30:00',
-    updatedAt: '2023-09-10T11:45:00'
-  },
-  {
-    id: '3',
-    name: 'Proposal Delivery',
-    subject: 'Your custom proposal for {{project_type}}',
-    body: 'Hi {{first_name}},\n\nI\'m excited to share our proposal for your {{project_type}} project at {{company_name}}.\n\nThe attached document outlines our understanding of your requirements, our proposed approach, timeline, and investment.\n\nI\'d be happy to schedule a call to walk through the details and answer any questions you might have.\n\nLooking forward to your feedback.\n\nBest regards,\n{{sender_name}}',
-    category: 'proposal',
-    variables: ['first_name', 'company_name', 'project_type', 'sender_name'],
-    createdAt: '2023-08-20T13:15:00',
-    updatedAt: '2023-09-15T16:20:00'
-  }
-];
-
-const MOCK_MARKETING_ANALYTICS: MarketingAnalytics = {
-  emailStats: {
-    sent: 250,
-    opened: 125,
-    clicked: 50,
-    responded: 20,
-    openRate: 50,
-    clickRate: 40,
-    responseRate: 16
-  },
-  leadStats: {
-    new: 35,
-    contacted: 28,
-    qualified: 20,
-    proposal: 15,
-    negotiation: 8,
-    closed: 5,
-    lost: 10,
-    conversionRate: 14.3
-  },
-  meetingStats: {
-    scheduled: 30,
-    completed: 25,
-    cancelled: 3,
-    noShow: 2,
-    completionRate: 83.3
-  },
-  campaignPerformance: [
-    {
-      campaignId: '1',
-      campaignName: 'Fall 2023 Email Outreach',
-      leads: 15,
-      conversions: 3,
-      roi: 2.4
-    },
-    {
-      campaignId: '2',
-      campaignName: 'LinkedIn Thought Leadership',
-      leads: 8,
-      conversions: 2,
-      roi: 3.1
-    },
-    {
-      campaignId: '3',
-      campaignName: 'Local Business Networking',
-      leads: 12,
-      conversions: 1,
-      roi: 1.8
+export const marketingService = {
+  // Campaign related functions
+  getCampaigns: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          name: 'Summer Promotion',
+          type: 'email',
+          status: 'active',
+          start_date: '2023-06-01',
+          end_date: '2023-06-30',
+          target_audience: 'small_business',
+          budget: 5000,
+          metrics: {
+            sent: 2500,
+            opened: 1200,
+            clicked: 500,
+            converted: 75
+          }
+        },
+        {
+          id: 2,
+          name: 'Product Launch',
+          type: 'social_media',
+          status: 'planned',
+          start_date: '2023-07-15',
+          end_date: '2023-08-15',
+          target_audience: 'enterprise',
+          budget: 10000,
+          metrics: null
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting campaigns:', error);
+      throw error;
     }
-  ],
-  trends: [
-    { date: '2023-07-01', leads: 8, meetings: 5, conversions: 1 },
-    { date: '2023-08-01', leads: 12, meetings: 8, conversions: 2 },
-    { date: '2023-09-01', leads: 15, meetings: 12, conversions: 3 }
-  ]
-};
-
-const MOCK_MARKETING_TRENDS: MarketingTrend[] = [
-  {
-    id: '1',
-    title: 'AI-Powered Content Creation',
-    description: 'Businesses are increasingly using AI tools to generate and optimize marketing content, reducing costs and improving personalization.',
-    category: 'technology',
-    impact: 'high',
-    source: 'Industry Report',
-    date: '2023-09-10'
   },
-  {
-    id: '2',
-    title: 'Video Marketing Dominance',
-    description: 'Short-form video content continues to see the highest engagement rates across platforms, with businesses investing more in this format.',
-    category: 'industry',
-    impact: 'high',
-    source: 'Market Analysis',
-    date: '2023-09-05'
-  },
-  {
-    id: '3',
-    title: 'Competitor X New Service Launch',
-    description: 'Competitor X has launched a new service bundle combining web design and ongoing marketing support for a monthly subscription.',
-    category: 'competitor',
-    impact: 'medium',
-    source: 'Competitor Website',
-    date: '2023-09-15'
-  },
-  {
-    id: '4',
-    title: 'Privacy-First Marketing',
-    description: 'With increased privacy regulations and cookie deprecation, businesses are shifting to first-party data collection and contextual targeting.',
-    category: 'market',
-    impact: 'medium',
-    source: 'Industry News',
-    date: '2023-08-28'
-  }
-];
-
-const MOCK_MARKETING_STRATEGY: MarketingStrategy = {
-  id: '1',
-  title: 'Q4 2023 Growth Strategy',
-  description: 'Comprehensive marketing strategy to drive lead generation and conversions for Q4 2023.',
-  objectives: [
-    'Increase qualified leads by 25%',
-    'Improve conversion rate to 20%',
-    'Establish thought leadership in key service areas',
-    'Expand network of strategic partnerships'
-  ],
-  targetAudience: [
-    'Small to medium businesses (10-100 employees)',
-    'Professional service firms',
-    'E-commerce businesses',
-    'Local businesses in Greater Portland area'
-  ],
-  channels: [
-    'Email marketing',
-    'LinkedIn',
-    'Networking events',
-    'Content marketing',
-    'Strategic partnerships'
-  ],
-  tactics: [
-    {
-      name: 'Targeted Email Campaign',
-      description: 'Two-phase email campaign to warm leads and past clients highlighting end-of-year services.',
-      priority: 'high',
-      estimatedImpact: 'high',
-      timeline: '10/1 - 11/30'
-    },
-    {
-      name: 'LinkedIn Thought Leadership',
-      description: 'Weekly articles and posts demonstrating expertise and sharing insights.',
-      priority: 'medium',
-      estimatedImpact: 'medium',
-      timeline: '10/1 - 12/31'
-    },
-    {
-      name: 'Case Study Development',
-      description: 'Create 3 detailed case studies highlighting recent successful projects.',
-      priority: 'medium',
-      estimatedImpact: 'medium',
-      timeline: '10/1 - 10/31'
-    },
-    {
-      name: 'Networking Event Attendance',
-      description: 'Attend at least 6 industry and local business networking events.',
-      priority: 'high',
-      estimatedImpact: 'high',
-      timeline: '10/1 - 12/31'
+  
+  createCampaign: async (campaignData: any) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        id: 3,
+        ...campaignData,
+        created_at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      throw error;
     }
-  ],
-  kpis: [
-    {
-      name: 'New qualified leads',
-      target: '25',
-      currentValue: '0'
-    },
-    {
-      name: 'Conversion rate',
-      target: '20%',
-      currentValue: '14.3%'
-    },
-    {
-      name: 'New partnerships',
-      target: '3',
-      currentValue: '0'
-    }
-  ],
-  budget: 7500,
-  timeline: {
-    startDate: '2023-10-01',
-    endDate: '2023-12-31',
-    milestones: [
-      {
-        name: 'Strategy finalization',
-        date: '2023-09-30',
-        status: 'in-progress'
-      },
-      {
-        name: 'Email campaign launch',
-        date: '2023-10-05',
-        status: 'pending'
-      },
-      {
-        name: 'Case studies published',
-        date: '2023-10-31',
-        status: 'pending'
-      },
-      {
-        name: 'Mid-quarter review',
-        date: '2023-11-15',
-        status: 'pending'
-      }
-    ]
   },
-  createdAt: '2023-09-15T10:00:00',
-  updatedAt: '2023-09-22T14:30:00'
-};
-
-// API functions
-export const getMarketingLeads = async (): Promise<MarketingLead[]> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/leads');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_MARKETING_LEADS;
-  } catch (error) {
-    console.error('Error fetching marketing leads:', error);
-    toast.error('Failed to fetch marketing leads');
-    return [];
+  
+  // Meeting related functions
+  getMeetings: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          leadName: 'John Smith',
+          leadCompany: 'ABC Corp',
+          scheduledTime: '2023-06-15T10:00:00',
+          duration: 60,
+          platform: 'zoom',
+          status: 'scheduled',
+          agenda: 'Discuss service packages and pricing',
+          attendees: ['Sales Rep', 'Marketing Manager']
+        },
+        {
+          id: 2,
+          leadName: 'Sarah Johnson',
+          leadCompany: 'XYZ Inc',
+          scheduledTime: '2023-06-10T14:00:00',
+          duration: 45,
+          platform: 'google_meet',
+          status: 'completed',
+          agenda: 'Product demo and Q&A',
+          attendees: ['Sales Rep', 'Product Specialist']
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting meetings:', error);
+      throw error;
+    }
+  },
+  
+  createMeeting: async (meetingData: any) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        id: 3,
+        ...meetingData,
+        created_at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      throw error;
+    }
+  },
+  
+  // Analytics related functions
+  getAnalytics: async (startDate?: string, endDate?: string) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        email: {
+          sent: 5000,
+          opened: 2500,
+          clicked: 1000,
+          conversion_rate: 0.05,
+          trend: 'increasing'
+        },
+        social_media: {
+          impressions: 50000,
+          engagement: 5000,
+          clicks: 3000,
+          conversion_rate: 0.02,
+          trend: 'stable'
+        },
+        website: {
+          visitors: 15000,
+          page_views: 45000,
+          avg_session: 180, // seconds
+          bounce_rate: 0.35,
+          trend: 'decreasing'
+        }
+      };
+    } catch (error) {
+      console.error('Error getting analytics:', error);
+      throw error;
+    }
+  },
+  
+  // Additional functions to address the missing methods
+  getEmailOutreach: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          recipient: 'john.doe@example.com',
+          recipientCompany: 'ABC Inc.',
+          subject: 'Introduction to Our Services',
+          content: 'Hello John, I wanted to introduce our company...',
+          status: 'sent',
+          sentAt: '2023-06-05T10:30:00',
+          source: 'cold_outreach',
+          followUpScheduled: false
+        },
+        {
+          id: 2,
+          recipient: 'jane.smith@example.com',
+          recipientCompany: 'XYZ Corp',
+          subject: 'Follow-up on our discussion',
+          content: 'Hello Jane, I'm following up on our conversation...',
+          status: 'opened',
+          sentAt: '2023-06-03T14:15:00',
+          source: 'referral',
+          followUpScheduled: true
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting email outreach data:', error);
+      throw error;
+    }
+  },
+  
+  getLeads: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          name: 'John Doe',
+          company: 'ABC Inc.',
+          position: 'Marketing Director',
+          email: 'john.doe@example.com',
+          phone: '+1234567890',
+          status: 'new',
+          source: 'Website',
+          score: 85,
+          lastContactedAt: '2023-06-01T10:30:00'
+        },
+        {
+          id: 2,
+          name: 'Jane Smith',
+          company: 'XYZ Corp',
+          position: 'CEO',
+          email: 'jane.smith@example.com',
+          phone: '+0987654321',
+          status: 'contacted',
+          source: 'Referral',
+          score: 92,
+          lastContactedAt: '2023-05-28T14:15:00'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting leads:', error);
+      throw error;
+    }
+  },
+  
+  getEmailTemplates: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          name: 'Initial Outreach',
+          subject: 'Introduction to Our Services',
+          content: 'Hello {{name}}, I wanted to introduce our company...',
+          variables: ['name', 'company'],
+          category: 'cold_outreach',
+          created_at: '2023-05-10T10:00:00'
+        },
+        {
+          id: 2,
+          name: 'Follow-up Template',
+          subject: 'Following up on our conversation',
+          content: 'Hello {{name}}, I'm following up on our conversation about {{topic}}...',
+          variables: ['name', 'topic', 'meeting_date'],
+          category: 'follow_up',
+          created_at: '2023-05-15T14:30:00'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting email templates:', error);
+      throw error;
+    }
+  },
+  
+  getMarketingPlans: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return [
+        {
+          id: 1,
+          title: 'Q3 Growth Strategy',
+          description: 'Comprehensive marketing plan for Q3 2023',
+          status: 'active',
+          start_date: '2023-07-01',
+          end_date: '2023-09-30',
+          channels: ['email', 'social_media', 'content'],
+          owner: 'Marketing Team',
+          created_at: '2023-06-10T10:00:00'
+        },
+        {
+          id: 2,
+          title: 'Product Launch Campaign',
+          description: 'Marketing plan for the launch of Product X',
+          status: 'draft',
+          start_date: '2023-08-15',
+          end_date: '2023-09-15',
+          channels: ['email', 'paid_ads', 'webinar'],
+          owner: 'Product Marketing',
+          created_at: '2023-06-05T14:30:00'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting marketing plans:', error);
+      throw error;
+    }
+  },
+  
+  getMarketingPlanById: async (planId: number) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        id: planId,
+        title: 'Q3 Growth Strategy',
+        description: 'Comprehensive marketing plan for Q3 2023',
+        status: 'active',
+        start_date: '2023-07-01',
+        end_date: '2023-09-30',
+        channels: ['email', 'social_media', 'content'],
+        owner: 'Marketing Team',
+        created_at: '2023-06-10T10:00:00',
+        goals: [
+          { id: 1, description: 'Increase lead generation by 25%', status: 'in_progress' },
+          { id: 2, description: 'Improve email open rates to 35%', status: 'not_started' },
+          { id: 3, description: 'Generate 50 qualified sales opportunities', status: 'not_started' }
+        ],
+        activities: [
+          { id: 1, title: 'Refresh email templates', assignee: 'Jane Doe', status: 'completed', due_date: '2023-06-20' },
+          { id: 2, title: 'Create content calendar', assignee: 'John Smith', status: 'in_progress', due_date: '2023-06-25' },
+          { id: 3, title: 'Set up analytics tracking', assignee: 'Alice Johnson', status: 'not_started', due_date: '2023-06-30' }
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting marketing plan:', error);
+      throw error;
+    }
+  },
+  
+  getMarketingMetrics: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        lead_generation: {
+          current_month: 120,
+          previous_month: 95,
+          growth_rate: 26.3,
+          breakdown: {
+            website: 45,
+            social_media: 25,
+            paid_ads: 30,
+            referrals: 20
+          }
+        },
+        conversion_rates: {
+          lead_to_mql: 0.65,
+          mql_to_sql: 0.40,
+          sql_to_opportunity: 0.30,
+          opportunity_to_closed: 0.25,
+          overall: 0.02
+        },
+        channel_performance: [
+          { name: 'Email', roi: 3.5, cost_per_lead: 20, trend: 'stable' },
+          { name: 'Social Media', roi: 2.8, cost_per_lead: 25, trend: 'increasing' },
+          { name: 'Paid Search', roi: 4.2, cost_per_lead: 35, trend: 'stable' },
+          { name: 'Content Marketing', roi: 5.1, cost_per_lead: 15, trend: 'increasing' }
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting marketing metrics:', error);
+      throw error;
+    }
+  },
+  
+  getMarketingTrends: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        industry_trends: [
+          { 
+            title: 'Increased focus on video content',
+            description: 'Short-form video content continues to gain traction across platforms',
+            relevance: 'high'
+          },
+          { 
+            title: 'AI in marketing automation',
+            description: 'More companies are adopting AI to personalize marketing and improve targeting',
+            relevance: 'medium'
+          },
+          { 
+            title: 'Privacy-first marketing',
+            description: 'Shift towards privacy-respecting marketing tactics due to regulatory changes',
+            relevance: 'high'
+          }
+        ],
+        keyword_trends: [
+          { keyword: 'sustainable business', growth_rate: 0.35, volume: 'medium' },
+          { keyword: 'remote work solutions', growth_rate: 0.20, volume: 'high' },
+          { keyword: 'digital transformation', growth_rate: 0.15, volume: 'high' }
+        ],
+        platform_trends: [
+          { platform: 'LinkedIn', trend: 'increasing', audience_growth: 0.18 },
+          { platform: 'TikTok', trend: 'rapidly increasing', audience_growth: 0.45 },
+          { platform: 'Facebook', trend: 'stable', audience_growth: 0.05 }
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting marketing trends:', error);
+      throw error;
+    }
+  },
+  
+  getCompetitorInsights: async () => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        competitors: [
+          {
+            name: 'Competitor A',
+            strengths: ['Strong brand recognition', 'Advanced feature set'],
+            weaknesses: ['Higher pricing', 'Complex onboarding'],
+            market_share: 0.35,
+            recent_activities: [
+              'Launched new premium tier',
+              'Increased focus on enterprise clients'
+            ]
+          },
+          {
+            name: 'Competitor B',
+            strengths: ['Aggressive pricing', 'Simple user interface'],
+            weaknesses: ['Limited feature set', 'Less robust support'],
+            market_share: 0.25,
+            recent_activities: [
+              'Introduced freemium model',
+              'Expanded into international markets'
+            ]
+          }
+        ],
+        positioning_opportunities: [
+          'Focus on ease-of-use and robust support as differentiators',
+          'Target mid-market segment underserved by main competitors',
+          'Emphasize integration capabilities with existing tools'
+        ],
+        content_gaps: [
+          'In-depth tutorials and implementation guides',
+          'Case studies for specific industry verticals',
+          'ROI calculators and value demonstration tools'
+        ]
+      };
+    } catch (error) {
+      console.error('Error getting competitor insights:', error);
+      throw error;
+    }
+  },
+  
+  analyzeMeetingTranscript: async (transcript: string) => {
+    try {
+      // Mock API call - in a real app, this would call your backend API
+      return {
+        summary: 'Client is interested in our services but has concerns about implementation timeline',
+        key_points: [
+          'Budget range is $10-15k',
+          'Looking for implementation within 4 weeks',
+          'Requires integration with existing CRM'
+        ],
+        sentiment: 'neutral',
+        action_items: [
+          { description: 'Send proposal with detailed timeline', assignee: 'Sales Team', priority: 'high' },
+          { description: 'Schedule technical call to discuss CRM integration', assignee: 'Solution Architect', priority: 'medium' }
+        ],
+        follow_up_date: '2023-06-15'
+      };
+    } catch (error) {
+      console.error('Error analyzing meeting transcript:', error);
+      throw error;
+    }
   }
 };
 
-export const getMarketingCampaigns = async (): Promise<MarketingCampaign[]> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/campaigns');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_MARKETING_CAMPAIGNS;
-  } catch (error) {
-    console.error('Error fetching marketing campaigns:', error);
-    toast.error('Failed to fetch marketing campaigns');
-    return [];
-  }
-};
-
-export const getMarketingMeetings = async (): Promise<MarketingMeeting[]> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/meetings');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_MARKETING_MEETINGS;
-  } catch (error) {
-    console.error('Error fetching marketing meetings:', error);
-    toast.error('Failed to fetch marketing meetings');
-    return [];
-  }
-};
-
-export const getEmailTemplates = async (): Promise<EmailTemplate[]> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/email-templates');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_EMAIL_TEMPLATES;
-  } catch (error) {
-    console.error('Error fetching email templates:', error);
-    toast.error('Failed to fetch email templates');
-    return [];
-  }
-};
-
-export const getMarketingAnalytics = async (): Promise<MarketingAnalytics> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/analytics');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_MARKETING_ANALYTICS;
-  } catch (error) {
-    console.error('Error fetching marketing analytics:', error);
-    toast.error('Failed to fetch marketing analytics');
-    return {
-      emailStats: { sent: 0, opened: 0, clicked: 0, responded: 0, openRate: 0, clickRate: 0, responseRate: 0 },
-      leadStats: { new: 0, contacted: 0, qualified: 0, proposal: 0, negotiation: 0, closed: 0, lost: 0, conversionRate: 0 },
-      meetingStats: { scheduled: 0, completed: 0, cancelled: 0, noShow: 0, completionRate: 0 },
-      campaignPerformance: [],
-      trends: []
-    };
-  }
-};
-
-export const getMarketingTrends = async (): Promise<MarketingTrend[]> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/trends');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_MARKETING_TRENDS;
-  } catch (error) {
-    console.error('Error fetching marketing trends:', error);
-    toast.error('Failed to fetch marketing trends');
-    return [];
-  }
-};
-
-export const getMarketingStrategy = async (): Promise<MarketingStrategy> => {
-  try {
-    // This would normally be an API call
-    // const response = await axios.get('/api/marketing/strategy');
-    // return response.data;
-    
-    // Using mock data for development
-    return MOCK_MARKETING_STRATEGY;
-  } catch (error) {
-    console.error('Error fetching marketing strategy:', error);
-    toast.error('Failed to fetch marketing strategy');
-    return {
-      id: '',
-      title: '',
-      description: '',
-      objectives: [],
-      targetAudience: [],
-      channels: [],
-      tactics: [],
-      kpis: [],
-      budget: 0,
-      timeline: {
-        startDate: '',
-        endDate: '',
-        milestones: []
-      },
-      createdAt: '',
-      updatedAt: ''
-    };
-  }
-};
+export default marketingService;

@@ -1,84 +1,74 @@
 
-import clientService from '@/services/api/clientService';
-import platformAnalysisService from '@/services/api/platformAnalysisService';
+// Define the types for platform messages
+export type PlatformType = 'slack' | 'discord' | 'email' | 'trello' | 'other';
+
+export interface PlatformMessage {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+  platform: PlatformType;
+}
 
 export class KnowledgeExtractor {
-  async extractClientKnowledge(clientId: number) {
+  static async buildKnowledgeBase(
+    clients: any[],
+    tasks: any[],
+    employees: any[],
+    platformMessages: any[]
+  ) {
     try {
-      console.log(`Extracting knowledge for client ID: ${clientId}`);
-      
-      // Get client details
-      const client = await clientService.getClientById(clientId);
-      if (!client) {
-        throw new Error(`Client with ID ${clientId} not found`);
-      }
-      
-      // Get client communication data
-      const communications = await this.getClientCommunications(clientId);
-      
-      // Extract preferences and requirements
-      const preferences = await clientService.getClientPreferences(clientId);
-      const history = await clientService.getClientHistory(clientId);
-      
-      // Analyze communications
-      const analysisMessages = communications.map(comm => ({
-        id: comm.id || String(Math.random()),
-        content: comm.content,
-        sender: comm.sender,
-        timestamp: comm.timestamp,
-        platform: comm.platform
+      // Process and convert platform messages to expected format
+      const formattedMessages = platformMessages.map(msg => ({
+        ...msg,
+        platform: (msg.platform || 'other') as PlatformType
       }));
       
-      const platformAnalysis = platformAnalysisService.analyzePlatformMessages(
-        analysisMessages,
-        'all'
-      );
-      
-      return {
-        client,
-        preferences,
-        history,
-        analysis: platformAnalysis,
-        keyInsights: this.extractKeyInsights(platformAnalysis, preferences, history)
+      // Build knowledge base from various data sources
+      const knowledgeBase = {
+        clients: {
+          clientCount: clients.length,
+          activeClients: clients.filter((c: any) => c.status === 'active').length,
+          topClients: clients.slice(0, 3).map((c: any) => c.client_name || c.name),
+          industries: [...new Set(clients.map((c: any) => c.industry).filter(Boolean))],
+        },
+        tasks: {
+          total: tasks.length,
+          completed: tasks.filter((t: any) => t.status === 'completed').length,
+          inProgress: tasks.filter((t: any) => t.status === 'in_progress').length,
+          pending: tasks.filter((t: any) => t.status === 'pending').length,
+          overdue: tasks.filter((t: any) => {
+            if (!t.due_date) return false;
+            return new Date(t.due_date) < new Date() && t.status !== 'completed';
+          }).length,
+          completionRate: `${tasks.length > 0 
+            ? Math.round((tasks.filter((t: any) => t.status === 'completed').length / tasks.length) * 100) 
+            : 0}%`
+        },
+        employees: {
+          employeeCount: employees.length,
+          departments: [...new Set(employees.map((e: any) => e.department).filter(Boolean))],
+          roles: [...new Set(employees.map((e: any) => e.role).filter(Boolean))],
+        },
+        communication: {
+          recentMessages: formattedMessages.slice(-10),
+          platforms: [...new Set(formattedMessages.map(m => m.platform))],
+          messageCount: formattedMessages.length,
+        }
       };
+      
+      return knowledgeBase;
     } catch (error) {
-      console.error('Error in extractClientKnowledge:', error);
-      return null;
+      console.error('Error building knowledge base:', error);
+      // Return a minimal knowledge base on error
+      return {
+        clients: { clientCount: 0 },
+        tasks: { total: 0, completionRate: '0%' },
+        employees: { employeeCount: 0 },
+        communication: { messageCount: 0 }
+      };
     }
-  }
-  
-  private async getClientCommunications(clientId: number) {
-    // This would typically fetch from an API
-    // For now, return mock data
-    return [
-      {
-        id: '1',
-        content: 'We need a minimalist design for the new landing page',
-        sender: 'Client Representative',
-        timestamp: new Date().toISOString(),
-        platform: 'slack'
-      },
-      {
-        id: '2',
-        content: 'Please use our brand colors (blue #1a73e8 and green #34a853)',
-        sender: 'Marketing Manager',
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        platform: 'email'
-      }
-    ];
-  }
-  
-  private extractKeyInsights(analysis: any, preferences: any[], history: any[]) {
-    // Extract key insights from the analysis, preferences, and history
-    // This would typically involve NLP or other AI techniques
-    // For now, return mock insights
-    return [
-      'Client prefers minimalist designs with clean typography',
-      'Response time is critical - aim to deliver within agreed timelines',
-      'Brand consistency across deliverables is highly valued'
-    ];
   }
 }
 
-const knowledgeExtractor = new KnowledgeExtractor();
-export default knowledgeExtractor;
+export default KnowledgeExtractor;
