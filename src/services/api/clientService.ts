@@ -1,6 +1,16 @@
 
 import apiClient from '@/utils/apiUtils';
 
+// Define the Brand type that is referenced in the code
+export interface Brand {
+  id: number;
+  name: string;
+  description: string;
+  logo?: string;
+  client_id: number;
+  created_at?: string;
+}
+
 const clientService = {
   getClients: async () => {
     try {
@@ -76,6 +86,39 @@ const clientService = {
       throw error;
     }
   },
+
+  // Add the missing methods
+  getClientBrands: async (clientId: number) => {
+    try {
+      const response = await apiClient.get(`/client/clients/${clientId}/brands`);
+      return response.data;
+    } catch (error) {
+      console.error('Get client brands error:', error);
+      // Return mock data to prevent UI errors
+      return [];
+    }
+  },
+
+  getBrandTasks: async (brandId: number) => {
+    try {
+      const response = await apiClient.get(`/client/brands/${brandId}/tasks`);
+      return response.data;
+    } catch (error) {
+      console.error('Get brand tasks error:', error);
+      // Return mock data to prevent UI errors
+      return [];
+    }
+  },
+
+  createBrand: async (clientId: number, brandData: { name: string, description: string }) => {
+    try {
+      const response = await apiClient.post(`/client/clients/${clientId}/brands`, brandData);
+      return response.data;
+    } catch (error) {
+      console.error('Create brand error:', error);
+      throw error;
+    }
+  }
 };
 
 export default clientService;

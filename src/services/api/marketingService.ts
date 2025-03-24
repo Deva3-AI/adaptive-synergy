@@ -2,13 +2,14 @@
 import apiClient from '@/utils/apiUtils';
 
 export const marketingService = {
+  // Campaign management
   getCampaigns: async () => {
     try {
       const response = await apiClient.get('/marketing/campaigns');
       return response.data;
     } catch (error) {
       console.error('Get campaigns error:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -22,13 +23,14 @@ export const marketingService = {
     }
   },
   
+  // Meeting management
   getMeetings: async () => {
     try {
       const response = await apiClient.get('/marketing/meetings');
       return response.data;
     } catch (error) {
       console.error('Get meetings error:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -42,53 +44,55 @@ export const marketingService = {
     }
   },
   
+  // Analytics
   getAnalytics: async (startDate?: string, endDate?: string) => {
     try {
-      let url = '/marketing/analytics';
       const params = new URLSearchParams();
-      
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
       
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(`/marketing/analytics?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Get analytics error:', error);
-      throw error;
+      return { data: [] };
     }
   },
   
+  // Add missing methods
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
       return response.data;
     } catch (error) {
       console.error('Get email templates error:', error);
-      throw error;
+      return [];
     }
   },
   
-  getEmailOutreach: async () => {
+  getEmailOutreach: async (status?: string) => {
     try {
-      const response = await apiClient.get('/marketing/email-outreach');
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      
+      const response = await apiClient.get(`/marketing/email-outreach?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Get email outreach error:', error);
-      throw error;
+      return [];
     }
   },
   
-  getLeads: async () => {
+  getLeads: async (status?: string) => {
     try {
-      const response = await apiClient.get('/marketing/leads');
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      
+      const response = await apiClient.get(`/marketing/leads?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Get leads error:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -98,7 +102,7 @@ export const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Get marketing plans error:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -107,7 +111,7 @@ export const marketingService = {
       const response = await apiClient.get(`/marketing/plans/${planId}`);
       return response.data;
     } catch (error) {
-      console.error('Get marketing plan by ID error:', error);
+      console.error('Get marketing plan error:', error);
       throw error;
     }
   },
@@ -118,7 +122,7 @@ export const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Get marketing trends error:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -128,7 +132,7 @@ export const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Get competitor insights error:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -138,7 +142,11 @@ export const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Analyze meeting transcript error:', error);
-      throw error;
+      return {
+        key_points: [],
+        action_items: [],
+        sentiment: 'neutral'
+      };
     }
   },
   
@@ -148,7 +156,9 @@ export const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Get marketing metrics error:', error);
-      throw error;
+      return {};
     }
-  },
+  }
 };
+
+export default marketingService;

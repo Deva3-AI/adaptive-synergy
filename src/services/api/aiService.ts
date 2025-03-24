@@ -27,7 +27,8 @@ export const aiService = {
         key_points: [],
         suggested_approach: "No suggestions available.",
         estimated_complexity: "Unknown",
-        risks: []
+        risks: [],
+        suggestedTasks: [] // Adding this for compatibility
       };
     }
   },
@@ -51,4 +52,20 @@ export const aiService = {
       return { insights: [] };
     }
   },
+
+  // Add the getAssistantResponse method that's missing
+  getAssistantResponse: async (message: string, context: any) => {
+    try {
+      const response = await apiClient.post('/ai/assistant', {
+        message,
+        context
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get AI assistant response error:', error);
+      return { 
+        message: "I apologize, but I'm having trouble processing your request right now."
+      };
+    }
+  }
 };

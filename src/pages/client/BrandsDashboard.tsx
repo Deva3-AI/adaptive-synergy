@@ -1,191 +1,348 @@
-
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import clientService, { Brand } from '@/services/api/clientService';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brand } from "@/services/api/clientService";
-import { BarChart, PieChart, Clock, Users, CheckCircle, FileText, Plus, Briefcase, MessageSquare } from "lucide-react";
-import ClientBrandsList from "@/components/client/ClientBrandsList";
-import ClientPlatformMessages from "@/components/client/ClientPlatformMessages";
-import ClientAIInsights from "@/components/client/ClientAIInsights";
-import ClientTimeReporting from "@/components/client/ClientTimeReporting";
-import clientService from "@/services/api/clientService";
-import platformService from "@/utils/platformIntegrations";
-import { toast } from "sonner";
-
-// Sample client data - in a real app, this would come from API
-const clientId = 1; // This would normally come from route params or context
-const clientName = "Social Land";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, XCircle, Search } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useParams } from 'react-router-dom';
 
 const BrandsDashboard = () => {
+  const { clientId } = useParams<{ clientId: string }>();
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
-  
+  const [isAddBrandDialogOpen, setIsAddBrandDialogOpen] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [newBrandDescription, setNewBrandDescription] = useState('');
+  const { toast } = useToast();
+
   // Fetch client details
   const { data: client } = useQuery({
-    queryKey: ['clientDetails', clientId],
-    queryFn: () => clientService.getClientById(clientId),
-    onError: (error) => {
-      console.error('Error fetching client details:', error);
-      toast.error('Failed to load client details');
+    queryKey: ['client', clientId],
+    queryFn: () => clientService.getClientDetails(Number(clientId)),
+    meta: {
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: "Failed to load client details",
+          variant: "destructive"
+        });
+      }
     }
   });
-  
-  // Fetch client platforms
-  const { data: platforms = [] } = useQuery({
-    queryKey: ['clientPlatforms'],
-    queryFn: () => platformService.getPlatforms(),
+
+  // Fetch client brands
+  const { data: brands = [], isLoading: isBrandsLoading, refetch: refetchBrands } = useQuery({
+    queryKey: ['clientBrands', clientId],
+    queryFn: () => clientService.getClientBrands(Number(clientId)),
+    meta: {
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: "Failed to load brands",
+          variant: "destructive"
+        });
+      }
+    }
   });
-  
-  const handleSelectBrand = (brand: Brand) => {
-    setSelectedBrand(brand);
+
+  // Fetch brand tasks if a brand is selected
+  const { data: brandTasks = [], isLoading: isTasksLoading } = useQuery({
+    queryKey: ['brandTasks', selectedBrand?.id],
+    queryFn: () => selectedBrand ? clientService.getBrandTasks(selectedBrand.id) : Promise.resolve([]),
+    enabled: !!selectedBrand,
+  });
+
+  const handleAddBrand = async () => {
+    if (!newBrandName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Brand name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await clientService.createBrand(Number(clientId), {
+        name: newBrandName,
+        description: newBrandDescription,
+      });
+      
+      toast({
+        title: "Success",
+        description: "Brand added successfully",
+      });
+      setIsAddBrandDialogOpen(false);
+      setNewBrandName('');
+      setNewBrandDescription('');
+      refetchBrands();
+    } catch (error) {
+      console.error('Error adding brand:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add brand",
+        variant: "destructive"
+      });
+    }
   };
-  
-  const handleGenerateTasks = (tasks: any[]) => {
-    setGeneratedTasks(tasks);
-    toast.success(`Generated ${tasks.length} task suggestions`);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <Badge variant="success" className="flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Completed</Badge>;
+      case "in_progress":
+        return <Badge variant="secondary" className="flex items-center gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
+      case "pending":
+        return <Badge variant="outline" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Pending</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" /> Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
-  
-  const handleTaskCreated = () => {
-    toast.success('Task created successfully');
-    // In a real app, you would refetch tasks here
-  };
-  
+
   return (
-    <div className="space-y-8 animate-blur-in">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Brand Management</h1>
-          <p className="text-muted-foreground">
-            Manage brands and tasks for {clientName}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Connect Platform
-          </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Task
-          </Button>
-        </div>
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
+          {client?.client_name || 'Client'}'s Brands
+        </h1>
+        <Button onClick={() => setIsAddBrandDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Brand
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="hover-scale shadow-subtle">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Brands</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">Managing 14 active projects</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale shadow-subtle">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Hours</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">94</div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale shadow-subtle">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned Team</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">Designers, developers, and managers</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-scale shadow-subtle">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">43</div>
-            <p className="text-xs text-muted-foreground">92% completion rate</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          <ClientBrandsList 
-            clientId={clientId} 
-            clientName={clientName}
-            onSelectBrand={handleSelectBrand} 
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <Tabs defaultValue="insights">
-            <TabsList className="mb-4">
-              <TabsTrigger value="insights">AI Insights</TabsTrigger>
-              <TabsTrigger value="messages">Platform Messages</TabsTrigger>
-              <TabsTrigger value="timeReporting">Time Reporting</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="insights">
-              <ClientAIInsights 
-                clientId={clientId}
-                clientName={clientName}
-                clientDescription={client?.description}
-                onTaskCreated={handleTaskCreated}
-              />
-              
-              {generatedTasks.length > 0 && (
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle>Generated Task Suggestions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {generatedTasks.map((task, index) => (
-                        <div key={index} className="p-3 border rounded-md">
-                          <h3 className="font-medium">{task.title}</h3>
-                          <p className="text-sm text-muted-foreground">{task.description}</p>
-                          <div className="flex justify-between items-center mt-2">
-                            <div className="text-sm">
-                              Est: {task.estimated_time} hrs • Priority: {task.priority}
-                            </div>
-                            <Button size="sm">Create Task</Button>
-                          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Brands</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isBrandsLoading ? (
+                <div className="animate-pulse space-y-4">
+                  <div className="h-12 bg-muted rounded-md"></div>
+                  <div className="h-12 bg-muted rounded-md"></div>
+                  <div className="h-12 bg-muted rounded-md"></div>
+                </div>
+              ) : brands.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No brands found for this client.</p>
+                  <Button 
+                    onClick={() => setIsAddBrandDialogOpen(true)}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Your First Brand
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {brands.map((brand: Brand) => (
+                    <div 
+                      key={brand.id}
+                      className={`p-3 rounded-md border hover:bg-muted/50 transition-colors cursor-pointer ${selectedBrand?.id === brand.id ? 'bg-muted border-primary' : ''}`}
+                      onClick={() => setSelectedBrand(brand)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={brand.logo} alt={brand.name} />
+                          <AvatarFallback>{brand.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">{brand.name}</h3>
+                          {brand.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">{brand.description}</p>
+                          )}
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  ))}
+                </div>
               )}
-            </TabsContent>
-            
-            <TabsContent value="messages">
-              <ClientPlatformMessages 
-                clientId={clientId}
-                clientName={clientName}
-                onGenerateTasks={handleGenerateTasks}
-              />
-            </TabsContent>
-            
-            <TabsContent value="timeReporting">
-              <ClientTimeReporting 
-                clientId={clientId}
-                clientName={clientName}
-              />
-            </TabsContent>
-          </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="md:col-span-2">
+          {!selectedBrand ? (
+            <Card className="h-full flex items-center justify-center">
+              <CardContent className="text-center py-12">
+                <h3 className="text-lg font-medium mb-2">Select a Brand</h3>
+                <p className="text-muted-foreground mb-4">
+                  Choose a brand from the list to view its details and tasks
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsAddBrandDialogOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Brand
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={selectedBrand.logo} alt={selectedBrand.name} />
+                      <AvatarFallback>{selectedBrand.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle>{selectedBrand.name}</CardTitle>
+                      {selectedBrand.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{selectedBrand.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Edit Brand
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="tasks">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                    <TabsTrigger value="assets">Assets</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="tasks">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Brand Tasks</h3>
+                      <Button size="sm">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Task
+                      </Button>
+                    </div>
+                    
+                    {isTasksLoading ? (
+                      <div className="animate-pulse space-y-4">
+                        <div className="h-16 bg-muted rounded-md"></div>
+                        <div className="h-16 bg-muted rounded-md"></div>
+                        <div className="h-16 bg-muted rounded-md"></div>
+                      </div>
+                    ) : brandTasks.length === 0 ? (
+                      <div className="text-center py-12 border rounded-md">
+                        <p className="text-muted-foreground mb-4">No tasks found for this brand</p>
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create First Task
+                        </Button>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[400px] pr-4">
+                        <div className="space-y-3">
+                          {brandTasks.map((task: any) => (
+                            <div 
+                              key={task.task_id}
+                              className="p-4 rounded-md border hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h3 className="font-medium">{task.title}</h3>
+                                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{task.description}</p>
+                                </div>
+                                <div>
+                                  {getStatusBadge(task.status)}
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center mt-4">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  <span>Est: {task.estimated_time || 'N/A'} hrs</span>
+                                </div>
+                                <Button variant="ghost" size="sm">
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  View Details
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="assets">
+                    <div className="text-center py-12 border rounded-md">
+                      <p className="text-muted-foreground mb-4">No brand assets uploaded yet</p>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Upload Brand Assets
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="analytics">
+                    <div className="text-center py-12 border rounded-md">
+                      <p className="text-muted-foreground mb-4">Brand analytics will appear here</p>
+                      <Button variant="outline">
+                        <Search className="mr-2 h-4 w-4" />
+                        Generate Analytics
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
+
+      {/* Add Brand Dialog */}
+      <Dialog open={isAddBrandDialogOpen} onOpenChange={setIsAddBrandDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Brand</DialogTitle>
+            <DialogDescription>
+              Add a new brand for {client?.client_name || 'this client'}. You can organize tasks and projects under each brand.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="brand-name">Brand Name</Label>
+              <Input
+                id="brand-name"
+                placeholder="e.g. Brand X"
+                value={newBrandName}
+                onChange={(e) => setNewBrandName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="brand-description">Description (Optional)</Label>
+              <Textarea
+                id="brand-description"
+                placeholder="Brief description of the brand"
+                value={newBrandDescription}
+                onChange={(e) => setNewBrandDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddBrandDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddBrand}>
+              Add Brand
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
