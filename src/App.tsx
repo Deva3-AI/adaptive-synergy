@@ -37,6 +37,7 @@ import HRDashboard from "@/pages/hr/HRDashboard";
 import EmployeeManagement from "@/pages/hr/EmployeeManagement";
 import Recruitment from "@/pages/hr/Recruitment";
 import PerformanceReviews from "@/pages/hr/PerformanceReviews";
+import HRReports from "@/pages/hr/Reports";
 import BrandsDashboard from "./pages/client/BrandsDashboard";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -170,6 +171,10 @@ const router = createBrowserRouter([
       {
         path: "hr/performance-reviews",
         element: <PerformanceReviews />,
+      },
+      {
+        path: "hr/reports",
+        element: <HRReports />,
       },
       {
         path: "settings",

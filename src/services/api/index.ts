@@ -9,6 +9,7 @@ import aiService from './aiService';
 import taskService from './taskService';
 import platformAnalysisService from './platformAnalysisService';
 import marketingService from './marketingService';
+import hrService from './hrService';
 
 export {
   authService,
@@ -20,5 +21,6 @@ export {
   aiService,
   taskService,
   platformAnalysisService,
-  marketingService
+  marketingService,
+  hrService
 };
