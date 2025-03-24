@@ -19,6 +19,23 @@ export const analyzeMeetingTranscript = async (transcript: string) => {
         { assignee: 'Project Manager', task: 'Create detailed timeline', priority: 'medium' },
         { assignee: 'Developer', task: 'Research animation libraries', priority: 'low' }
       ],
+      keyPoints: [
+        'Mobile-first design approach',
+        'Three-week timeline for initial designs',
+        'Budget includes interactive elements'
+      ],
+      actionItems: [
+        { description: 'Create mood board', assignee: 'Design Team', priority: 'high' },
+        { description: 'Develop project timeline', assignee: 'Project Manager', priority: 'medium' },
+        { description: 'Research animation libraries', assignee: 'Dev Team', priority: 'low' }
+      ],
+      clientPreferences: [
+        'Minimalist design aesthetic',
+        'Bold typography',
+        'Subtle animations on scroll'
+      ],
+      nextSteps: 'Schedule follow-up meeting next week to review initial design concepts and discuss feedback process.',
+      sentiment: 'positive',
       sentiment_analysis: {
         sentiment: 'positive',
         confidence: 0.85
@@ -148,6 +165,18 @@ export const generateSuggestedTasks = async (text: string, clientId?: number) =>
           description: 'Create comprehensive style guide documenting colors, typography, and UI elements',
           estimated_time: 4,
           priority: 'medium'
+        },
+        {
+          title: 'Implement user authentication',
+          description: 'Set up secure login system with role-based access control',
+          estimated_time: 8,
+          priority: 'high'
+        },
+        {
+          title: 'Create database schema',
+          description: 'Design efficient database structure with proper relationships and indexing',
+          estimated_time: 6,
+          priority: 'medium'
         }
       ]
     };
@@ -157,25 +186,51 @@ export const generateSuggestedTasks = async (text: string, clientId?: number) =>
   }
 };
 
-export const generateMarketingInsights = async (data: any) => {
+export const generateMarketingInsights = async (data: any, industry?: string) => {
   try {
     // Mock insights - in a real app, this would call an AI API
     return {
-      channel_performance: [
-        { channel: 'Email', engagement: 0.23, conversion: 0.05, trend: 'stable' },
-        { channel: 'Social Media', engagement: 0.15, conversion: 0.03, trend: 'increasing' },
-        { channel: 'Paid Search', engagement: 0.08, conversion: 0.04, trend: 'decreasing' }
+      performance_analysis: {
+        strengths: [
+          "Organic search is your strongest channel, delivering 42% of traffic",
+          "Conversion rates have improved 12.3% month-over-month",
+          "Email campaigns show high engagement with 15% contribution to overall conversions"
+        ],
+        weaknesses: [
+          "Paid search is underperforming with only 10% traffic contribution",
+          "Social media engagement shows inconsistent results across months",
+          "Direct traffic is low at 5%, indicating potential brand awareness issues"
+        ]
+      },
+      trend_identification: [
+        "Increasing mobile user engagement across all channels",
+        "Content-focused marketing shows higher conversion rates than product-focused",
+        "Video content is growing in effectiveness particularly on social channels",
+        "Peak engagement times are shifting toward evening hours (6-9pm)"
       ],
-      audience_insights: [
-        'Most engaged demographic: 25-34 year old professionals',
-        'Growing interest from small business sector',
-        'High engagement with case studies and portfolio content'
+      optimization_suggestions: [
+        {
+          area: "Paid Search",
+          suggestion: "Reallocate budget to keywords showing highest conversion rates and reduce spend on broad match terms"
+        },
+        {
+          area: "Social Media",
+          suggestion: "Increase video content production and optimize posting schedule to evening hours"
+        },
+        {
+          area: "Email Marketing",
+          suggestion: "Implement segmentation based on engagement levels and develop targeted content for each segment"
+        },
+        {
+          area: "Content Strategy",
+          suggestion: "Develop more educational content for organic search and leverage successful formats across channels"
+        }
       ],
-      recommendations: [
-        'Increase investment in Social Media content',
-        'Develop more case studies targeting small businesses',
-        'Optimize email campaigns for higher open rates'
-      ]
+      industry_specific_insights: industry ? [
+        `${industry} companies are seeing higher engagement with video tutorials`,
+        `Competitors in ${industry} space are investing more in LinkedIn advertising`,
+        `Case studies are increasingly important for conversion in the ${industry} sector`
+      ] : []
     };
   } catch (error) {
     console.error('Error generating marketing insights:', error);
@@ -205,6 +260,26 @@ export const analyzeClientRequirements = async (requirements: string) => {
   }
 };
 
+export const analyzeTaskProgress = async (taskId: number, progressData: any) => {
+  try {
+    // Mock analysis - in a real app, this would call an AI API
+    return {
+      analysis: "Based on your current progress, you're on track to complete this task within the estimated timeframe. The approach you're taking aligns well with the project requirements.",
+      suggestions: [
+        "Consider breaking down the implementation phase into smaller subtasks for better tracking",
+        "Document decision points for future reference, especially regarding the component architecture",
+        "Schedule a brief check-in with the client to validate your current direction"
+      ],
+      completion_percentage: 42,
+      efficiency_score: 8.5,
+      quality_assessment: "Above expectations"
+    };
+  } catch (error) {
+    console.error('Error analyzing task progress:', error);
+    throw error;
+  }
+};
+
 // Default export for backward compatibility
 const aiUtils = {
   getManagerInsights: async ({ clientId, taskId }: { clientId?: number; taskId?: number }) => {
@@ -215,19 +290,36 @@ const aiUtils = {
           id: '1',
           type: 'preference',
           content: 'This client prefers clean, minimalist designs with plenty of whitespace.',
-          priority: 'high'
+          priority: 'high',
+          acknowledgable: true
         },
         {
           id: '2',
           type: 'warning',
           content: 'Projects for this client often require multiple revision rounds - plan accordingly.',
-          priority: 'medium'
+          priority: 'medium',
+          acknowledgable: true
         },
         {
           id: '3',
           type: 'deadline',
           content: 'This client values on-time delivery above all else. Communicate any delays early.',
-          priority: 'high'
+          priority: 'high',
+          acknowledgable: true
+        },
+        {
+          id: '4',
+          type: 'tip',
+          content: 'Include progress screenshots in your updates. This client appreciates visual progress tracking.',
+          priority: 'medium',
+          acknowledgable: true
+        },
+        {
+          id: '5',
+          type: 'preference',
+          content: 'Client prefers weekly video calls over written updates. Schedule recurring meetings if possible.',
+          priority: 'low',
+          acknowledgable: true
         }
       ];
     } catch (error) {
@@ -242,7 +334,8 @@ const aiUtils = {
   analyzeFinancialData,
   analyzeMeetingTranscript,
   generateMarketingInsights,
-  analyzeClientRequirements
+  analyzeClientRequirements,
+  analyzeTaskProgress
 };
 
 export default aiUtils;

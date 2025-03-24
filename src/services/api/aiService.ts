@@ -26,19 +26,9 @@ const mockAnalyzeClientInput = async (text: string) => {
         estimated_time: 8
       },
       {
-        title: "Frontend Development",
-        description: "Implement responsive frontend with modern UI framework",
-        estimated_time: 24
-      },
-      {
-        title: "Payment Integration",
-        description: "Integrate payment gateway as per client requirements",
-        estimated_time: 12
-      },
-      {
-        title: "Content Migration",
-        description: "Migrate content from old website preserving SEO value",
-        estimated_time: 6
+        title: "Develop responsive components",
+        description: "Build reusable UI components that work across all device sizes",
+        estimated_time: 5
       }
     ]
   };
@@ -94,32 +84,25 @@ const mockAnalyzeMeetingTranscript = async (transcript: string, meetingType: str
   
   return {
     summary: "In this meeting, the client discussed requirements for their upcoming website redesign project. They emphasized mobile responsiveness, modern design elements, and integration with their existing CRM system. Timeline concerns were addressed, with project completion expected within 6 weeks. Budget constraints were discussed, and the client agreed to the proposed phased approach.",
-    action_items: [
-      {
-        task: "Create initial design mockups (3 options)",
-        assignee: "Design Team"
-      },
-      {
-        task: "Research CRM integration options",
-        assignee: "Tech Team"
-      },
-      {
-        task: "Develop detailed project timeline",
-        assignee: "Project Manager"
-      },
-      {
-        task: "Schedule follow-up meeting for next week",
-        assignee: "Account Manager"
-      }
+    keyPoints: [
+      "Mobile-first design approach",
+      "Three-week timeline for initial designs",
+      "Budget includes interactive elements"
     ],
-    key_insights: [
-      "Client prioritizes mobile experience above desktop",
-      "Previous vendor had communication issues that client wants to avoid",
-      "Client has future e-commerce expansion plans for Q2 next year",
-      "Multiple stakeholders will need to approve design concepts"
+    actionItems: [
+      { description: "Create mood board", assignee: "Design Team", priority: "high" },
+      { description: "Develop project timeline", assignee: "Project Manager", priority: "medium" },
+      { description: "Research animation libraries", assignee: "Dev Team", priority: "low" }
     ],
+    clientPreferences: [
+      "Minimalist design aesthetic",
+      "Bold typography",
+      "Subtle animations on scroll"
+    ],
+    nextSteps: "Schedule follow-up meeting next week to review initial design concepts and discuss feedback process.",
+    sentiment: "positive",
     sentiment_analysis: {
-      sentiment: Math.random() > 0.7 ? "positive" : Math.random() > 0.4 ? "neutral" : "negative",
+      sentiment: "positive",
       confidence: 0.85
     }
   };
@@ -211,31 +194,31 @@ const mockGenerateSuggestedTasks = async (clientRequirements: string, clientId?:
         title: "Website Design Mockups",
         description: "Create initial design concepts based on client brand guidelines and requirements",
         estimated_time: 8,
-        priority_level: "high"
+        priority: "high"
       },
       {
         title: "Frontend Development",
         description: "Implement responsive frontend using React and Tailwind CSS",
         estimated_time: 24,
-        priority_level: "medium"
+        priority: "medium"
       },
       {
         title: "Backend API Implementation",
         description: "Develop RESTful APIs for client data management and integration",
         estimated_time: 16,
-        priority_level: "medium"
+        priority: "medium"
       },
       {
         title: "Payment Gateway Integration",
         description: "Integrate secure payment processing with Stripe and PayPal options",
         estimated_time: 12,
-        priority_level: "high"
+        priority: "high"
       },
       {
         title: "Content Migration",
         description: "Migrate existing content to new platform with SEO preservation",
         estimated_time: 6,
-        priority_level: "medium"
+        priority: "medium"
       }
     ]
   };
@@ -329,48 +312,6 @@ To improve productivity, consider:
 Would you like specific strategies for improving task completion rates?`;
     }
     
-    // Financial and business insights
-    if (lowercaseQuery.includes('financial') || lowercaseQuery.includes('money') || lowercaseQuery.includes('revenue') || lowercaseQuery.includes('profit')) {
-      return `While I don't have direct access to financial figures, I can offer general insights based on operational data:
-
-1. Client portfolio health: With ${knowledgeBase?.clients?.clientCount || 'your current number of'} clients, focus on retention and expansion strategies.
-
-2. Operational efficiency: Your task completion rate of ${knowledgeBase?.tasks?.completionRate || '0%'} impacts profitability - improving this metric directly correlates with financial performance.
-
-3. Resource utilization: The average estimated task time of ${knowledgeBase?.tasks?.averageEstimatedTime || '0 hours'} suggests opportunities for process optimization.
-
-For specific financial analysis, I recommend using the Financial Insights tool in the Finance dashboard which can provide detailed metrics and trends.`;
-    }
-    
-    // Team and employee insights
-    if (lowercaseQuery.includes('team') || lowercaseQuery.includes('employee') || lowercaseQuery.includes('staff')) {
-      return `Your team currently consists of ${knowledgeBase?.employees?.employeeCount || 'several'} employees across ${knowledgeBase?.employees?.departments?.length || 'multiple'} departments (${knowledgeBase?.employees?.departments?.join(', ') || 'various roles'}).
-
-Recent team additions include ${knowledgeBase?.employees?.recentJoins?.join(', ') || 'new team members'}.
-
-Based on task data, team performance is reflected in:
-- Task completion rate: ${knowledgeBase?.tasks?.completionRate || '0%'}
-- Average task time: ${knowledgeBase?.tasks?.averageEstimatedTime || 'N/A'}
-
-For detailed employee performance metrics, you can use the HR dashboard's analytics tools to identify top performers and improvement opportunities.`;
-    }
-    
-    // Client-related questions
-    if (lowercaseQuery.includes('client') || lowercaseQuery.includes('customer')) {
-      const clientCount = knowledgeBase?.clients?.clientCount || 0;
-      const recentClients = knowledgeBase?.clients?.recentClients || [];
-      
-      return `You currently have ${clientCount} clients in the system.
-
-${recentClients.length > 0 ? `Recent clients include: ${recentClients.join(', ')}
-
-` : ''}Based on communication analysis, client interactions show ${knowledgeBase?.communication?.sentiment_overview || 'neutral'} sentiment overall.
-
-Common topics in client communications include: ${knowledgeBase?.communication?.topics?.join(', ') || 'various business requirements'}.
-
-For detailed client insights, you can view the Client Dashboard which provides comprehensive information on project status, communication history, and satisfaction metrics.`;
-    }
-    
     // Default response with general insights
     return `Based on your company data, here are some key insights:
 
@@ -385,19 +326,6 @@ I can provide more specific insights if you ask about clients, tasks, team perfo
   // Generate response based on context
   let response = generateContextualResponse();
   
-  // If there's a specific client, task, or employee mentioned, provide focused information
-  if (/client\s+(\d+|name)/i.test(lowercaseQuery) && knowledgeBase?.clients?.clients) {
-    const clientIdMatch = lowercaseQuery.match(/client\s+(\d+)/i);
-    if (clientIdMatch) {
-      const clientId = parseInt(clientIdMatch[1]);
-      const client = knowledgeBase.clients.clients.find((c: any) => c.id === clientId);
-      
-      if (client) {
-        response = `Client #${clientId}: "${client.name}"\n\nDescription: ${client.description}\nContact: ${client.contact}\nCreated: ${new Date(client.created).toLocaleDateString()}\n\nWould you like to see task information for this client?`;
-      }
-    }
-  }
-  
   return {
     message: response,
     confidence: 0.92,
@@ -405,81 +333,20 @@ I can provide more specific insights if you ask about clients, tasks, team perfo
   };
 };
 
-// New function to extract context data from messages
-const mockExtractContextData = async (text: string) => {
+const mockAnalyzeTaskProgress = async (taskId: number, progressData: any) => {
   // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  // Sample topics that might be extracted from conversations
-  const possibleTopics = [
-    'Website Development',
-    'Mobile App Design', 
-    'Marketing Campaign', 
-    'Content Creation',
-    'SEO Optimization',
-    'Payment Integration',
-    'User Experience',
-    'Analytics Implementation',
-    'Project Timeline',
-    'Budget Discussion',
-    'Feedback Implementation'
-  ];
-  
-  // Sample entities that might be extracted
-  const possibleEntities = [
-    {name: 'Website Redesign', type: 'project'},
-    {name: 'Mobile App', type: 'product'},
-    {name: 'Marketing Team', type: 'team'},
-    {name: 'Q4 Launch', type: 'event'},
-    {name: 'Client Dashboard', type: 'feature'},
-    {name: 'Stripe', type: 'integration'},
-    {name: 'Google Analytics', type: 'tool'},
-    {name: 'Content Strategy', type: 'strategy'}
-  ];
-  
-  // Generate a sentiment overview based on text
-  let sentiment;
-  if (text.toLowerCase().includes('love') || text.toLowerCase().includes('great') || text.toLowerCase().includes('excellent')) {
-    sentiment = 'positive';
-  } else if (text.toLowerCase().includes('issue') || text.toLowerCase().includes('problem') || text.toLowerCase().includes('delay')) {
-    sentiment = 'negative';
-  } else {
-    sentiment = 'neutral';
-  }
-  
-  // Select random topics and entities
-  const numTopics = 3 + Math.floor(Math.random() * 3); // 3-5 topics
-  const numEntities = 2 + Math.floor(Math.random() * 3); // 2-4 entities
-  
-  const topics = [];
-  const entities = [];
-  
-  // Generate random topics
-  for (let i = 0; i < numTopics; i++) {
-    const randomIndex = Math.floor(Math.random() * possibleTopics.length);
-    const topic = possibleTopics[randomIndex];
-    if (!topics.includes(topic)) {
-      topics.push(topic);
-    }
-    // Remove selected topic to avoid duplicates
-    possibleTopics.splice(randomIndex, 1);
-    if (possibleTopics.length === 0) break;
-  }
-  
-  // Generate random entities
-  for (let i = 0; i < numEntities; i++) {
-    const randomIndex = Math.floor(Math.random() * possibleEntities.length);
-    entities.push(possibleEntities[randomIndex]);
-    // Remove selected entity to avoid duplicates
-    possibleEntities.splice(randomIndex, 1);
-    if (possibleEntities.length === 0) break;
-  }
+  await new Promise(resolve => setTimeout(resolve, 1200));
   
   return {
-    topics,
-    key_entities: entities,
-    timeline: [],
-    sentiment_overview: sentiment
+    analysis: "Based on your current progress, you're on track to complete this task within the estimated timeframe. The approach you're taking aligns well with the project requirements.",
+    suggestions: [
+      "Consider breaking down the implementation phase into smaller subtasks for better tracking",
+      "Document decision points for future reference, especially regarding the component architecture",
+      "Schedule a brief check-in with the client to validate your current direction"
+    ],
+    completion_percentage: 42,
+    efficiency_score: 8.5,
+    quality_assessment: "Above expectations"
   };
 };
 
@@ -513,16 +380,17 @@ export const aiService = {
     }
   },
   
-  analyzeMeetingTranscript: async (transcript: string, meetingType: string) => {
+  analyzeMeetingTranscript: async (data: { text: string; meetingId?: number }) => {
     try {
       const response = await axios.post(`${API_URL}/ai/analyze-meeting-transcript`, {
-        transcript, 
-        meeting_type: meetingType
+        transcript: data.text,
+        meeting_id: data.meetingId,
+        meeting_type: "client"
       });
       return response.data;
     } catch (error) {
       console.log('Using mock AI service for meeting transcript analysis');
-      return mockAnalyzeMeetingTranscript(transcript, meetingType);
+      return mockAnalyzeMeetingTranscript(data.text, "client");
     }
   },
   
@@ -538,16 +406,16 @@ export const aiService = {
     }
   },
   
-  analyzeEmployeePerformance: async (attendanceData: any[], taskData: any[]) => {
+  analyzeEmployeePerformance: async (employeeId: number) => {
     try {
       const response = await axios.post(`${API_URL}/ai/analyze-employee-performance`, {
-        attendance_data: attendanceData,
-        task_data: taskData
+        employee_id: employeeId
       });
       return response.data;
     } catch (error) {
       console.log('Using mock AI service for employee performance analysis');
-      return mockAnalyzeEmployeePerformance(attendanceData, taskData);
+      // Mock data for demonstration
+      return mockAnalyzeEmployeePerformance([], []);
     }
   },
   
@@ -559,7 +427,7 @@ export const aiService = {
       });
       return response.data;
     } catch (error) {
-      console.log('Using mock AI service for task suggestion');
+      console.log('Using mock AI service for task suggestions');
       return mockGenerateSuggestedTasks(clientRequirements, clientId);
     }
   },
@@ -589,17 +457,16 @@ export const aiService = {
     }
   },
   
-  extractContextData: async (text: string) => {
+  analyzeTaskProgress: async (taskId: number, progressData: any) => {
     try {
-      const response = await axios.post(`${API_URL}/ai/extract-context`, {
-        text
+      const response = await axios.post(`${API_URL}/ai/analyze-task-progress`, {
+        task_id: taskId,
+        progress_data: progressData
       });
       return response.data;
     } catch (error) {
-      console.log('Using mock AI service for context extraction');
-      return mockExtractContextData(text);
+      console.log('Using mock AI service for task progress analysis');
+      return mockAnalyzeTaskProgress(taskId, progressData);
     }
   }
 };
-
-export default aiService;
