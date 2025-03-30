@@ -4,20 +4,44 @@ import apiClient from '@/utils/apiUtils';
 export interface TaskAttachment {
   id: number;
   task_id: number;
-  filename: string;
-  file_path: string;
+  file_name: string;
+  file_url: string;
   file_type: string;
-  uploaded_by: number;
   uploaded_at: string;
-  file_url?: string;
+  uploaded_by: number;
+}
+
+export interface Task {
+  task_id: number;
+  title: string;
   description?: string;
-  file_size?: number;
+  client_id?: number;
+  assigned_to?: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  estimated_time?: number;
+  actual_time?: number;
+  start_time?: string;
+  end_time?: string;
+  created_at: string;
+  updated_at: string;
+  progress?: number; // Add progress field
+  priority?: 'High' | 'Medium' | 'Low'; // Add priority field
 }
 
 const taskService = {
-  getTasks: async () => {
+  getTasks: async (filters?: any) => {
     try {
-      const response = await apiClient.get('/tasks');
+      let url = '/tasks';
+      if (filters) {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) params.append(key, value as string);
+        });
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -25,7 +49,7 @@ const taskService = {
     }
   },
 
-  getTaskDetails: async (taskId: number) => {
+  getTaskById: async (taskId: number) => {
     try {
       const response = await apiClient.get(`/tasks/${taskId}`);
       return response.data;
@@ -65,52 +89,6 @@ const taskService = {
     }
   },
 
-  getTaskComments: async (taskId: number) => {
-    try {
-      const response = await apiClient.get(`/tasks/${taskId}/comments`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching comments for task ${taskId}:`, error);
-      return [];
-    }
-  },
-
-  addTaskComment: async (taskId: number, comment: string) => {
-    try {
-      const response = await apiClient.post(`/tasks/${taskId}/comments`, { comment });
-      return response.data;
-    } catch (error) {
-      console.error(`Error adding comment to task ${taskId}:`, error);
-      throw error;
-    }
-  },
-
-  getTaskStatistics: async (timeframe?: string) => {
-    try {
-      let url = '/tasks/statistics';
-      if (timeframe) {
-        url += `?timeframe=${timeframe}`;
-      }
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching task statistics:', error);
-      return null;
-    }
-  },
-
-  // Method for TaskRecommendations component
-  getUserTasks: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/tasks/user/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching tasks for user ${userId}:`, error);
-      return [];
-    }
-  },
-
-  // Methods for TaskAttachmentsPanel
   getTaskAttachments: async (taskId: number) => {
     try {
       const response = await apiClient.get(`/tasks/${taskId}/attachments`);
@@ -121,13 +99,17 @@ const taskService = {
     }
   },
 
-  uploadTaskAttachment: async (taskId: number, formData: FormData) => {
+  uploadTaskAttachment: async (taskId: number, file: File) => {
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
       const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
+      
       return response.data;
     } catch (error) {
       console.error(`Error uploading attachment for task ${taskId}:`, error);
@@ -140,7 +122,7 @@ const taskService = {
       const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error deleting attachment ${attachmentId}:`, error);
+      console.error(`Error deleting attachment ${attachmentId} for task ${taskId}:`, error);
       throw error;
     }
   }

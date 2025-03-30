@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -15,11 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart, LineChart } from "@/components/ui/charts";
+import { BarChart, LineChart, PieChart } from "@/components/ui/charts";
 import { CalendarDateRangePicker } from "@/components/ui/date-range-picker";
 import { Edit, Mail, Phone, Calendar, MapPin, Briefcase, FileText, Clock } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import DateRangePicker from "@/components/ui/date-range-picker";
 
 const EmployeeProfile = () => {
   const { employeeId } = useParams<{ employeeId: string }>();
@@ -28,8 +29,7 @@ const EmployeeProfile = () => {
     to: new Date(),
   });
   
-  // Fetch employee details
-  const { data: employee, isLoading, error } = useQuery({
+  const { data: employeeData, isLoading, error } = useQuery({
     queryKey: ['employee-profile', employeeId],
     enabled: !!employeeId,
     queryFn: async () => {
@@ -60,15 +60,19 @@ const EmployeeProfile = () => {
         
         if (error) throw error;
         
+        const employeeDetails = {
+          joining_date: data.employee_details?.joining_date || "Not available",
+          employee_id: data.employee_details?.employee_id || "Not available",
+          date_of_birth: data.employee_details?.date_of_birth || "Not available",
+          phone: data.employee_details?.phone || "Not available",
+          address: data.employee_details?.address || "Not available",
+          emergency_contact: data.employee_details?.emergency_contact || "Not available",
+        };
+        
         return {
           ...data,
           role_name: data.roles?.role_name || 'Unknown Role',
-          joining_date: data.employee_details?.joining_date,
-          employee_id: data.employee_details?.employee_id,
-          date_of_birth: data.employee_details?.date_of_birth,
-          phone: data.employee_details?.phone || 'Not provided',
-          address: data.employee_details?.address || 'Not provided',
-          emergency_contact: data.employee_details?.emergency_contact || 'Not provided'
+          ...employeeDetails
         };
       } catch (error) {
         console.error('Error fetching employee details:', error);
@@ -77,7 +81,6 @@ const EmployeeProfile = () => {
     }
   });
   
-  // Fetch employee attendance
   const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
     queryKey: ['employee-attendance', employeeId, dateRange],
     enabled: !!employeeId,
@@ -106,7 +109,6 @@ const EmployeeProfile = () => {
     }
   });
   
-  // Calculate work hours from attendance data
   const calculateWorkHours = (login: string | null, logout: string | null): number => {
     if (!login || !logout) return 0;
     
@@ -116,7 +118,6 @@ const EmployeeProfile = () => {
     return (logoutTime - loginTime) / (1000 * 60 * 60);
   };
   
-  // Calculate attendance metrics
   const attendanceMetrics = React.useMemo(() => {
     if (!attendanceData) return { present: 0, absent: 0, late: 0, avgHours: 0 };
     
@@ -138,13 +139,12 @@ const EmployeeProfile = () => {
     
     const avgHours = daysWithHours > 0 ? totalHours / daysWithHours : 0;
     
-    // Total days in range
     const totalDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
     
     return {
       present: presentDays,
       absent: totalDays - presentDays,
-      late: 0, // We don't have late data yet
+      late: 0,
       avgHours
     };
   }, [attendanceData, dateRange]);
@@ -169,7 +169,7 @@ const EmployeeProfile = () => {
     );
   }
   
-  if (error || !employee) {
+  if (error || !employeeData) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Card className="max-w-md w-full">
@@ -196,15 +196,15 @@ const EmployeeProfile = () => {
         <div className="flex items-center space-x-4">
           <Avatar className="h-20 w-20">
             <AvatarFallback className="text-2xl">
-              {employee.name.charAt(0)}
+              {employeeData.name.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{employee.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{employeeData.name}</h1>
             <div className="flex items-center space-x-2 text-muted-foreground">
-              <Badge variant="outline">{employee.role_name}</Badge>
+              <Badge variant="outline">{employeeData.role_name}</Badge>
               <span>•</span>
-              <span>ID: {employee.employee_id || 'N/A'}</span>
+              <span>ID: {employeeData.employee_id || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -275,7 +275,7 @@ const EmployeeProfile = () => {
             <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
           </TabsList>
-          <CalendarDateRangePicker date={dateRange} setDate={setDateRange} />
+          <DateRangePicker date={dateRange} setDate={setDateRange} />
         </div>
         
         <TabsContent value="profile" className="space-y-4">
@@ -290,24 +290,24 @@ const EmployeeProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">Full Name</div>
-                  <div>{employee.name}</div>
+                  <div>{employeeData.name}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">Employee ID</div>
-                  <div>{employee.employee_id || 'Not assigned'}</div>
+                  <div>{employeeData.employee_id || 'Not assigned'}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">Email</div>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{employee.email}</span>
+                    <span>{employeeData.email}</span>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">Phone</div>
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{employee.phone}</span>
+                    <span>{employeeData.phone}</span>
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -315,8 +315,8 @@ const EmployeeProfile = () => {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      {employee.date_of_birth 
-                        ? format(new Date(employee.date_of_birth), 'PPP') 
+                      {employeeData.date_of_birth 
+                        ? format(new Date(employeeData.date_of_birth), 'PPP') 
                         : 'Not provided'}
                     </span>
                   </div>
@@ -326,8 +326,8 @@ const EmployeeProfile = () => {
                   <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      {employee.joining_date 
-                        ? format(new Date(employee.joining_date), 'PPP') 
+                      {employeeData.joining_date 
+                        ? format(new Date(employeeData.joining_date), 'PPP') 
                         : 'Not provided'}
                     </span>
                   </div>
@@ -336,12 +336,12 @@ const EmployeeProfile = () => {
                   <div className="text-sm font-medium text-muted-foreground">Address</div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{employee.address}</span>
+                    <span>{employeeData.address}</span>
                   </div>
                 </div>
                 <div className="space-y-1 col-span-1 md:col-span-2">
                   <div className="text-sm font-medium text-muted-foreground">Emergency Contact</div>
-                  <div>{employee.emergency_contact}</div>
+                  <div>{employeeData.emergency_contact}</div>
                 </div>
               </div>
             </CardContent>
@@ -359,13 +359,13 @@ const EmployeeProfile = () => {
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">Department</div>
                   <div>
-                    <Badge variant="outline">{employee.role_name.split('.')[0] || 'General'}</Badge>
+                    <Badge variant="outline">{employeeData.role_name.split('.')[0] || 'General'}</Badge>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <div className="text-sm font-medium text-muted-foreground">Role</div>
                   <div>
-                    <Badge>{employee.role_name}</Badge>
+                    <Badge>{employeeData.role_name}</Badge>
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -613,7 +613,7 @@ const EmployeeProfile = () => {
                 <div className="pt-4 border-t">
                   <h4 className="font-medium mb-2">Manager's Comment</h4>
                   <p className="text-muted-foreground">
-                    {employee.name} has shown excellent progress over the past quarter. 
+                    {employeeData.name} has shown excellent progress over the past quarter. 
                     Technical skills are outstanding, and communication has improved significantly. 
                     Continue focusing on cross-team collaboration and knowledge sharing.
                   </p>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, LineChart, PieChart } from "@/components/ui/charts";
+import { LineChart, BarChart, PieChart } from "@/components/ui/charts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Calendar, 
@@ -24,7 +24,6 @@ import { format } from 'date-fns';
 import { useUser } from '@/hooks/useUser';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// Mock data for chart examples
 const taskCompletionData = [
   { name: 'Jan', value: 10 },
   { name: 'Feb', value: 25 },
@@ -59,7 +58,6 @@ const EmployeeDashboard = () => {
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [sessionTimer, setSessionTimer] = useState<string>("00:00:00");
   
-  // Fetch today's attendance record
   const { data: todayAttendance, isLoading: isLoadingAttendance, refetch: refetchAttendance } = useQuery({
     queryKey: ['today-attendance', user?.id],
     enabled: !!user?.id,
@@ -77,7 +75,6 @@ const EmployeeDashboard = () => {
         if (error) throw error;
         
         if (data) {
-          // If there's a login time but no logout time, session is active
           if (data.login_time && !data.logout_time) {
             setWorkSessionActive(true);
             setCurrentSessionId(data.attendance_id);
@@ -93,7 +90,6 @@ const EmployeeDashboard = () => {
     }
   });
   
-  // Fetch tasks for the employee
   const { data: tasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['employee-tasks', user?.id],
     enabled: !!user?.id,
@@ -116,14 +112,11 @@ const EmployeeDashboard = () => {
     }
   });
   
-  // Fetch performance data
   const { data: performanceData } = useQuery({
     queryKey: ['employee-performance', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       try {
-        // In a real implementation, fetch performance data from Supabase
-        // For now, return mock data
         return {
           completedTasks: 15,
           tasksInProgress: 5,
@@ -142,7 +135,6 @@ const EmployeeDashboard = () => {
     }
   });
   
-  // Update timer for active work session
   useEffect(() => {
     let intervalId: number;
     
@@ -166,7 +158,6 @@ const EmployeeDashboard = () => {
     };
   }, [workSessionActive, sessionStartTime]);
   
-  // Handle start work
   const handleStartWork = async () => {
     if (!user) {
       toast.error('You must be logged in to use the time tracker');
@@ -177,7 +168,6 @@ const EmployeeDashboard = () => {
       const now = new Date().toISOString();
       const today = new Date().toISOString().split('T')[0];
       
-      // Check if there's already an attendance record for today
       const { data: existingRecord, error: checkError } = await supabase
         .from('employee_attendance')
         .select('*')
@@ -185,12 +175,9 @@ const EmployeeDashboard = () => {
         .eq('work_date', today)
         .maybeSingle();
       
-      if (checkError) throw checkError;
-      
       let attendanceRecord;
       
       if (existingRecord) {
-        // If there's a record but no login time, update it
         if (!existingRecord.login_time) {
           const { data, error } = await supabase
             .from('employee_attendance')
@@ -205,7 +192,6 @@ const EmployeeDashboard = () => {
           attendanceRecord = existingRecord;
         }
       } else {
-        // Create a new attendance record
         const { data, error } = await supabase
           .from('employee_attendance')
           .insert({
@@ -232,7 +218,6 @@ const EmployeeDashboard = () => {
     }
   };
   
-  // Handle stop work
   const handleStopWork = async () => {
     if (!user || !currentSessionId) {
       toast.error('No active work session found');
@@ -242,7 +227,6 @@ const EmployeeDashboard = () => {
     try {
       const now = new Date().toISOString();
       
-      // Update the attendance record with logout time
       const { error } = await supabase
         .from('employee_attendance')
         .update({ logout_time: now })
@@ -263,12 +247,11 @@ const EmployeeDashboard = () => {
     }
   };
   
-  // Format tasks for display
   const formattedTasks = tasks?.map(task => ({
     ...task,
     status: task.status || 'pending',
-    progress: task.progress || 0,
-    priority: task.priority || 'Medium'
+    progress: 0,
+    priority: 'Medium'
   })) || [];
   
   const getPriorityColor = (priority: string) => {
@@ -555,7 +538,6 @@ const EmployeeDashboard = () => {
                               : <Badge variant="outline">Not Started</Badge>}
                       </TableCell>
                     </TableRow>
-                    {/* More rows would be populated from actual attendance data */}
                   </TableBody>
                 </Table>
               </div>
