@@ -1,279 +1,284 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { 
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, 
+  DialogTitle, DialogTrigger
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { PlusCircle, Link2, Briefcase, Image as ImageIcon } from "lucide-react";
 import { clientService } from '@/services/api';
-import { Brand } from '@/services/api/clientService';
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { useAuth } from '@/hooks/use-auth';
+import { Brand } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
-const BrandSchema = z.object({
-  name: z.string().min(2, "Brand name must be at least 2 characters"),
-  logo: z.string().optional(),
-  description: z.string().optional(),
-  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  industry: z.string().optional()
-});
+interface BrandsDashboardProps {
+  clientId?: number;
+}
 
-type BrandFormValues = z.infer<typeof BrandSchema>;
-
-const BrandsDashboard = () => {
+const BrandsDashboard: React.FC<BrandsDashboardProps> = ({ clientId: propClientId }) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    logo: '',
+    description: '',
+    website: '',
+    industry: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-
-  const clientId = user?.id;
-
-  const { data: brands, isLoading } = useQuery({
-    queryKey: ['clientBrands', clientId],
-    queryFn: () => clientId ? clientService.getClientBrands(clientId) : Promise.resolve([]),
-    enabled: !!clientId,
+  
+  // Use the clientId from props or from the user context
+  const clientId = propClientId || user?.client_id;
+  
+  // Get client brands
+  const { data: brands = [], isLoading } = useQuery({
+    queryKey: ['client-brands', clientId],
+    queryFn: () => clientService.getClientBrands(clientId!),
+    enabled: !!clientId
   });
-
-  const { data: tasks, isLoading: isTasksLoading } = useQuery({
-    queryKey: ['brandTasks'],
-    queryFn: () => Promise.resolve([]), // We'll load tasks when a brand is selected
-    enabled: false,
-  });
-
+  
+  // Create brand mutation
   const createBrandMutation = useMutation({
-    mutationFn: (newBrand: Omit<Brand, 'id' | 'created_at'>) => {
-      return clientService.createBrand(newBrand);
-    },
+    mutationFn: (brandData: Omit<Brand, 'id' | 'created_at'>) => 
+      clientService.createBrand(brandData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clientBrands'] });
-      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['client-brands', clientId] });
       toast.success('Brand created successfully');
+      setIsDialogOpen(false);
+      setFormData({
+        name: '',
+        logo: '',
+        description: '',
+        website: '',
+        industry: ''
+      });
+      setIsSubmitting(false);
     },
     onError: (error) => {
       console.error('Error creating brand:', error);
       toast.error('Failed to create brand');
+      setIsSubmitting(false);
     }
   });
-
-  const form = useForm<BrandFormValues>({
-    resolver: zodResolver(BrandSchema),
-    defaultValues: {
-      name: "",
-      logo: "",
-      description: "",
-      website: "",
-      industry: ""
-    }
-  });
-
-  const onSubmit = (values: BrandFormValues) => {
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!clientId) {
       toast.error('Client ID is required');
       return;
     }
-
+    
+    if (!formData.name) {
+      toast.error('Brand name is required');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    // Create the brand
     createBrandMutation.mutate({
-      ...values,
-      client_id: clientId,
-      name: values.name
+      ...formData,
+      client_id: clientId
     });
   };
-
-  const handleBrandClick = (brandId: number) => {
-    navigate(`/client/brands/${brandId}`);
-  };
-
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Brands</h1>
-          <p className="text-muted-foreground">Manage your brand portfolio and brand-specific tasks</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <h2 className="text-3xl font-bold tracking-tight">Brand Management</h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Add Brand</Button>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Brand
+            </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Brand</DialogTitle>
-              <DialogDescription>
-                Create a new brand to organize your tasks and projects.
-              </DialogDescription>
-            </DialogHeader>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brand Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter brand name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="industry"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industry</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select industry" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="technology">Technology</SelectItem>
-                          <SelectItem value="healthcare">Healthcare</SelectItem>
-                          <SelectItem value="finance">Finance</SelectItem>
-                          <SelectItem value="retail">Retail</SelectItem>
-                          <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter brand description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter brand website" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" loading={createBrandMutation.isPending}>
-                    Save Brand
-                  </Button>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleSubmit}>
+              <DialogHeader>
+                <DialogTitle>Create New Brand</DialogTitle>
+                <DialogDescription>
+                  Add a new brand to manage its assets and tasks.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                    required
+                  />
                 </div>
-              </form>
-            </Form>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="logo" className="text-right">
+                    Logo URL
+                  </Label>
+                  <Input
+                    id="logo"
+                    name="logo"
+                    value={formData.logo}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="website" className="text-right">
+                    Website
+                  </Label>
+                  <Input
+                    id="website"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="industry" className="text-right">
+                    Industry
+                  </Label>
+                  <Input
+                    id="industry"
+                    name="industry"
+                    value={formData.industry}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="col-span-3"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Creating...' : 'Create Brand'}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-[200px] rounded-lg" />
-            <Skeleton className="h-[200px] rounded-lg" />
-            <Skeleton className="h-[200px] rounded-lg" />
-          </>
-        ) : brands && brands.length > 0 ? (
-          brands.map((brand) => (
-            <Card key={brand.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleBrandClick(brand.id)}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {brand.logo ? (
-                      <img src={brand.logo} alt={brand.name} className="h-8 w-8 rounded" />
-                    ) : (
-                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                        {brand.name.charAt(0)}
-                      </div>
-                    )}
-                    <CardTitle className="text-xl">{brand.name}</CardTitle>
-                  </div>
-                </div>
-                <CardDescription>{brand.industry}</CardDescription>
+      
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="space-y-2">
+                <div className="h-6 bg-muted rounded-md w-1/2"></div>
+                <div className="h-4 bg-muted rounded-md w-3/4"></div>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {brand.description || "No description provided"}
-                </p>
-                {brand.website && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {brand.website}
+              <CardContent className="space-y-2">
+                <div className="h-4 bg-muted rounded-md w-full"></div>
+                <div className="h-4 bg-muted rounded-md w-5/6"></div>
+                <div className="h-4 bg-muted rounded-md w-4/6"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : brands.length === 0 ? (
+        <Card className="text-center p-8">
+          <CardContent className="pt-8">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Briefcase className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Brands Yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Create your first brand to manage its assets and tasks.
+            </p>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Brand
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {brands.map((brand) => (
+            <Card key={brand.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>{brand.name}</CardTitle>
+                    <CardDescription>{brand.industry}</CardDescription>
+                  </div>
+                  {brand.logo && (
+                    <div className="w-12 h-12 rounded overflow-hidden">
+                      <img 
+                        src={brand.logo} 
+                        alt={`${brand.name} logo`} 
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Logo';
+                        }} 
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {brand.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {brand.description}
                   </p>
                 )}
-                <div className="flex justify-between items-center mt-4">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Tasks: </span>
-                    <span className="font-medium">3 active</span>
+                {brand.website && (
+                  <div className="flex items-center text-sm">
+                    <Link2 className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    <a 
+                      href={brand.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline truncate"
+                    >
+                      {brand.website.replace(/^https?:\/\//, '')}
+                    </a>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/client/brands/${brand.id}/tasks/new`);
-                  }}>
-                    New Task
-                  </Button>
-                </div>
+                )}
               </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" size="sm">View Tasks</Button>
+                <Button variant="outline" size="sm">
+                  <ImageIcon className="h-4 w-4 mr-1" />
+                  Assets
+                </Button>
+              </CardFooter>
             </Card>
-          ))
-        ) : (
-          <div className="col-span-full">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <div className="rounded-full bg-muted p-3 mb-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
-                    />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold mb-1">No brands found</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  You haven't added any brands yet. Create a brand to organize your tasks.
-                </p>
-                <Button onClick={() => setOpen(true)}>Add Brand</Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

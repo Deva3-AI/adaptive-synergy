@@ -5,10 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
 import { BarChart, LineChart } from "@/components/ui/charts";
-import { DonutChart } from "@/components/ui/charts/DonutChart";
+import { DonutChart } from "@/components/ui/charts";
 import { useQuery } from '@tanstack/react-query';
 import { taskService } from '@/services/api';
-import type { TaskStatistics } from '@/services/api/taskService';
+import type { TaskStatistics } from '@/services/api';
 
 interface TaskProgressInsightsProps {
   userId?: number;

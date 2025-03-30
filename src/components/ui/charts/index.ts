@@ -1,12 +1,28 @@
 
-// Export charts
-export { BarChart } from './BarChart';
-export { LineChart } from './LineChart';
-export { PieChart } from './PieChart';
-export { DonutChart } from './DonutChart';
+// Import chart components
+import BarChart from './BarChart';
+import LineChart from './LineChart';
+import PieChart from './PieChart';
+import DonutChart from './DonutChart';
+
+// Import and re-export types
+import type { BarChartProps } from './BarChart';
+import type { LineChartProps } from './LineChart';
+import type { PieChartProps } from './PieChart';
+import type { DonutChartProps } from './DonutChart';
+
+// Export components
+export {
+  BarChart,
+  LineChart,
+  PieChart,
+  DonutChart
+};
 
 // Export types
-export type { BarChartProps } from './BarChart';
-export type { LineChartProps } from './LineChart';
-export type { PieChartProps } from './PieChart';
-export type { DonutChartProps } from './DonutChart';
+export type {
+  BarChartProps,
+  LineChartProps,
+  PieChartProps,
+  DonutChartProps
+};

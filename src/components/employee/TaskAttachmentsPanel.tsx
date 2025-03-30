@@ -5,16 +5,31 @@ import { Button } from "@/components/ui/button";
 import { UploadCloud, File, Download, FileText, Image, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useDropzone } from 'react-dropzone';
-import { TaskAttachment } from '@/services/api/taskService';
 import { taskService } from '@/services/api';
+import { TaskAttachment } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
-import { formatFileSize, formatDate } from '@/utils/formatters';
 
 interface TaskAttachmentsPanelProps {
   taskId: number;
   userId: number;
 }
+
+// Helper function for formatting file size
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+// Helper function for formatting dates
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString(undefined, { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric'
+  });
+};
 
 const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, userId }) => {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -108,59 +123,53 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
             <div className="mt-4">
               <Progress value={uploadProgress} className="h-2" />
               <p className="text-xs text-muted-foreground mt-1">
-                Uploading... {uploadProgress}%
+                {uploadProgress}% uploaded
               </p>
             </div>
           )}
         </div>
         
         {isLoading ? (
-          <div className="text-center py-4">
-            <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-sm text-muted-foreground mt-2">Loading attachments...</p>
+          <div className="py-8 text-center">
+            <File className="h-8 w-8 mx-auto text-muted-foreground mb-2 animate-pulse" />
+            <p className="text-sm text-muted-foreground">Loading attachments...</p>
           </div>
-        ) : attachments && attachments.length > 0 ? (
-          <div className="space-y-3">
-            {attachments.map((attachment) => (
-              <div 
-                key={attachment.id}
-                className="flex items-center gap-3 p-3 rounded-lg border group hover:bg-accent"
-              >
-                {getFileIcon(attachment.file_type)}
-                
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{attachment.file_name}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <span>{formatFileSize(attachment.file_size)}</span>
-                    <span>•</span>
-                    <span>{formatDate(attachment.uploaded_at, 'MMM d, yyyy, h:mm a')}</span>
-                    {attachment.description && (
-                      <>
-                        <span>•</span>
-                        <span className="truncate">{attachment.description}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => {
-                    window.open(attachment.url, '_blank');
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+        ) : !attachments || attachments.length === 0 ? (
+          <div className="py-8 text-center border rounded-lg">
+            <File className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">No attachments yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Upload files using the area above
+            </p>
           </div>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            <File className="h-10 w-10 mx-auto opacity-20 mb-2" />
-            <p>No attachments yet</p>
-            <p className="text-sm mt-1">Upload files to share with the team</p>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Uploaded Files</h3>
+            <div className="border rounded-lg divide-y">
+              {attachments.map((attachment) => (
+                <div key={attachment.id} className="p-3 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {getFileIcon(attachment.file_type || '')}
+                    <div>
+                      <p className="text-sm font-medium truncate max-w-[200px]">
+                        {attachment.file_name}
+                      </p>
+                      <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+                        <span>{formatFileSize(attachment.file_size)}</span>
+                        <span>{formatDate(attachment.uploaded_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Button variant="ghost" size="icon" asChild>
+                      <a href={attachment.url} target="_blank" rel="noopener noreferrer" download>
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
