@@ -58,7 +58,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const currentUser = authService.getCurrentUser();
         if (currentUser) {
+          console.log('User found in localStorage:', currentUser);
           setUser(currentUser);
+        } else {
+          console.log('No user found in localStorage');
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
@@ -75,10 +78,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       const response = await authService.login(email, password);
+      console.log('Login response:', response);
       
       // Get the current user after login
       const currentUser = authService.getCurrentUser();
       if (currentUser) {
+        console.log('Setting user after login:', currentUser);
         setUser(currentUser);
         
         // Navigate based on user role
@@ -139,6 +144,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isHR = user?.role === 'hr';
   const isFinance = user?.role === 'finance';
   const isAdmin = user?.role === 'admin';
+  
+  // Log for debugging
+  console.log('Auth state:', { isAuthenticated, user, loading });
   
   return (
     <AuthContext.Provider

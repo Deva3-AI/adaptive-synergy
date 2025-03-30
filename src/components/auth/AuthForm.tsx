@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/toaster";
 import { useAuth } from "@/hooks/use-auth";
 
 // Form schemas
@@ -71,6 +72,7 @@ const AuthForm = ({ type }: AuthFormProps) => {
   const onLoginSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     try {
+      console.log("Login attempt with:", values.email);
       await login(values.email, values.password);
       // Login will handle navigation in the hook
     } catch (error: any) {

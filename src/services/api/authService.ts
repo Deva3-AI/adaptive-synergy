@@ -18,23 +18,38 @@ const authService = {
       if (!API_URL || API_URL === 'http://localhost:8000/api') {
         console.log('Using mock login data for development');
         
-        // Store mock user data
+        // Store mock user data - determine role based on email
+        let role = 'employee';
+        if (email.includes('admin')) {
+          role = 'admin';
+        } else if (email.includes('hr')) {
+          role = 'hr';
+        } else if (email.includes('finance')) {
+          role = 'finance';
+        } else if (email.includes('marketing')) {
+          role = 'marketing';
+        } else if (email.includes('client')) {
+          role = 'client';
+        }
+        
         const mockUser = {
           id: 1,
-          name: 'Test User',
+          name: email.split('@')[0],
           email,
-          role: 'admin',
+          role,
         };
         
         localStorage.setItem('token', 'mock-token-for-development');
         localStorage.setItem('user', JSON.stringify(mockUser));
         
+        console.log('Mock login successful:', mockUser);
+        
         return {
           access_token: 'mock-token-for-development',
           user_id: 1,
-          name: 'Test User',
+          name: mockUser.name,
           email,
-          role: 'admin'
+          role
         };
       }
       
@@ -95,9 +110,15 @@ const authService = {
   },
   
   getCurrentUser: (): User | null => {
-    const userJson = localStorage.getItem('user');
-    if (userJson) {
-      return JSON.parse(userJson);
+    try {
+      const userJson = localStorage.getItem('user');
+      if (userJson) {
+        return JSON.parse(userJson);
+      }
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      // Clear corrupted data
+      localStorage.removeItem('user');
     }
     return null;
   },
