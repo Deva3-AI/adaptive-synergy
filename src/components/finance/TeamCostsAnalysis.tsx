@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -42,7 +41,7 @@ interface TeamCostsAnalysisProps {
   period: string;
 }
 
-export const TeamCostsAnalysis = ({ period }: TeamCostsAnalysisProps) => {
+const TeamCostsAnalysis = ({ period }: TeamCostsAnalysisProps) => {
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Fetch team costs data
