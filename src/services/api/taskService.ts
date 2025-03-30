@@ -5,8 +5,8 @@ export interface TaskAttachment {
   id: number;
   task_id: number;
   filename: string;
-  file_url: string; // Added to match usage in TaskAttachmentsPanel
-  file_name: string; // Added to match usage in TaskAttachmentsPanel
+  file_url: string;
+  file_name: string;
   file_type: string;
   file_size: number;
   uploaded_by: number;
@@ -21,6 +21,16 @@ const taskService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      return [];
+    }
+  },
+
+  getUserTasks: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/tasks/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching tasks for user ${userId}:`, error);
       return [];
     }
   },
@@ -99,7 +109,6 @@ const taskService = {
     }
   },
 
-  // Add missing method
   getTaskStatistics: async (timeframe?: string) => {
     try {
       let url = '/tasks/statistics';

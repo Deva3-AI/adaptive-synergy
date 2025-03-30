@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
   const uploadMutation = useMutation({
     mutationFn: (formData: FormData) => uploadAttachment(taskId, formData),
     onSuccess: () => {
-      queryClient.invalidateQueries(['task-attachments', taskId]);
+      queryClient.invalidateQueries({ queryKey: ['task-attachments', taskId] });
       setIsUploading(false);
       setDescription('');
       toast.success("Attachment uploaded successfully");
@@ -47,7 +48,7 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
   const deleteMutation = useMutation({
     mutationFn: (attachmentId: number) => taskService.deleteTaskAttachment(taskId, attachmentId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['task-attachments', taskId]);
+      queryClient.invalidateQueries({ queryKey: ['task-attachments', taskId] });
       toast.success("Attachment deleted successfully");
     },
     onError: () => {
@@ -105,7 +106,7 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
             <div>
-              <h4 className="font-medium truncate">{attachment.file_name || attachment.filename}</h4>
+              <h4 className="font-medium truncate">{attachment.filename}</h4>
               <p className="text-xs text-muted-foreground mt-1">
                 Uploaded {formatDistanceToNow(new Date(attachment.upload_date), { addSuffix: true })}
               </p>

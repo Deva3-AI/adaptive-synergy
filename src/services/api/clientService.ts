@@ -6,6 +6,7 @@ export interface Brand {
   client_id: number;
   name: string;
   description: string;
+  logo?: string;
   created_at: string;
 }
 
@@ -70,7 +71,7 @@ const clientService = {
     }
   },
 
-  // Add missing methods for brands
+  // Methods for brands
   getClientBrands: async (clientId?: number) => {
     try {
       let url = '/clients/brands';
