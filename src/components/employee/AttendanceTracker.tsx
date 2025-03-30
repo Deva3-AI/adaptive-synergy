@@ -1,27 +1,66 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Play, Pause, Clock } from "lucide-react";
 import { formatDuration } from '@/utils/dateUtils';
 import { toast } from 'sonner';
-import { employeeService } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+
+interface Attendance {
+  attendance_id: number;
+  login_time: string;
+  logout_time: string | null;
+}
 
 interface AttendanceTrackerProps {
-  attendance?: {
-    attendance_id: number;
-    login_time: string;
-    logout_time?: string;
-  };
+  attendance?: Attendance;
   onAttendanceUpdate: () => void;
 }
 
 const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTrackerProps) => {
+  const { user } = useAuth();
+  const [elapsedTime, setElapsedTime] = useState('0h 0m');
   const isWorking = attendance && !attendance.logout_time;
   
+  // Update elapsed time every minute if working
+  useEffect(() => {
+    if (!isWorking) return;
+    
+    const updateElapsedTime = () => {
+      if (attendance?.login_time) {
+        setElapsedTime(formatDuration(new Date(attendance.login_time)));
+      }
+    };
+    
+    // Update immediately and then every minute
+    updateElapsedTime();
+    const interval = setInterval(updateElapsedTime, 60000);
+    
+    return () => clearInterval(interval);
+  }, [attendance, isWorking]);
+  
   const handleStartWork = async () => {
+    if (!user) {
+      toast.error('You must be logged in to track attendance');
+      return;
+    }
+    
     try {
-      await employeeService.startWork();
+      // Create new attendance record
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('employee_attendance')
+        .insert({
+          user_id: user.id,
+          login_time: new Date().toISOString(),
+          work_date: today
+        })
+        .select();
+      
+      if (error) throw error;
+      
       onAttendanceUpdate();
       toast.success('Work session started');
     } catch (error) {
@@ -31,22 +70,25 @@ const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTracker
   };
   
   const handleStopWork = async () => {
-    if (!attendance) return;
+    if (!attendance || !user) return;
     
     try {
-      await employeeService.stopWork(attendance.attendance_id);
+      // Update attendance record with logout time
+      const { error } = await supabase
+        .from('employee_attendance')
+        .update({
+          logout_time: new Date().toISOString()
+        })
+        .eq('attendance_id', attendance.attendance_id);
+      
+      if (error) throw error;
+      
       onAttendanceUpdate();
       toast.success('Work session ended');
     } catch (error) {
       console.error('Error stopping work:', error);
       toast.error('Failed to end work session');
     }
-  };
-  
-  // Calculate current duration if working
-  const calculateDuration = () => {
-    if (!attendance || !attendance.login_time) return '0h 0m';
-    return formatDuration(new Date(attendance.login_time));
   };
   
   return (
@@ -64,7 +106,7 @@ const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTracker
           </div>
           {isWorking && (
             <div className="text-xs text-muted-foreground mt-1">
-              Duration: {calculateDuration()}
+              Duration: {elapsedTime}
             </div>
           )}
         </div>

@@ -1,15 +1,56 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useEmployees, Employee } from "@/utils/apiUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from '@tanstack/react-query';
+
+interface Employee {
+  user_id: number;
+  name: string;
+  email: string;
+  role_name: string;
+}
 
 const EmployeesList = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: employees, isLoading, error } = useEmployees();
+  
+  // Fetch employees from Supabase
+  const { data: employees, isLoading, error } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      try {
+        // Query employees from users table joined with roles
+        const { data, error } = await supabase
+          .from('users')
+          .select(`
+            user_id,
+            name,
+            email,
+            roles (
+              role_name
+            )
+          `)
+          .order('name');
+        
+        if (error) throw error;
+        
+        // Format data to match our expected structure
+        return data.map((employee) => ({
+          user_id: employee.user_id,
+          name: employee.name,
+          email: employee.email,
+          role_name: employee.roles?.role_name || 'Unknown Role'
+        }));
+      } catch (error) {
+        console.error('Error fetching employees from Supabase:', error);
+        throw error;
+      }
+    }
+  });
 
   // Filter employees based on search term
   const filteredEmployees = employees?.filter((employee) => 
