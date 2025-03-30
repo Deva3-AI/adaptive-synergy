@@ -1,3 +1,4 @@
+
 import apiClient from '@/utils/apiUtils';
 
 export interface Invoice {
@@ -154,9 +155,9 @@ const financeService = {
     }
   },
 
-  completeFollowUp: async (followUpId: number) => {
+  completeFollowUp: async (followUpId: number, feedback?: string) => {
     try {
-      const response = await apiClient.put(`/finance/sales/follow-ups/${followUpId}/complete`);
+      const response = await apiClient.put(`/finance/sales/follow-ups/${followUpId}/complete`, { feedback });
       return response.data;
     } catch (error) {
       console.error(`Error completing follow-up ${followUpId}:`, error);

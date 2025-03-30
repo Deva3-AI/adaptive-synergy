@@ -54,7 +54,6 @@ const hrService = {
     }
   },
   
-  // Adding missing methods
   getPayslips: async (month?: string, year?: string) => {
     try {
       let url = '/hr/payslips';

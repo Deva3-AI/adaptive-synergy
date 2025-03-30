@@ -4,12 +4,12 @@ import apiClient from '@/utils/apiUtils';
 export interface TaskAttachment {
   id: number;
   task_id: number;
-  file_name: string;
-  file_url: string;
+  filename: string;
+  file_path: string;
   file_type: string;
   file_size: number;
-  uploaded_at: string;
   uploaded_by: number;
+  uploaded_at: string;
 }
 
 const taskService = {
@@ -65,7 +65,7 @@ const taskService = {
 
   getUserTasks: async (userId: number) => {
     try {
-      const response = await apiClient.get(`/users/${userId}/tasks`);
+      const response = await apiClient.get(`/tasks/user/${userId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching tasks for user ${userId}:`, error);
@@ -83,17 +83,16 @@ const taskService = {
     }
   },
 
-  uploadTaskAttachment: async (taskId: number, formData: FormData) => {
+  uploadTaskAttachment: async (taskId: number, file: File) => {
     try {
-      const response = await apiClient.post(
-        `/tasks/${taskId}/attachments`, 
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-      );
+      });
       return response.data;
     } catch (error) {
       console.error(`Error uploading attachment for task ${taskId}:`, error);
@@ -106,8 +105,26 @@ const taskService = {
       const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error deleting attachment ${attachmentId} for task ${taskId}:`, error);
+      console.error(`Error deleting attachment ${attachmentId} from task ${taskId}:`, error);
       throw error;
+    }
+  },
+  
+  getTaskStatistics: async (userId?: number) => {
+    try {
+      const url = userId ? `/tasks/statistics?userId=${userId}` : '/tasks/statistics';
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching task statistics:', error);
+      return {
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        overdue: 0,
+        completionRate: 0,
+        avgCompletionTime: 0
+      };
     }
   }
 };

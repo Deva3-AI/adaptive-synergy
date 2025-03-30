@@ -23,4 +23,3 @@ export {
 export type { Brand } from './clientService';
 export type { Invoice, FinancialRecord } from './financeService';
 export type { TaskAttachment } from './taskService';
-
