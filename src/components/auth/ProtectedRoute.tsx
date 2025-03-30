@@ -13,11 +13,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   allowedRoles = [] 
 }) => {
-  const { isAuthenticated, loading: isLoading, user } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
   
   // Show loading state
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="flex flex-col items-center gap-4">
@@ -33,12 +33,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  // Check if user role is allowed
+  // Check if user role is allowed (if roles specified)
   if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
     // Redirect based on user role
     const redirectPath = user.role === 'admin' 
-      ? '/dashboard' 
-      : `/${user.role}/dashboard`;
+      ? '/app' 
+      : `/app/${user.role}/dashboard`;
     
     return <Navigate to={redirectPath} replace />;
   }

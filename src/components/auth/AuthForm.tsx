@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,7 +45,7 @@ const AuthForm = ({ type }: AuthFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -73,9 +72,15 @@ const AuthForm = ({ type }: AuthFormProps) => {
     setIsLoading(true);
     try {
       await login(values.email, values.password);
-      // Login successful, navigation handled in useAuth hook
-    } catch (error) {
-      // Error handled in useAuth hook
+      // Login will handle navigation in the hook
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "Something went wrong. Please try again.",
+      });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -84,32 +89,19 @@ const AuthForm = ({ type }: AuthFormProps) => {
   const onSignupSubmit = async (values: SignupFormValues) => {
     setIsLoading(true);
     try {
-      // Call register API
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: values.name,
-          email: values.email,
-          password: values.password,
-          role_id: 2, // Default to employee role
-        }),
+      await signup({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: 'employee', // Default role
       });
-
-      toast({
-        title: "Account created",
-        description: "Please check your email to verify your account",
-      });
-
-      // Redirect to login page
-      navigate("/login");
+      // Signup will handle navigation in the hook
     } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: error.response?.data?.detail || "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
       });
     } finally {
       setIsLoading(false);

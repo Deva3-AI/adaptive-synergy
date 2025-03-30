@@ -1,5 +1,8 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import authService from '@/services/api/authService';
+import { toast } from 'sonner';
 
 // Define the user type
 export type User = {
@@ -47,14 +50,15 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Check if user is logged in from localStorage or token
     const checkAuth = async () => {
       try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
@@ -70,18 +74,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock login - in a real app, this would call your auth API
-      const mockUser = {
-        id: 1,
-        name: 'Test User',
-        email,
-        role: 'admin',
-      };
+      const response = await authService.login(email, password);
       
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-    } catch (error) {
+      // Get the current user after login
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        
+        // Navigate based on user role
+        if (currentUser.role === 'admin') {
+          navigate('/app');
+        } else if (['employee', 'client', 'marketing', 'hr', 'finance'].includes(currentUser.role)) {
+          navigate(`/app/${currentUser.role}/dashboard`);
+        } else {
+          navigate('/app');
+        }
+        
+        toast.success(`Welcome back, ${currentUser.name}!`);
+      }
+    } catch (error: any) {
       console.error('Login error:', error);
+      toast.error(error.message || 'Login failed. Please check your credentials.');
       throw error;
     } finally {
       setLoading(false);
@@ -90,36 +103,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Logout function
   const logout = () => {
-    localStorage.removeItem('user');
+    authService.logout();
     setUser(null);
+    navigate('/login');
+    toast.info('You have been logged out');
   };
   
   // Signup function
   const signup = async (userData: any) => {
     setLoading(true);
     try {
-      // Mock signup - in a real app, this would call your auth API
-      const mockUser = {
-        id: 1,
-        name: userData.name,
-        email: userData.email,
-        role: 'user',
-      };
+      await authService.register(
+        userData.name, 
+        userData.email, 
+        userData.password,
+        userData.role || 'employee'
+      );
       
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      setUser(mockUser);
-    } catch (error) {
+      toast.success('Account created successfully! Please log in.');
+      navigate('/login');
+    } catch (error: any) {
       console.error('Signup error:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
       throw error;
     } finally {
       setLoading(false);
     }
   };
   
-  // Added isAuthenticated property
-  const isAuthenticated = !!user;
-  
   // Role check helper functions
+  const isAuthenticated = !!user;
   const isEmployee = user?.role === 'employee';
   const isClient = user?.role === 'client';
   const isMarketing = user?.role === 'marketing';

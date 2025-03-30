@@ -14,6 +14,31 @@ export interface User {
 const authService = {
   login: async (email: string, password: string) => {
     try {
+      // For development, provide mock data if API is not available
+      if (!API_URL || API_URL === 'http://localhost:8000/api') {
+        console.log('Using mock login data for development');
+        
+        // Store mock user data
+        const mockUser = {
+          id: 1,
+          name: 'Test User',
+          email,
+          role: 'admin',
+        };
+        
+        localStorage.setItem('token', 'mock-token-for-development');
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        
+        return {
+          access_token: 'mock-token-for-development',
+          user_id: 1,
+          name: 'Test User',
+          email,
+          role: 'admin'
+        };
+      }
+      
+      // If API URL is available, call the real API
       const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password
@@ -33,12 +58,23 @@ const authService = {
       return data;
     } catch (error) {
       console.error('Login error:', error);
-      throw error;
+      throw new Error('Invalid email or password. Please try again.');
     }
   },
   
   register: async (name: string, email: string, password: string, role: string = 'employee') => {
     try {
+      // For development, provide mock data if API is not available
+      if (!API_URL || API_URL === 'http://localhost:8000/api') {
+        console.log('Using mock registration for development');
+        return {
+          user_id: 2,
+          name,
+          email,
+          role
+        };
+      }
+      
       const response = await axios.post(`${API_URL}/auth/register`, {
         name,
         email,
@@ -49,7 +85,7 @@ const authService = {
       return response.data;
     } catch (error) {
       console.error('Registration error:', error);
-      throw error;
+      throw new Error('Registration failed. This email may already be in use.');
     }
   },
   
