@@ -59,7 +59,7 @@ const marketingService = {
     }
   },
 
-  // Add these methods to fix the TypeScript errors
+  // Add missing methods
   getEmailOutreach: async () => {
     try {
       const response = await apiClient.get('/marketing/email-outreach');

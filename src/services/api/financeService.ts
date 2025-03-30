@@ -10,6 +10,7 @@ export interface Invoice {
   due_date: string;
   status: 'pending' | 'paid' | 'overdue';
   created_at: string;
+  id: number; // Adding id property to fix TypeScript errors
 }
 
 export interface FinancialRecord {
@@ -19,6 +20,8 @@ export interface FinancialRecord {
   description: string;
   record_date: string;
   created_at: string;
+  id: number; // Adding id property to fix TypeScript errors
+  date: string; // Adding date property to fix TypeScript errors
 }
 
 const financeService = {
@@ -172,17 +175,25 @@ const financeService = {
       return [
         {
           id: 1,
+          record_id: 1,
           description: 'Client payment - Acme Inc',
           amount: 5000,
           date: '2023-09-15',
-          type: 'income'
+          record_date: '2023-09-15',
+          type: 'income',
+          record_type: 'income',
+          created_at: '2023-09-15T00:00:00Z'
         },
         {
           id: 2,
+          record_id: 2,
           description: 'Office supplies',
           amount: 350,
           date: '2023-09-12',
-          type: 'expense'
+          record_date: '2023-09-12',
+          type: 'expense',
+          record_type: 'expense',
+          created_at: '2023-09-12T00:00:00Z'
         }
       ];
     }
@@ -295,9 +306,13 @@ const financeService = {
   },
 
   // Sales reports methods
-  getWeeklyReports: async (dateRange: string) => {
+  getWeeklyReports: async (dateRange?: string) => {
     try {
-      const response = await apiClient.get(`/finance/weekly-reports?range=${dateRange}`);
+      let url = '/finance/weekly-reports';
+      if (dateRange) {
+        url += `?range=${dateRange}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching weekly reports:', error);
@@ -305,9 +320,13 @@ const financeService = {
     }
   },
 
-  getMonthlyReports: async (dateRange: string) => {
+  getMonthlyReports: async (dateRange?: string) => {
     try {
-      const response = await apiClient.get(`/finance/monthly-reports?range=${dateRange}`);
+      let url = '/finance/monthly-reports';
+      if (dateRange) {
+        url += `?range=${dateRange}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching monthly reports:', error);
@@ -336,9 +355,9 @@ const financeService = {
     }
   },
 
-  completeFollowUp: async (followUpId: number) => {
+  completeFollowUp: async (followUpId: number, feedback?: string) => {
     try {
-      const response = await apiClient.put(`/finance/sales-follow-ups/${followUpId}/complete`);
+      const response = await apiClient.put(`/finance/sales-follow-ups/${followUpId}/complete`, { feedback });
       return response.data;
     } catch (error) {
       console.error(`Error completing follow-up ${followUpId}:`, error);

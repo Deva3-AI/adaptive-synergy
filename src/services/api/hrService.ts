@@ -57,7 +57,7 @@ const hrService = {
     }
   },
 
-  // Add these methods to fix the TypeScript errors
+  // Add missing methods
   getPayslips: async (startDate: string, endDate: string) => {
     try {
       const response = await apiClient.get(`/hr/payslips?startDate=${startDate}&endDate=${endDate}`);
