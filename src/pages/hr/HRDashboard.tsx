@@ -7,10 +7,12 @@ import hrServiceSupabase from '@/services/api/hrServiceSupabase';
 import PayrollManagement from '@/components/hr/PayrollManagement';
 import RecruitmentTracker from '@/components/hr/RecruitmentTracker';
 import EmployeeAttendance from '@/components/hr/EmployeeAttendance';
+import HRTaskManagement from '@/components/hr/HRTaskManagement';
 import { Button } from '@/components/ui/button';
-import { CalendarClock, Users, DollarSign, GraduationCap } from 'lucide-react';
+import { CalendarClock, Users, DollarSign, GraduationCap, ClipboardCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from "@/integrations/supabase/client";
+import { transformSupabaseData } from '@/utils/supabaseUtils';
 
 const HRDashboard = () => {
   const [activeTab, setActiveTab] = useState<string>("attendance");
@@ -38,7 +40,40 @@ const HRDashboard = () => {
         `);
       
       if (error) throw error;
-      return data;
+      
+      // Format the data to match our Employee interface
+      return data.map(item => {
+        const roleData = transformSupabaseData.getRoleName(item.roles);
+        const employeeDetails = transformSupabaseData.getEmployeeDetails(item.employee_details);
+        
+        return {
+          user_id: item.user_id,
+          name: item.name,
+          email: item.email,
+          role_id: item.role_id,
+          role_name: roleData,
+          joining_date: employeeDetails.joining_date,
+          employee_id: employeeDetails.employee_id,
+          date_of_birth: employeeDetails.date_of_birth
+        };
+      });
+    }
+  });
+
+  // Count tasks by status for metrics
+  const { data: hrTasks } = useQuery({
+    queryKey: ['hr-tasks-count'],
+    queryFn: () => {
+      // This would normally call an API
+      return new Promise<{total: number, pending: number, completed: number}>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            total: 5,
+            pending: 3,
+            completed: 2
+          });
+        }, 500);
+      });
     }
   });
   
@@ -59,7 +94,7 @@ const HRDashboard = () => {
         </div>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
@@ -117,12 +152,28 @@ const HRDashboard = () => {
             </p>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">HR Tasks</CardTitle>
+            <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {hrTasks ? hrTasks.pending : '0'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pending tasks of {hrTasks ? hrTasks.total : '0'} total
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="attendance" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 md:w-[400px]">
+        <TabsList className="grid grid-cols-4 md:w-[500px]">
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="recruitment">Recruitment</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="payroll">Payroll</TabsTrigger>
         </TabsList>
         
@@ -136,6 +187,10 @@ const HRDashboard = () => {
         
         <TabsContent value="recruitment" className="mt-6">
           <RecruitmentTracker />
+        </TabsContent>
+        
+        <TabsContent value="tasks" className="mt-6">
+          <HRTaskManagement />
         </TabsContent>
         
         <TabsContent value="payroll" className="mt-6">

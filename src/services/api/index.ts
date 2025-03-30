@@ -1,38 +1,39 @@
 
 import authService from './authService';
-import clientService from './clientService';
 import employeeService from './employeeService';
+import clientService from './clientService';
+import taskService from './taskService';
 import financeService from './financeService';
 import hrService from './hrService';
 import marketingService from './marketingService';
 import reportService from './reportService';
 import userService from './userService';
-import aiService from './aiService';
-import taskService from './taskService';
+import hrServiceSupabase from './hrServiceSupabase';
 
 export {
   authService,
-  clientService,
   employeeService,
+  clientService,
+  taskService,
   financeService,
   hrService,
   marketingService,
   reportService,
   userService,
-  aiService,
-  taskService
+  hrServiceSupabase
 };
 
-// For backward compatibility with existing code
-export const apiService = {
-  authService,
-  clientService,
-  employeeService,
-  financeService,
-  hrService,
-  marketingService,
-  reportService,
-  userService,
-  aiService,
-  taskService
+// For backward compatibility
+const apiService = {
+  auth: authService,
+  employees: employeeService,
+  clients: clientService,
+  tasks: taskService,
+  finance: financeService,
+  hr: hrService,
+  marketing: marketingService,
+  reports: reportService,
+  users: userService
 };
+
+export default apiService;

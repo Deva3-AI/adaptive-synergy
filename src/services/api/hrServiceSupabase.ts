@@ -1,5 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
+import { transformSupabaseData } from "@/utils/supabaseUtils";
 
 export interface Employee {
   user_id: number;
@@ -49,16 +51,21 @@ const hrServiceSupabase = {
       if (error) throw error;
       
       // Format the data to match our Employee interface
-      return data.map(item => ({
-        user_id: item.user_id,
-        name: item.name,
-        email: item.email,
-        role_id: item.role_id,
-        role_name: item.roles?.role_name,
-        joining_date: item.employee_details?.joining_date,
-        employee_id: item.employee_details?.employee_id,
-        date_of_birth: item.employee_details?.date_of_birth
-      }));
+      return data.map(item => {
+        const roleData = transformSupabaseData.getRoleName(item.roles);
+        const employeeDetails = transformSupabaseData.getEmployeeDetails(item.employee_details);
+        
+        return {
+          user_id: item.user_id,
+          name: item.name,
+          email: item.email,
+          role_id: item.role_id,
+          role_name: roleData,
+          joining_date: employeeDetails.joining_date,
+          employee_id: employeeDetails.employee_id,
+          date_of_birth: employeeDetails.date_of_birth
+        };
+      });
     } catch (error) {
       console.error('Error fetching employees:', error);
       return [];
@@ -94,6 +101,8 @@ const hrServiceSupabase = {
       // Create enriched attendance records
       const records = attendanceData.map(record => {
         const employee = employees.find(emp => emp.user_id === record.user_id);
+        const roleName = employee ? transformSupabaseData.getRoleName(employee.roles) : 'Unknown';
+        
         return {
           attendance_id: record.attendance_id,
           user_id: record.user_id,
@@ -101,7 +110,7 @@ const hrServiceSupabase = {
           logout_time: record.logout_time,
           work_date: record.work_date,
           employee_name: employee?.name || 'Unknown Employee',
-          department: employee?.roles?.role_name || 'Unassigned'
+          department: roleName
         };
       });
       

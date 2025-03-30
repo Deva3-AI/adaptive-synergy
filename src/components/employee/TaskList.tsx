@@ -1,112 +1,176 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, CheckCircle, AlertCircle, XCircle, MessageSquare, ChevronRight, FolderOpen } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, ExternalLink } from "lucide-react";
+import { Link } from 'react-router-dom';
 import taskService from '@/services/api/taskService';
 
 interface TaskListProps {
-  clientId?: number;
-  userId?: number;
+  employeeId?: number;
   limit?: number;
-  showClient?: boolean;
-  className?: string;
+  showViewAll?: boolean;
+  client_id?: number;
+  status?: string;
 }
 
-const TaskList: React.FC<TaskListProps> = ({
-  clientId,
-  userId,
-  limit = 5,
-  showClient = true,
-  className
-}) => {
-  const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
-
-  const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks', clientId, userId],
-    queryFn: () => taskService.getTasks({ clientId, assignedTo: userId }),
+const TaskList = ({ employeeId, limit = 5, showViewAll = true, client_id, status }: TaskListProps) => {
+  const [activeTab, setActiveTab] = useState<string>("all");
+  
+  const { data: tasks, isLoading, error, refetch } = useQuery({
+    queryKey: ['employee-tasks', employeeId, activeTab, client_id],
+    queryFn: () => {
+      const queryParams: {
+        status?: string;
+        assigned_to?: number;
+        client_id?: number;
+      } = {};
+      
+      if (activeTab !== 'all') {
+        queryParams.status = activeTab;
+      } else if (status) {
+        queryParams.status = status;
+      }
+      
+      if (employeeId) {
+        queryParams.assigned_to = employeeId;
+      }
+      
+      if (client_id) {
+        queryParams.client_id = client_id;
+      }
+      
+      return taskService.getTasks(queryParams);
+    }
   });
-
-  const toggleTaskExpansion = (taskId: number) => {
-    setExpandedTaskId(prevId => (prevId === taskId ? null : taskId));
+  
+  // Effect to refetch data when active tab changes
+  useEffect(() => {
+    refetch();
+  }, [activeTab, refetch]);
+  
+  // Function to get badge color based on task status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'in_progress': return 'warning';
+      case 'pending': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'secondary';
+    }
   };
-
-  const limitedTasks = tasks?.slice(0, limit);
-
+  
+  // Function to get badge color based on task priority
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'high': return 'destructive';
+      case 'medium': return 'warning';
+      case 'low': return 'secondary';
+      default: return 'secondary';
+    }
+  };
+  
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center text-destructive">
+            Error loading tasks. Please try again later.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>
-          {clientId ? 'Client Tasks' : userId ? 'Assigned Tasks' : 'All Tasks'}
-        </CardTitle>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle>Tasks</CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        {isLoading ? (
-          <div className="p-4 space-y-3">
-            {[...Array(limit)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-[80%]" />
-                <Skeleton className="h-3 w-[60%]" />
-                <Skeleton className="h-2 w-[40%]" />
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full sm:w-auto grid grid-cols-4 mb-4">
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="pending">To Do</TabsTrigger>
+            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value={activeTab} className="pt-2">
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Spinner size="lg" />
               </div>
-            ))}
-          </div>
-        ) : limitedTasks && limitedTasks.length > 0 ? (
-          <ul className="divide-y divide-border">
-            {limitedTasks.map(task => (
-              <li key={task.task_id} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <Link to={`/employee/tasks/${task.task_id}`} className="font-medium hover:underline">
+            ) : !tasks || tasks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No tasks found.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tasks.slice(0, limit).map((task) => (
+                    <TableRow key={task.id || task.task_id}>
+                      <TableCell className="font-medium">
                         {task.title}
-                      </Link>
-                      {task.status === 'completed' && (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      )}
-                    </div>
-                    {showClient && task.clients && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        <FolderOpen className="h-3 w-3 inline-block mr-1 align-text-bottom" />
-                        {task.clients.client_name || 'Unknown Client'}
-                      </div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3 inline-block mr-1 align-text-bottom" />
-                      Due: {new Date(task.end_time).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => toggleTaskExpansion(task.task_id)}>
-                    <ChevronRight className="h-4 w-4" />
+                      </TableCell>
+                      <TableCell>{task.client_name || task.client}</TableCell>
+                      <TableCell>
+                        {task.due_date || task.dueDate 
+                          ? format(new Date(task.due_date || task.dueDate), 'MMM dd, yyyy') 
+                          : 'Not set'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getPriorityColor(task.priority || 'medium')}>
+                          {task.priority || 'Medium'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusColor(task.status)}>
+                          {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link to={`/tasks/${task.id || task.task_id}`}>
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            
+            {showViewAll && tasks && tasks.length > limit && (
+              <div className="mt-4 text-center">
+                <Link to={employeeId ? `/employee/${employeeId}/tasks` : '/tasks'}>
+                  <Button variant="outline" size="sm">
+                    View All Tasks
+                    <ExternalLink className="ml-1 h-4 w-4" />
                   </Button>
-                </div>
-                {expandedTaskId === task.task_id && (
-                  <div className="mt-3 space-y-2">
-                    <Separator />
-                    <p className="text-sm text-muted-foreground">{task.description}</p>
-                    <div className="flex justify-between items-center mt-2">
-                      <Badge variant="secondary">{task.status}</Badge>
-                      <Link to={`/employee/tasks/${task.task_id}`} className="text-sm hover:underline">
-                        View Details
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="p-4 text-center text-muted-foreground">
-            No tasks found.
-          </div>
-        )}
+                </Link>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
