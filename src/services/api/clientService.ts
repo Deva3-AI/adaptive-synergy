@@ -77,7 +77,23 @@ const clientService = {
       return response.data;
     } catch (error) {
       console.error(`Error fetching brands for client ${clientId}:`, error);
-      return [];
+      // Return mock data for development
+      return [
+        {
+          id: 1,
+          name: "Brand Alpha",
+          description: "Main brand identity",
+          logo: "/brands/alpha-logo.png",
+          client_id: clientId
+        },
+        {
+          id: 2,
+          name: "Brand Beta",
+          description: "Secondary product line",
+          logo: "/brands/beta-logo.png",
+          client_id: clientId
+        }
+      ];
     }
   },
 
@@ -107,7 +123,15 @@ const clientService = {
       return response.data;
     } catch (error) {
       console.error(`Error fetching preferences for client ${clientId}:`, error);
-      return null;
+      // Return mock data for development
+      return {
+        communication_channels: ["email", "slack"],
+        preferred_meeting_times: "afternoons",
+        design_preferences: "Minimalistic, modern design with bold typography",
+        color_preferences: ["#2563EB", "#F59E0B", "#10B981"],
+        feedback_style: "Direct and detailed",
+        notes: "Client prefers weekly updates via email. Very responsive to questions."
+      };
     }
   }
 };
