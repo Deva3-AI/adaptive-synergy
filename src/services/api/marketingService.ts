@@ -59,7 +59,18 @@ const marketingService = {
     }
   },
 
-  // Methods for various marketing components
+  // Email Outreach methods
+  getEmailOutreach: async () => {
+    try {
+      const response = await apiClient.get('/marketing/email-outreach');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching email outreach data:', error);
+      return [];
+    }
+  },
+
+  // Email Templates methods
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
@@ -70,26 +81,18 @@ const marketingService = {
     }
   },
 
-  getEmailOutreach: async () => {
-    try {
-      const response = await apiClient.get('/marketing/email-outreach');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching email outreach data:', error);
-      return null;
-    }
-  },
-
+  // Leads methods
   getLeads: async () => {
     try {
       const response = await apiClient.get('/marketing/leads');
       return response.data;
     } catch (error) {
-      console.error('Error fetching marketing leads:', error);
+      console.error('Error fetching leads:', error);
       return [];
     }
   },
 
+  // Marketing Plans methods
   getMarketingPlans: async () => {
     try {
       const response = await apiClient.get('/marketing/plans');
@@ -110,13 +113,14 @@ const marketingService = {
     }
   },
 
+  // Marketing Trends methods
   getMarketingTrends: async () => {
     try {
       const response = await apiClient.get('/marketing/trends');
       return response.data;
     } catch (error) {
       console.error('Error fetching marketing trends:', error);
-      return null;
+      return [];
     }
   },
 
@@ -126,10 +130,11 @@ const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching competitor insights:', error);
-      return null;
+      return [];
     }
   },
 
+  // Meeting Analysis methods
   analyzeMeetingTranscript: async (transcriptData: any) => {
     try {
       const response = await apiClient.post('/marketing/analyze-transcript', transcriptData);
@@ -140,6 +145,7 @@ const marketingService = {
     }
   },
 
+  // Marketing Metrics
   getMarketingMetrics: async () => {
     try {
       const response = await apiClient.get('/marketing/metrics');

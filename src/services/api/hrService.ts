@@ -32,7 +32,7 @@ const hrService = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching payroll:', error);
+      console.error('Error fetching payroll data:', error);
       return null;
     }
   },
@@ -57,17 +57,10 @@ const hrService = {
     }
   },
 
-  // Methods for PayrollManagement and RecruitmentTracker
-  getPayslips: async (startDate?: string, endDate?: string) => {
+  // New methods for PayrollManagement
+  getPayslips: async (startDate: string, endDate: string) => {
     try {
-      let url = '/hr/payslips';
-      const params = [];
-      if (startDate) params.push(`startDate=${startDate}`);
-      if (endDate) params.push(`endDate=${endDate}`);
-      if (params.length > 0) {
-        url += `?${params.join('&')}`;
-      }
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(`/hr/payslips?startDate=${startDate}&endDate=${endDate}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching payslips:', error);
@@ -80,11 +73,12 @@ const hrService = {
       const response = await apiClient.post('/hr/payslips/generate', { employeeId, month });
       return response.data;
     } catch (error) {
-      console.error(`Error generating payslip for employee ${employeeId}:`, error);
+      console.error('Error generating payslip:', error);
       throw error;
     }
   },
 
+  // New methods for RecruitmentTracker
   getJobOpenings: async () => {
     try {
       const response = await apiClient.get('/hr/job-openings');

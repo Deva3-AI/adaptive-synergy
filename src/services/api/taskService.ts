@@ -5,13 +5,10 @@ export interface TaskAttachment {
   id: number;
   task_id: number;
   filename: string;
-  file_url: string;
-  file_name: string;
+  file_path: string;
   file_type: string;
-  file_size: number;
   uploaded_by: number;
-  upload_date: string;
-  description?: string;
+  uploaded_at: string;
 }
 
 const taskService = {
@@ -21,16 +18,6 @@ const taskService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      return [];
-    }
-  },
-
-  getUserTasks: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/tasks/user/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching tasks for user ${userId}:`, error);
       return [];
     }
   },
@@ -67,44 +54,30 @@ const taskService = {
 
   deleteTask: async (taskId: number) => {
     try {
-      await apiClient.delete(`/tasks/${taskId}`);
-      return true;
+      const response = await apiClient.delete(`/tasks/${taskId}`);
+      return response.data;
     } catch (error) {
       console.error(`Error deleting task ${taskId}:`, error);
       throw error;
     }
   },
 
-  getTaskAttachments: async (taskId: number) => {
+  getTaskComments: async (taskId: number) => {
     try {
-      const response = await apiClient.get(`/tasks/${taskId}/attachments`);
+      const response = await apiClient.get(`/tasks/${taskId}/comments`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching attachments for task ${taskId}:`, error);
+      console.error(`Error fetching comments for task ${taskId}:`, error);
       return [];
     }
   },
 
-  uploadTaskAttachment: async (taskId: number, formData: FormData) => {
+  addTaskComment: async (taskId: number, comment: string) => {
     try {
-      const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await apiClient.post(`/tasks/${taskId}/comments`, { comment });
       return response.data;
     } catch (error) {
-      console.error(`Error uploading attachment for task ${taskId}:`, error);
-      throw error;
-    }
-  },
-
-  deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
-    try {
-      await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
-      return true;
-    } catch (error) {
-      console.error(`Error deleting attachment ${attachmentId}:`, error);
+      console.error(`Error adding comment to task ${taskId}:`, error);
       throw error;
     }
   },
@@ -120,6 +93,17 @@ const taskService = {
     } catch (error) {
       console.error('Error fetching task statistics:', error);
       return null;
+    }
+  },
+
+  // Method for TaskRecommendations component
+  getUserTasks: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/tasks/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching tasks for user ${userId}:`, error);
+      return [];
     }
   }
 };

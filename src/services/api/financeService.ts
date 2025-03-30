@@ -111,7 +111,7 @@ const financeService = {
     }
   },
 
-  // New methods for FinancialDashboard
+  // Methods for financial dashboard
   getFinancialOverview: async () => {
     try {
       const response = await apiClient.get('/finance/overview');
