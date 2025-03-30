@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, Send, X, Sparkles, ChevronDown, ChevronUp, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import aiService from "@/services/api/aiService";
+import { aiService } from "@/services/api";
 import { useAuth } from "@/hooks/use-auth";
-import { useClients, useTasks, useEmployees } from "@/utils/apiUtils";
-import { useToast } from "@/hooks/use-toast";
+import { useClients, useEmployees } from "@/utils/apiUtils";
+import { useTasks } from "@/utils/apiUtils";
+import { toast } from "sonner";
 
 type Message = {
   id: string;
@@ -37,7 +39,6 @@ export const AIAssistant = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
   
   const { data: clients } = useClients();
   const { data: tasks } = useTasks();
@@ -124,7 +125,7 @@ export const AIAssistant = () => {
       
       const assistantMessage: Message = {
         id: generateId(),
-        content: response.message || "I'm sorry, I couldn't process your request at the moment.",
+        content: response.response || "I'm sorry, I couldn't process your request at the moment.",
         role: 'assistant',
         timestamp: new Date()
       };
@@ -141,11 +142,7 @@ export const AIAssistant = () => {
       };
       
       setMessages(prev => [...prev, errorMessage]);
-      toast({
-        title: "AI Assistant Error",
-        description: "There was an error processing your request.",
-        variant: "destructive"
-      });
+      toast.error("AI Assistant Error: There was an error processing your request.");
     } finally {
       setIsLoading(false);
     }

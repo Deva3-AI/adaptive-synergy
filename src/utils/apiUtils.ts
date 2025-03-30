@@ -1,4 +1,5 @@
 
+// Custom hooks to fetch data from Supabase
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,10 +15,34 @@ export const useClients = () => {
           .order('client_name');
 
         if (error) throw error;
-        console.log('Fetched clients in useClients hook:', data);
         return data;
       } catch (error) {
         console.error('Error fetching clients:', error);
+        throw error;
+      }
+    }
+  });
+};
+
+// Custom hook to fetch tasks
+export const useTasks = () => {
+  return useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select(`
+            *,
+            clients (client_id, client_name),
+            users (user_id, name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
         throw error;
       }
     }
@@ -37,8 +62,8 @@ export const useEmployees = () => {
             name,
             email,
             role_id,
-            roles(role_name),
-            employee_details(joining_date, employee_id, date_of_birth)
+            roles (role_name),
+            employee_details (joining_date, employee_id, date_of_birth)
           `);
 
         if (error) throw error;
@@ -117,7 +142,7 @@ export const useEmployeeTasks = (userId: number) => {
           .from('tasks')
           .select(`
             *,
-            clients(client_name)
+            clients (client_id, client_name)
           `)
           .eq('assigned_to', userId);
 
@@ -154,3 +179,59 @@ export const useEmployeeAttendance = (userId: number) => {
     enabled: !!userId
   });
 };
+
+// Utility for generic data fetching
+export const fetchData = async (table: string, options = {}) => {
+  try {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*', options);
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error(`Error fetching data from ${table}:`, error);
+    throw error;
+  }
+};
+
+// Utility for API requests
+export const apiRequest = async (endpoint: string, options = {}) => {
+  try {
+    const response = await fetch(`/api/${endpoint}`, options);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'API request failed');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error(`API request error for ${endpoint}:`, error);
+    throw error;
+  }
+};
+
+// Types for common entities
+export interface LeaveRequest {
+  id: number;
+  user_id: number;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+export interface PaySlip {
+  id: number;
+  user_id: number;
+  month: string;
+  year: number;
+  base_salary: number;
+  bonuses: number;
+  deductions: number;
+  net_salary: number;
+  generated_at: string;
+  status: 'draft' | 'final' | 'paid';
+}

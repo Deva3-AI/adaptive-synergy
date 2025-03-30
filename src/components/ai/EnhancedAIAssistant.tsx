@@ -7,11 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, RefreshCw, Copy, CheckCircle, AlertTriangle, HelpCircle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import clientService from '@/services/api/clientService';
-import aiService from '@/services/api/aiService';
+import { clientService, aiService } from '@/services/api';
 import { useParams } from 'react-router-dom';
 
 interface ChatMessage {
@@ -37,7 +36,6 @@ const EnhancedAIAssistant = () => {
   const [clientContext, setClientContext] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   // Load client details for context
   useEffect(() => {
@@ -111,10 +109,7 @@ const EnhancedAIAssistant = () => {
 
   const handleCopyClick = (message: string) => {
     navigator.clipboard.writeText(message);
-    toast({
-      title: "Copied to clipboard!",
-      description: "You can now paste this message anywhere.",
-    });
+    toast.success("Copied to clipboard!");
   };
 
   const handleRegenerateResponse = async () => {

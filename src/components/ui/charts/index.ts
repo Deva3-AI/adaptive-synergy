@@ -6,7 +6,57 @@ export { default as PieChart } from './PieChart';
 export { default as DonutChart } from './DonutChart';
 
 // Export chart props types
-export type { BarChartProps } from './BarChart';
-export type { LineChartProps } from './LineChart';
-export type { PieChartProps } from './PieChart';
-export type { DonutChartProps } from './DonutChart';
+export interface BarChartProps {
+  data: any[];
+  xAxisKey: string;
+  series?: { key: string; label: string; color: string }[];
+  height?: number;
+  className?: string;
+  showLegend?: boolean;
+}
+
+export interface LineChartProps {
+  data: any[];
+  xAxisKey: string;
+  series?: { key: string; label: string; color: string }[];
+  height?: number;
+  className?: string;
+  showLegend?: boolean;
+}
+
+export interface PieChartProps {
+  data: any[];
+  nameKey: string;
+  dataKey: string;
+  colors?: string[];
+  height?: number;
+  className?: string;
+  showLegend?: boolean;
+}
+
+export interface DonutChartProps {
+  data: any[];
+  nameKey: string;
+  dataKey: string;
+  colors?: string[];
+  innerRadius?: number;
+  outerRadius?: number;
+  height?: number;
+  className?: string;
+  showLegend?: boolean;
+}
+
+// Export an AnalyticsChartProps type that wraps all chart types
+export interface AnalyticsChartProps {
+  data: any[];
+  height?: number;
+  defaultType?: string;
+  xAxisKey?: string;
+  series?: { key: string; label: string; color: string }[];
+  className?: string;
+  options?: {
+    lineKeys?: string[];
+    lineColors?: string[];
+    [key: string]: any;
+  };
+}

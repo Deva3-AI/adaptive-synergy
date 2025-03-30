@@ -1,25 +1,69 @@
 
 import React from 'react';
-import { LineChart } from '@/components/ui/charts';
+import { LineChart, BarChart, PieChart, DonutChart, AnalyticsChartProps } from '@/components/ui/charts';
 
-interface AnalyticsChartProps {
-  data: any[];
-  className?: string;
-}
+const AnalyticsChart = ({ 
+  data = getMockData(), 
+  defaultType = 'line',
+  xAxisKey = 'month',
+  height = 350,
+  series,
+  className,
+  options = {}
+}: AnalyticsChartProps) => {
+  const renderChart = () => {
+    switch (defaultType) {
+      case 'bar':
+        return (
+          <BarChart
+            data={data}
+            xAxisKey={xAxisKey}
+            series={series || [
+              { key: 'revenue', label: 'Revenue', color: 'var(--chart-primary)' },
+              { key: 'expenses', label: 'Expenses', color: 'var(--chart-secondary)' }
+            ]}
+            className={className}
+            height={height}
+          />
+        );
+      case 'pie':
+        return (
+          <PieChart
+            data={data}
+            nameKey="name"
+            dataKey="value"
+            className={className}
+            height={height}
+          />
+        );
+      case 'donut':
+        return (
+          <DonutChart
+            data={data}
+            nameKey="name"
+            dataKey="value"
+            className={className}
+            height={height}
+          />
+        );
+      case 'line':
+      default:
+        return (
+          <LineChart
+            data={data}
+            xAxisKey={xAxisKey}
+            series={series || [
+              { key: 'revenue', label: 'Revenue', color: 'var(--chart-primary)' },
+              { key: 'expenses', label: 'Expenses', color: 'var(--chart-secondary)' }
+            ]}
+            className={className}
+            height={height}
+          />
+        );
+    }
+  };
 
-const AnalyticsChart = ({ data = getMockData(), className }: AnalyticsChartProps) => {
-  return (
-    <LineChart
-      data={data}
-      xAxisKey="month"
-      series={[
-        { key: 'revenue', label: 'Revenue', color: 'var(--chart-primary)' },
-        { key: 'expenses', label: 'Expenses', color: 'var(--chart-secondary)' }
-      ]}
-      className={className}
-      height={350}
-    />
-  );
+  return renderChart();
 };
 
 // Mock data for the chart

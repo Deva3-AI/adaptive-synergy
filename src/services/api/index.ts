@@ -1,25 +1,16 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
 // Import all service modules
-import * as authServiceModule from './authService';
-import * as clientServiceModule from './clientService';
-import * as employeeServiceModule from './employeeService';
-import * as financeServiceModule from './financeService';
-import * as hrServiceModule from './hrService';
-import * as marketingServiceModule from './marketingService';
-import * as taskServiceModule from './taskService';
-import * as aiServiceModule from './aiService';
+import authService from './authService';
+import clientService from './clientService';
+import employeeService from './employeeService';
+import financeService from './financeService';
+import hrService from './hrService';
+import marketingService from './marketingService';
+import taskService from './taskService';
+import aiService from './aiService';
 
 // Export all service modules
-export const authService = authServiceModule;
-export const clientService = clientServiceModule;
-export const employeeService = employeeServiceModule;
-export const financeService = financeServiceModule;
-export const hrService = hrServiceModule;
-export const marketingService = marketingServiceModule;
-export const taskService = taskServiceModule;
-export const aiService = aiServiceModule;
+export { authService, clientService, employeeService, financeService, hrService, marketingService, taskService, aiService };
 
 // Export interfaces
 export interface Task {
