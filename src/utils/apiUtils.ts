@@ -32,13 +32,27 @@ export interface PaySlip {
 }
 
 export interface SalesData {
-  id: number;
-  period: string;
-  revenue: number;
-  growth: number;
-  target: number;
-  channel: string;
-  products: Array<{name: string, amount: number}>;
+  monthly_revenue: number;
+  annual_target: number;
+  growth_rate: number;
+  client_acquisition: number;
+  conversion_rate: number;
+  avg_deal_size: number;
+  top_clients: {
+    client_id: number;
+    client_name: string;
+    revenue: number;
+    growth: number;
+  }[];
+  monthly_trend: {
+    month: string;
+    revenue: number;
+    target: number;
+  }[];
+  sales_by_service: {
+    service: string;
+    value: number;
+  }[];
 }
 
 export interface DetailedTask {
@@ -76,6 +90,17 @@ export const handleApiError = (error: any, defaultValue: any = null) => {
     console.error('Error message:', error.message);
   }
   return defaultValue;
+};
+
+// Add the missing fetchData function
+export const fetchData = async (url: string, params?: any) => {
+  try {
+    const response = await axios.get(url, { params });
+    return response.data;
+  } catch (error) {
+    handleApiError(error);
+    throw error;
+  }
 };
 
 // Create default API client

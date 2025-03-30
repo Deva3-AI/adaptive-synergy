@@ -7,7 +7,7 @@ import { LineChart, BarChart, PieChart } from 'recharts';
 import { TrendingUp, DollarSign, Users, ShoppingCart, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
-import { SalesData } from '@/utils/apiUtils';
+import { SalesData } from '@/interfaces/finance';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {

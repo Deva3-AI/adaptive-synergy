@@ -1,836 +1,734 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Search,
-  Filter,
-  Plus,
-  Star,
-  StarHalf,
+  BarChart,
+  Building,
   Calendar,
-  Briefcase,
-  MapPin,
-  Users,
   CheckCircle,
-  XCircle,
+  ChevronRight,
   Clock,
-  ArrowRight,
+  Download,
   FileText,
-  Send,
-  Download
+  Filter,
+  GraduationCap,
+  Handshake,
+  Home,
+  Mail,
+  MessageSquare,
+  PenSquare,
+  Phone,
+  Plus,
+  Search,
+  Star,
+  Users,
+  DollarSign
 } from "lucide-react";
-import { format } from 'date-fns';
-import { JobOpening, Candidate } from '@/interfaces/hr';
-import { getInitials } from '@/lib/utils';
+import { format, addDays, subDays } from 'date-fns';
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface JobOpening {
+  id: number;
+  title: string;
+  department: string;
+  location: string;
+  type: 'full_time' | 'part_time' | 'contract' | 'remote';
+  description: string;
+  requirements: string[];
+  responsibilities: string[];
+  salary_range?: {
+    min: number;
+    max: number;
+  };
+  posted_date: string;
+  status: 'open' | 'closed' | 'on_hold';
+  applicants_count: number;
+  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'other';
+}
+
+interface Candidate {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  job_id: number;
+  job_title: string;
+  resume_url: string;
+  application_date: string;
+  skills: string[];
+  experience: number;
+  education: string;
+  status: 'new' | 'screening' | 'interview' | 'offer' | 'rejected' | 'hired';
+  match_score: number;
+  notes: string;
+  strengths: string[];
+  gaps: string[];
+  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'email' | 'other';
+  last_contact?: string;
+}
 
 const RecruitmentTracker = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [activeTab, setActiveTab] = useState('openings');
+  const [activeJobId, setActiveJobId] = useState<number | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   
   // Fetch job openings
-  const { data: jobOpenings } = useQuery({
+  const { data: jobOpenings, isLoading: isLoadingJobs } = useQuery({
     queryKey: ['job-openings'],
-    queryFn: () => {
+    queryFn: async () => {
       // This would normally call an API
       return new Promise<JobOpening[]>((resolve) => {
         setTimeout(() => {
           resolve([
             {
               id: 1,
-              title: "Senior Frontend Developer",
+              title: "Senior React Developer",
               department: "Engineering",
               location: "Remote",
               type: "full_time",
-              description: "We're looking for a Senior Frontend Developer experienced in React, TypeScript, and modern web technologies to join our growing team.",
+              description: "We're looking for an experienced React developer to join our team...",
               requirements: [
                 "5+ years of experience with React",
                 "Strong TypeScript skills",
-                "Experience with state management solutions",
-                "Understanding of responsive design principles"
+                "Experience with state management (Redux, Context API)",
+                "Knowledge of modern frontend build tools"
               ],
               responsibilities: [
-                "Develop and maintain frontend applications",
-                "Collaborate with UI/UX designers",
-                "Optimize applications for performance",
+                "Develop new features for our web application",
+                "Maintain and improve existing codebase",
+                "Collaborate with design and backend teams",
                 "Mentor junior developers"
               ],
               salary_range: {
-                min: 100000,
-                max: 140000
+                min: 90000,
+                max: 120000
               },
-              posted_date: new Date(Date.now() - 15 * 86400000).toISOString(), // 15 days ago
+              posted_date: subDays(new Date(), 10).toISOString(),
               status: "open",
-              applicants_count: 18,
+              applicants_count: 15,
               source: "linkedin"
             },
             {
               id: 2,
-              title: "Product Designer",
+              title: "UX/UI Designer",
               department: "Design",
               location: "New York, NY",
               type: "full_time",
-              description: "Join our design team to create beautiful, functional interfaces for our products and services.",
+              description: "Looking for a talented UX/UI designer to create amazing user experiences...",
               requirements: [
-                "3+ years of product design experience",
-                "Proficiency in Figma and design tools",
-                "Portfolio demonstrating UI/UX skills",
-                "Experience working with development teams"
+                "3+ years of experience in UX/UI design",
+                "Proficiency in Figma and Adobe Creative Suite",
+                "Portfolio demonstrating strong visual design skills",
+                "Experience with design systems"
               ],
               responsibilities: [
-                "Create wireframes and prototypes",
-                "Conduct user research and testing",
-                "Develop design systems",
-                "Collaborate with product and engineering teams"
+                "Create wireframes, prototypes, and high-fidelity designs",
+                "Conduct user research and usability testing",
+                "Collaborate with product managers and developers",
+                "Maintain and expand our design system"
               ],
               salary_range: {
-                min: 85000,
-                max: 120000
+                min: 80000,
+                max: 110000
               },
-              posted_date: new Date(Date.now() - 7 * 86400000).toISOString(), // 7 days ago
+              posted_date: subDays(new Date(), 5).toISOString(),
               status: "open",
-              applicants_count: 12,
+              applicants_count: 8,
               source: "indeed"
             },
             {
               id: 3,
-              title: "Marketing Manager",
+              title: "Marketing Specialist",
               department: "Marketing",
-              location: "Chicago, IL",
-              type: "full_time",
-              description: "Lead our marketing efforts to drive growth and brand awareness.",
-              requirements: [
-                "5+ years of marketing experience",
-                "Experience with digital marketing",
-                "Strong analytical skills",
-                "Excellent communication"
-              ],
-              responsibilities: [
-                "Develop marketing strategies",
-                "Manage social media campaigns",
-                "Analyze marketing performance",
-                "Collaborate with sales team"
-              ],
-              salary_range: {
-                min: 90000,
-                max: 110000
-              },
-              posted_date: new Date(Date.now() - 30 * 86400000).toISOString(), // 30 days ago
-              status: "closed",
-              applicants_count: 24,
-              source: "linkedin"
-            },
-            {
-              id: 4,
-              title: "DevOps Engineer",
-              department: "Engineering",
               location: "Remote",
-              type: "contract",
-              description: "Help us build and maintain our cloud infrastructure and CI/CD pipelines.",
+              type: "part_time",
+              description: "We need a marketing specialist to help grow our digital presence...",
               requirements: [
-                "Experience with AWS or GCP",
-                "Knowledge of Docker and Kubernetes",
-                "Familiarity with CI/CD tools",
-                "Understanding of security best practices"
+                "2+ years of experience in digital marketing",
+                "Experience with social media platforms",
+                "Knowledge of SEO/SEM",
+                "Analytical mindset"
               ],
               responsibilities: [
-                "Maintain cloud infrastructure",
-                "Automate deployment processes",
-                "Monitor system performance",
-                "Implement security measures"
+                "Manage social media accounts",
+                "Create and implement marketing campaigns",
+                "Analyze marketing metrics",
+                "Collaborate with content team"
               ],
               salary_range: {
-                min: 100000,
-                max: 130000
+                min: 40000,
+                max: 60000
               },
-              posted_date: new Date(Date.now() - 10 * 86400000).toISOString(), // 10 days ago
-              status: "open",
-              applicants_count: 8,
+              posted_date: subDays(new Date(), 15).toISOString(),
+              status: "on_hold",
+              applicants_count: 12,
               source: "website"
             }
           ]);
-        }, 500);
+        }, 1000);
       });
     }
   });
   
   // Fetch candidates
-  const { data: candidates } = useQuery({
-    queryKey: ['candidates'],
-    queryFn: () => {
+  const { data: candidates, isLoading: isLoadingCandidates } = useQuery({
+    queryKey: ['candidates', activeJobId],
+    queryFn: async () => {
       // This would normally call an API
       return new Promise<Candidate[]>((resolve) => {
         setTimeout(() => {
           resolve([
             {
               id: 1,
-              name: "Sarah Johnson",
-              email: "sarah.j@example.com",
-              phone: "+1 555-123-4567",
+              name: "John Smith",
+              email: "john.smith@example.com",
+              phone: "+1 212-555-1234",
               job_id: 1,
-              job_title: "Senior Frontend Developer",
-              resume_url: "/resumes/sarah-johnson.pdf",
-              application_date: new Date(Date.now() - 12 * 86400000).toISOString(), // 12 days ago
-              skills: ["React", "TypeScript", "Redux", "CSS/SASS", "Jest"],
+              job_title: "Senior React Developer",
+              resume_url: "/resumes/john_smith_resume.pdf",
+              application_date: subDays(new Date(), 8).toISOString(),
+              skills: ["React", "TypeScript", "Redux", "Node.js", "GraphQL"],
               experience: 6,
-              education: "BS Computer Science, Stanford University",
+              education: "BS in Computer Science, MIT",
               status: "interview",
               match_score: 92,
-              notes: "Great cultural fit, strong portfolio with similar projects to our needs.",
-              strengths: ["Technical expertise", "Communication skills", "Problem-solving"],
-              gaps: ["Limited backend experience"],
+              notes: "Great candidate with strong React experience. Has worked on similar projects before.",
+              strengths: ["Technical skills", "Project experience", "Communication"],
+              gaps: ["No experience with our specific tech stack"],
               source: "linkedin",
-              last_contact: new Date(Date.now() - 2 * 86400000).toISOString() // 2 days ago
+              last_contact: subDays(new Date(), 2).toISOString()
             },
             {
               id: 2,
-              name: "Michael Chen",
-              email: "michael.c@example.com",
-              phone: "+1 555-987-6543",
+              name: "Jane Doe",
+              email: "jane.doe@example.com",
+              phone: "+1 415-555-6789",
               job_id: 1,
-              job_title: "Senior Frontend Developer",
-              resume_url: "/resumes/michael-chen.pdf",
-              application_date: new Date(Date.now() - 10 * 86400000).toISOString(), // 10 days ago
-              skills: ["React", "Angular", "JavaScript", "TypeScript", "HTML/CSS"],
-              experience: 7,
-              education: "MS Computer Science, MIT",
+              job_title: "Senior React Developer",
+              resume_url: "/resumes/jane_doe_resume.pdf",
+              application_date: subDays(new Date(), 6).toISOString(),
+              skills: ["React", "JavaScript", "CSS", "HTML", "Redux"],
+              experience: 4,
+              education: "MS in Web Development, Stanford",
               status: "screening",
               match_score: 85,
-              notes: "Strong technical background, primarily Angular experience but willing to adapt.",
-              strengths: ["Technical depth", "Project leadership"],
-              gaps: ["Limited React experience", "No TypeScript examples in portfolio"],
+              notes: "Good technical skills but less experience than required. Strong portfolio.",
+              strengths: ["Portfolio quality", "Education"],
+              gaps: ["Experience years", "No TypeScript"],
               source: "indeed",
-              last_contact: new Date(Date.now() - 5 * 86400000).toISOString() // 5 days ago
+              last_contact: subDays(new Date(), 4).toISOString()
             },
             {
               id: 3,
-              name: "Emily Rodriguez",
-              email: "emily.r@example.com",
-              phone: "+1 555-456-7890",
+              name: "David Johnson",
+              email: "david.johnson@example.com",
+              phone: "+1 312-555-9876",
               job_id: 2,
-              job_title: "Product Designer",
-              resume_url: "/resumes/emily-rodriguez.pdf",
-              application_date: new Date(Date.now() - 5 * 86400000).toISOString(), // 5 days ago
-              skills: ["Figma", "UI/UX", "Wireframing", "User Research", "Design Systems"],
-              experience: 4,
-              education: "BFA Design, Rhode Island School of Design",
-              status: "interview",
-              match_score: 95,
-              notes: "Outstanding portfolio, experience with similar products, great communication skills.",
-              strengths: ["Visual design", "User-centered thinking", "Design systems"],
-              gaps: ["Limited experience with analytics"],
-              source: "referral",
-              last_contact: new Date(Date.now() - 1 * 86400000).toISOString() // 1 day ago
-            },
-            {
-              id: 4,
-              name: "David Wilson",
-              email: "david.w@example.com",
-              phone: "+1 555-789-0123",
-              job_id: 4,
-              job_title: "DevOps Engineer",
-              resume_url: "/resumes/david-wilson.pdf",
-              application_date: new Date(Date.now() - 8 * 86400000).toISOString(), // 8 days ago
-              skills: ["AWS", "Docker", "Kubernetes", "Terraform", "Jenkins", "Python"],
+              job_title: "UX/UI Designer",
+              resume_url: "/resumes/david_johnson_resume.pdf",
+              application_date: subDays(new Date(), 3).toISOString(),
+              skills: ["Figma", "Adobe XD", "Sketch", "User Research", "Prototyping"],
               experience: 5,
-              education: "BS Computer Engineering, Georgia Tech",
-              status: "offer",
-              match_score: 90,
-              notes: "Strong background in AWS, has implemented similar CI/CD pipelines to what we need.",
-              strengths: ["Infrastructure as code", "Automation", "Security best practices"],
-              gaps: ["Limited GCP experience"],
-              source: "linkedin",
-              last_contact: new Date(Date.now() - 1 * 86400000).toISOString() // 1 day ago
-            },
-            {
-              id: 5,
-              name: "Jennifer Lee",
-              email: "jennifer.l@example.com",
-              phone: "+1 555-234-5678",
-              job_id: 2,
-              job_title: "Product Designer",
-              resume_url: "/resumes/jennifer-lee.pdf",
-              application_date: new Date(Date.now() - 6 * 86400000).toISOString(), // 6 days ago
-              skills: ["Figma", "Adobe XD", "UI Design", "Prototyping", "User Testing"],
-              experience: 3,
-              education: "MS Human-Computer Interaction, Carnegie Mellon",
+              education: "BFA in Graphic Design, RISD",
               status: "new",
-              match_score: 80,
-              notes: "Good portfolio, strong academic background, limited professional experience.",
-              strengths: ["User research", "Interaction design"],
-              gaps: ["Limited professional experience"],
-              source: "indeed",
+              match_score: 88,
+              notes: "Impressive portfolio with experience in similar industries.",
+              strengths: ["Portfolio", "Industry experience"],
+              gaps: ["No experience with our product type"],
+              source: "referral",
               last_contact: null
             }
-          ]);
-        }, 500);
+          ].filter(candidate => 
+            activeJobId ? candidate.job_id === activeJobId : true
+          ));
+        }, 1000);
       });
-    }
+    },
+    enabled: true // We want this to run even if activeJobId is null (to show all candidates)
   });
   
-  // Calculate recruitment statistics
-  const stats = React.useMemo(() => {
-    if (!jobOpenings || !candidates) {
-      return {
-        openPositions: 0,
-        totalApplicants: 0,
-        interviewStage: 0,
-        offerStage: 0,
-        averageMatchScore: 0,
-        timeToHire: 0
-      };
-    }
-    
-    const openPositions = jobOpenings.filter(job => job.status === 'open').length;
-    const totalApplicants = candidates.length;
-    const interviewStage = candidates.filter(c => c.status === 'interview').length;
-    const offerStage = candidates.filter(c => c.status === 'offer').length;
-    const averageMatchScore = candidates.reduce((sum, c) => sum + c.match_score, 0) / candidates.length;
-    
-    // Calculate average time to hire in days (simulation)
-    const timeToHire = 18; // In a real app, this would be calculated from actual data
-    
-    return {
-      openPositions,
-      totalApplicants,
-      interviewStage,
-      offerStage,
-      averageMatchScore,
-      timeToHire
-    };
-  }, [jobOpenings, candidates]);
+  const filteredJobs = jobOpenings?.filter(job => 
+    (filterStatus === 'all' || job.status === filterStatus) &&
+    (searchText === '' || 
+     job.title.toLowerCase().includes(searchText.toLowerCase()) ||
+     job.department.toLowerCase().includes(searchText.toLowerCase()))
+  );
   
-  // Filter candidates based on search query and selected status
-  const filteredCandidates = React.useMemo(() => {
-    if (!candidates) return [];
-    
-    return candidates.filter(candidate => {
-      // Check if the candidate matches the search query
-      const matchesSearch = searchQuery === '' || 
-        candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        candidate.job_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        candidate.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-      // Check if the candidate matches the selected status
-      const matchesStatus = selectedStatus === 'all' || candidate.status === selectedStatus;
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [candidates, searchQuery, selectedStatus]);
+  const filteredCandidates = candidates?.filter(candidate => 
+    (filterStatus === 'all' || candidate.status === filterStatus) &&
+    (searchText === '' || 
+     candidate.name.toLowerCase().includes(searchText.toLowerCase()) ||
+     candidate.skills.some(skill => skill.toLowerCase().includes(searchText.toLowerCase())))
+  );
   
-  // Get color for candidate status badge
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new':
-        return 'secondary';
-      case 'screening':
-        return 'default';
-      case 'interview':
-        return 'warning';
-      case 'offer':
-        return 'success';
-      case 'rejected':
-        return 'destructive';
-      case 'hired':
-        return 'success';
+  const renderJobStatus = (status: string) => {
+    switch(status) {
+      case 'open':
+        return <Badge className="bg-green-100 text-green-800">Open</Badge>;
+      case 'closed':
+        return <Badge className="bg-gray-100 text-gray-800">Closed</Badge>;
+      case 'on_hold':
+        return <Badge className="bg-yellow-100 text-yellow-800">On Hold</Badge>;
       default:
-        return 'secondary';
+        return <Badge>{status}</Badge>;
     }
   };
   
-  // Get color for match score
-  const getMatchScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 80) return 'text-amber-500';
-    if (score >= 70) return 'text-orange-500';
-    return 'text-red-500';
+  const renderCandidateStatus = (status: string) => {
+    switch(status) {
+      case 'new':
+        return <Badge className="bg-blue-100 text-blue-800">New</Badge>;
+      case 'screening':
+        return <Badge className="bg-purple-100 text-purple-800">Screening</Badge>;
+      case 'interview':
+        return <Badge className="bg-indigo-100 text-indigo-800">Interview</Badge>;
+      case 'offer':
+        return <Badge className="bg-green-100 text-green-800">Offer</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      case 'hired':
+        return <Badge className="bg-teal-100 text-teal-800">Hired</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
   };
   
-  // Render stars for match score
-  const renderMatchScore = (score: number) => {
-    const fullStars = Math.floor(score / 20);
-    const hasHalfStar = (score % 20) >= 10;
-    
-    return (
-      <div className="flex items-center">
-        <span className={`font-medium mr-2 ${getMatchScoreColor(score)}`}>{score}%</span>
-        <div className="flex text-amber-400">
-          {[...Array(fullStars)].map((_, i) => (
-            <Star key={i} className="h-4 w-4 fill-current" />
-          ))}
-          {hasHalfStar && <StarHalf className="h-4 w-4 fill-current" />}
-        </div>
-      </div>
-    );
-  };
+  const renderSkeletonJobs = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map(i => (
+        <Card key={i}>
+          <CardHeader className="pb-2">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between">
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+  
+  const renderSkeletonCandidates = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map(i => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <div className="ml-auto">
+                <Skeleton className="h-8 w-24" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
   
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold tracking-tight">Recruitment Tracker</h2>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" className="hidden md:flex gap-2">
+            <Filter className="h-4 w-4" />
+            Filter
+          </Button>
+          <Button variant="outline" size="sm" className="hidden md:flex gap-2">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Job Opening
+          </Button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="md:col-span-3">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col md:flex-row gap-4 justify-between">
+              <div className="space-y-1">
+                <CardTitle>Recruitment Overview</CardTitle>
+                <CardDescription>
+                  Track all job openings, candidates, and hiring metrics
+                </CardDescription>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search jobs or candidates..."
+                    className="pl-8 w-full md:w-[260px]"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-full sm:w-[150px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="on_hold">On Hold</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                    <SelectItem value="new">New Candidates</SelectItem>
+                    <SelectItem value="screening">Screening</SelectItem>
+                    <SelectItem value="interview">Interview</SelectItem>
+                    <SelectItem value="offer">Offer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.openPositions}</div>
-            <p className="text-xs text-muted-foreground">
-              Actively recruiting
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Applicants</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalApplicants}</div>
-            <p className="text-xs text-muted-foreground">
-              Total candidates
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Interview Stage</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.interviewStage}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently interviewing
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Offer Stage</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.offerStage}</div>
-            <p className="text-xs text-muted-foreground">
-              Offers extended
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Match Score</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.averageMatchScore.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
-              Average candidate fit
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Time to Hire</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.timeToHire} days</div>
-            <p className="text-xs text-muted-foreground">
-              Average hiring time
-            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="flex items-center gap-4 rounded-lg border p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Open Positions</p>
+                  <p className="text-2xl font-bold">
+                    {isLoadingJobs ? (
+                      <Skeleton className="h-8 w-8" />
+                    ) : (
+                      jobOpenings?.filter(job => job.status === 'open').length || 0
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 rounded-lg border p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Candidates</p>
+                  <p className="text-2xl font-bold">
+                    {isLoadingCandidates ? (
+                      <Skeleton className="h-8 w-8" />
+                    ) : (
+                      candidates?.filter(c => !['rejected', 'hired'].includes(c.status)).length || 0
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 rounded-lg border p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <Handshake className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Interviews This Week</p>
+                  <p className="text-2xl font-bold">5</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 rounded-lg border p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <DollarSign className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Avg. Hiring Cost</p>
+                  <p className="text-2xl font-bold">$4,200</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
       
-      {/* Recruitment Pipeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recruitment Pipeline</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-6">
-            <div className="grid grid-cols-5 gap-2">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-medium">New Applications</h3>
-                  <Badge variant="outline">{candidates?.filter(c => c.status === 'new').length || 0}</Badge>
-                </div>
-                <Progress value={20} className="h-2" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-medium">Screening</h3>
-                  <Badge variant="outline">{candidates?.filter(c => c.status === 'screening').length || 0}</Badge>
-                </div>
-                <Progress value={40} className="h-2" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-medium">Interview</h3>
-                  <Badge variant="outline">{candidates?.filter(c => c.status === 'interview').length || 0}</Badge>
-                </div>
-                <Progress value={60} className="h-2" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-medium">Offer</h3>
-                  <Badge variant="outline">{candidates?.filter(c => c.status === 'offer').length || 0}</Badge>
-                </div>
-                <Progress value={80} className="h-2" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-medium">Hired</h3>
-                  <Badge variant="outline">{candidates?.filter(c => c.status === 'hired').length || 0}</Badge>
-                </div>
-                <Progress value={100} className="h-2" />
-              </div>
+      <Tabs defaultValue="openings" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-2 md:w-[400px]">
+          <TabsTrigger value="openings">Job Openings</TabsTrigger>
+          <TabsTrigger value="candidates">Candidates</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="openings" className="space-y-4">
+          <div className="border rounded-md">
+            <div className="p-4 bg-muted/50">
+              <h3 className="font-medium">All Job Openings ({filteredJobs?.length || 0})</h3>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Job Openings / Candidates Tabs */}
-      <Card>
-        <CardContent className="p-4">
-          <Tabs defaultValue="candidates">
-            <TabsList className="mb-4">
-              <TabsTrigger value="openings">Job Openings</TabsTrigger>
-              <TabsTrigger value="candidates">Candidates</TabsTrigger>
-            </TabsList>
             
-            <TabsContent value="openings">
-              <div className="flex justify-between mb-4">
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search jobs..."
-                    className="pl-8"
-                  />
-                </div>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Post New Job
-                </Button>
-              </div>
-              
-              <div className="space-y-4">
-                {jobOpenings?.map(job => (
-                  <Card key={job.id} className="overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="p-4 flex flex-col md:flex-row md:items-center gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
-                            <h3 className="font-semibold text-lg">{job.title}</h3>
-                            <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-                              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mb-2">
-                            <div className="flex items-center">
-                              <Briefcase className="h-4 w-4 mr-1" />
-                              {job.department}
-                            </div>
-                            <div className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              {job.location}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="h-4 w-4 mr-1" />
-                              {job.applicants_count} applicants
-                            </div>
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              Posted {format(new Date(job.posted_date), 'MMM dd, yyyy')}
-                            </div>
-                          </div>
-                          
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {job.description}
-                          </p>
+            {isLoadingJobs ? (
+              renderSkeletonJobs()
+            ) : filteredJobs && filteredJobs.length > 0 ? (
+              <div className="divide-y">
+                {filteredJobs.map((job) => (
+                  <div key={job.id} className="p-4 hover:bg-muted/50">
+                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                      <div>
+                        <h4 className="font-medium">{job.title}</h4>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge variant="outline" className="flex gap-1 items-center">
+                            <Building className="h-3 w-3" />
+                            {job.department}
+                          </Badge>
+                          <Badge variant="outline" className="flex gap-1 items-center">
+                            <Home className="h-3 w-3" />
+                            {job.location}
+                          </Badge>
+                          <Badge variant="outline" className="flex gap-1 items-center">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(job.posted_date), 'MMM d, yyyy')}
+                          </Badge>
+                          {renderJobStatus(job.status)}
                         </div>
-                        
-                        <div className="flex flex-row md:flex-col gap-2 self-start">
-                          <Button variant="outline" size="sm">
-                            View Details
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="text-center px-3 py-1 bg-primary/5 rounded-md">
+                          <p className="text-sm font-medium">{job.applicants_count}</p>
+                          <p className="text-xs text-muted-foreground">Applicants</p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setActiveJobId(job.id === activeJobId ? null : job.id)}
+                        >
+                          {job.id === activeJobId ? 'Hide Details' : 'View Details'}
+                        </Button>
+                        <Button size="sm">Edit</Button>
+                      </div>
+                    </div>
+                    
+                    {job.id === activeJobId && (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h5 className="font-medium mb-2">Job Description</h5>
+                            <p className="text-sm text-muted-foreground">{job.description}</p>
+                            
+                            <h5 className="font-medium mt-4 mb-2">Requirements</h5>
+                            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                              {job.requirements.map((req, i) => (
+                                <li key={i}>{req}</li>
+                              ))}
+                            </ul>
+                            
+                            <h5 className="font-medium mt-4 mb-2">Responsibilities</h5>
+                            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                              {job.responsibilities.map((resp, i) => (
+                                <li key={i}>{resp}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h5 className="font-medium mb-2">Job Details</h5>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Employment Type:</span>
+                                <span className="font-medium">
+                                  {job.type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Location:</span>
+                                <span className="font-medium">{job.location}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Department:</span>
+                                <span className="font-medium">{job.department}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Posted Date:</span>
+                                <span className="font-medium">{format(new Date(job.posted_date), 'MMMM d, yyyy')}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Status:</span>
+                                <span>{renderJobStatus(job.status)}</span>
+                              </div>
+                              {job.salary_range && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Salary Range:</span>
+                                  <span className="font-medium">
+                                    ${job.salary_range.min.toLocaleString()} - ${job.salary_range.max.toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Source:</span>
+                                <span className="font-medium capitalize">{job.source}</span>
+                              </div>
+                            </div>
+                            
+                            <h5 className="font-medium mt-4 mb-2">Applicants by Stage</h5>
+                            <div className="space-y-3">
+                              <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span>New</span>
+                                  <span>2</span>
+                                </div>
+                                <Progress value={20} className="h-2" />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span>Screening</span>
+                                  <span>5</span>
+                                </div>
+                                <Progress value={40} className="h-2" />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span>Interview</span>
+                                  <span>3</span>
+                                </div>
+                                <Progress value={30} className="h-2" />
+                              </div>
+                              <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span>Offer</span>
+                                  <span>1</span>
+                                </div>
+                                <Progress value={10} className="h-2" />
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4 flex gap-2 justify-end">
+                              <Button variant="outline" size="sm" className="gap-1">
+                                <MessageSquare className="h-4 w-4" />
+                                Share
+                              </Button>
+                              <Button variant="outline" size="sm" className="gap-1">
+                                <PenSquare className="h-4 w-4" />
+                                Edit
+                              </Button>
+                              <Button size="sm">View Candidates</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">No job openings found matching your criteria.</p>
+                <Button variant="outline" className="mt-4">Clear Filters</Button>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="candidates" className="space-y-4">
+          <div className="border rounded-md">
+            <div className="p-4 bg-muted/50">
+              <h3 className="font-medium">All Candidates ({filteredCandidates?.length || 0})</h3>
+            </div>
+            
+            {isLoadingCandidates ? (
+              renderSkeletonCandidates()
+            ) : filteredCandidates && filteredCandidates.length > 0 ? (
+              <div className="divide-y">
+                {filteredCandidates.map((candidate) => (
+                  <div key={candidate.id} className="p-4 hover:bg-muted/50">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex gap-4 items-center">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="font-medium">{candidate.name}</h4>
+                          <p className="text-sm text-muted-foreground">{candidate.job_title}</p>
                         </div>
                       </div>
                       
-                      <div className="px-4 py-3 bg-secondary/30 border-t flex justify-between items-center">
-                        <div className="flex items-center gap-1 text-sm">
-                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>
-                            ${job.salary_range?.min.toLocaleString()} - ${job.salary_range?.max.toLocaleString()}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <span>Source: </span>
-                          <Badge variant="outline" className="ml-1">
-                            {job.source?.charAt(0).toUpperCase() + job.source?.slice(1) || 'Website'}
+                      <div className="ml-0 md:ml-auto flex flex-wrap gap-2 items-center">
+                        <Badge className="flex gap-1 items-center">
+                          <Star className="h-3 w-3" />
+                          {candidate.match_score}% Match
+                        </Badge>
+                        {renderCandidateStatus(candidate.status)}
+                        <Button variant="outline" size="sm" className="gap-1 ml-auto">
+                          <Mail className="h-4 w-4" />
+                          Contact
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1">
+                          <FileText className="h-4 w-4" />
+                          Resume
+                        </Button>
+                        <Button size="sm" className="gap-1">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {candidate.skills.map((skill, i) => (
+                          <Badge key={i} variant="secondary" className="bg-primary/5">
+                            {skill}
                           </Badge>
+                        ))}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <div className="flex gap-2 items-center text-sm">
+                          <BarChart className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Experience:</span>
+                          <span>{candidate.experience} years</span>
+                        </div>
+                        <div className="flex gap-2 items-center text-sm">
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Education:</span>
+                          <span>{candidate.education}</span>
+                        </div>
+                        <div className="flex gap-2 items-center text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Applied:</span>
+                          <span>{format(new Date(candidate.application_date), 'MMM d, yyyy')}</span>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      
+                      {candidate.last_contact && (
+                        <div className="mt-2 text-sm flex gap-2 items-center">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Last Contact:</span>
+                          <span>{format(new Date(candidate.last_contact), 'MMM d, yyyy')}</span>
+                        </div>
+                      )}
+                      
+                      {candidate.notes && (
+                        <div className="mt-3 text-sm text-muted-foreground border-l-2 border-primary/30 pl-3">
+                          {candidate.notes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </TabsContent>
-            
-            <TabsContent value="candidates">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <div className="flex flex-1 gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search candidates..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      variant={selectedStatus === 'all' ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => setSelectedStatus('all')}
-                    >
-                      All
-                    </Button>
-                    <Button 
-                      variant={selectedStatus === 'new' ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => setSelectedStatus('new')}
-                    >
-                      New
-                    </Button>
-                    <Button 
-                      variant={selectedStatus === 'interview' ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => setSelectedStatus('interview')}
-                    >
-                      Interview
-                    </Button>
-                    <Button 
-                      variant={selectedStatus === 'offer' ? 'default' : 'outline'} 
-                      size="sm"
-                      onClick={() => setSelectedStatus('offer')}
-                    >
-                      Offer
-                    </Button>
-                  </div>
-                </div>
-                
-                <Button variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Advanced Filter
-                </Button>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">No candidates found matching your criteria.</p>
+                <Button variant="outline" className="mt-4">Clear Filters</Button>
               </div>
-              
-              <div className="space-y-4">
-                {filteredCandidates.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <h3 className="text-lg font-medium">No candidates found</h3>
-                    <p className="text-muted-foreground mt-1">
-                      Try adjusting your search or filters
-                    </p>
-                  </div>
-                ) : (
-                  filteredCandidates.map(candidate => (
-                    <Card key={candidate.id} className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4">
-                          <div className="md:col-span-9 flex gap-4">
-                            <Avatar className="h-12 w-12 border">
-                              <AvatarFallback>{getInitials(candidate.name)}</AvatarFallback>
-                            </Avatar>
-                            
-                            <div className="flex-1">
-                              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-1.5">
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                  <h3 className="font-semibold">{candidate.name}</h3>
-                                  <Badge variant={getStatusColor(candidate.status)}>
-                                    {candidate.status.charAt(0).toUpperCase() + candidate.status.slice(1)}
-                                  </Badge>
-                                </div>
-                                
-                                {renderMatchScore(candidate.match_score)}
-                              </div>
-                              
-                              <p className="text-sm text-muted-foreground mb-1">
-                                {candidate.job_title} • {candidate.experience} years experience
-                              </p>
-                              
-                              <div className="flex flex-wrap gap-1 mb-2">
-                                {candidate.skills.slice(0, 5).map((skill, i) => (
-                                  <Badge key={i} variant="secondary" className="font-normal">
-                                    {skill}
-                                  </Badge>
-                                ))}
-                                {candidate.skills.length > 5 && (
-                                  <Badge variant="secondary" className="font-normal">
-                                    +{candidate.skills.length - 5} more
-                                  </Badge>
-                                )}
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                <div className="flex items-center">
-                                  <Calendar className="h-3.5 w-3.5 mr-1" />
-                                  Applied {format(new Date(candidate.application_date), 'MMM dd, yyyy')}
-                                </div>
-                                
-                                {candidate.source && (
-                                  <div className="flex items-center">
-                                    <ArrowRight className="h-3.5 w-3.5 mr-1" />
-                                    Source: {candidate.source.charAt(0).toUpperCase() + candidate.source.slice(1)}
-                                  </div>
-                                )}
-                                
-                                {candidate.last_contact && (
-                                  <div className="flex items-center">
-                                    <Clock className="h-3.5 w-3.5 mr-1" />
-                                    Last contact: {format(new Date(candidate.last_contact), 'MMM dd, yyyy')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="md:col-span-3 flex flex-row md:flex-col gap-2 self-start">
-                            <Button className="w-full" size="sm">
-                              View Profile
-                            </Button>
-                            
-                            <Button variant="outline" size="sm" className="w-full">
-                              {candidate.status === 'new' && (
-                                <>
-                                  <Calendar className="h-4 w-4 mr-1" />
-                                  Schedule Screening
-                                </>
-                              )}
-                              
-                              {candidate.status === 'screening' && (
-                                <>
-                                  <ArrowRight className="h-4 w-4 mr-1" />
-                                  Move to Interview
-                                </>
-                              )}
-                              
-                              {candidate.status === 'interview' && (
-                                <>
-                                  <Send className="h-4 w-4 mr-1" />
-                                  Extend Offer
-                                </>
-                              )}
-                              
-                              {candidate.status === 'offer' && (
-                                <>
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Mark as Hired
-                                </>
-                              )}
-                              
-                              {(candidate.status === 'rejected' || candidate.status === 'hired') && (
-                                <>
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  View Details
-                                </>
-                              )}
-                            </Button>
-                            
-                            {(candidate.status === 'new' || candidate.status === 'screening' || candidate.status === 'interview') && (
-                              <Button variant="outline" size="sm" className="w-full">
-                                <Download className="h-4 w-4 mr-1" />
-                                Resume
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {candidate.notes && (
-                          <div className="px-4 py-3 bg-secondary/30 border-t">
-                            <p className="text-sm">
-                              <span className="font-medium">Notes:</span> {candidate.notes}
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-      
-      {/* AI-Generated Insights */}
-      <Card className="border-blue-200 bg-blue-50/40 dark:bg-blue-950/20">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            AI Recruitment Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-1.5">
-                <Users className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm">
-                  <span className="font-medium">Sourcing Analysis:</span> LinkedIn is outperforming other channels with 2.5x higher quality candidates. Consider increasing LinkedIn job advertising budget by 15%.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-1.5">
-                <Clock className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm">
-                  <span className="font-medium">Response Time:</span> Average candidate response time has increased to 3.5 days. Recommend implementing an automated follow-up system to reduce this to 1 day.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-1.5">
-                <Star className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm">
-                  <span className="font-medium">Candidate Quality:</span> Referrals are yielding 30% higher match scores than job boards. Consider implementing a referral bonus program to encourage more employee referrals.
-                </p>
-              </div>
-            </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

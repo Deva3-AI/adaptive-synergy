@@ -1,6 +1,5 @@
-
-import { toast } from 'sonner';
-import { apiRequest } from '@/utils/apiUtils';
+import axios from 'axios';
+import apiClient from '@/utils/apiUtils';
 
 export interface Notification {
   id: number;
@@ -18,7 +17,7 @@ const notificationService = {
   getNotifications: async (userId: number | undefined) => {
     if (!userId) return [];
     
-    return apiRequest<Notification[]>(
+    return apiClient<Notification[]>(
       `/notifications?userId=${userId}`,
       'get',
       undefined,
@@ -36,7 +35,7 @@ const notificationService = {
   
   // Mark a notification as read
   markAsRead: async (notificationId: number) => {
-    return apiRequest<Notification>(
+    return apiClient<Notification>(
       `/notifications/${notificationId}/read`,
       'put'
     );
@@ -46,7 +45,7 @@ const notificationService = {
   markAllAsRead: async (userId: number | undefined) => {
     if (!userId) return;
     
-    return apiRequest<{ success: boolean }>(
+    return apiClient<{ success: boolean }>(
       `/notifications/mark-all-read`,
       'put',
       { userId }
@@ -55,7 +54,7 @@ const notificationService = {
   
   // Delete a notification
   deleteNotification: async (notificationId: number) => {
-    return apiRequest<{ success: boolean }>(
+    return apiClient<{ success: boolean }>(
       `/notifications/${notificationId}`,
       'delete'
     );
@@ -63,7 +62,7 @@ const notificationService = {
   
   // Create a new notification
   createNotification: async (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => {
-    return apiRequest<Notification>(
+    return apiClient<Notification>(
       '/notifications',
       'post',
       {

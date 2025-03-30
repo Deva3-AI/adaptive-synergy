@@ -6,13 +6,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, sub, subDays } from 'date-fns';
-import { Activity, BarChart2, Clock, LineChart as LineChartIcon, Target, TrendingUp, Users } from "lucide-react";
+import { Activity, BarChart2, Clock, LineChart as LineChartIcon, Target, TrendingUp, Users, CheckCircle } from "lucide-react";
 import BarChart from '@/components/ui/charts/BarChart';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChartDataPoint {
   name: string;
   [key: string]: any;
+}
+
+interface TaskInsightsData {
+  stats: {
+    tasksCompleted: number;
+    tasksAssigned: number;
+    completionRate: number;
+    averageCompletionTime: number;
+    totalHoursLogged: number;
+    efficiencyScore: number;
+  };
+  completedByDay: ChartDataPoint[];
+  hoursByDay: ChartDataPoint[];
+  tasksByPriority: { name: string; count: number }[];
+  tasksByClient: { name: string; count: number }[];
+  efficiencyTrend: { date: string; efficiency: number }[];
 }
 
 // Mock data for charts
@@ -65,7 +81,7 @@ const TaskProgressInsights = () => {
   const [viewMode, setViewMode] = useState('personal');
   
   // Fetch insights data
-  const { data: insightsData, isLoading } = useQuery({
+  const { data: insightsData, isLoading } = useQuery<TaskInsightsData>({
     queryKey: ['tasks-insights', timeRange, viewMode],
     queryFn: () => {
       // This would normally be an API call
@@ -166,7 +182,7 @@ const TaskProgressInsights = () => {
                 </h3>
               </div>
               <div className="p-2 bg-primary/10 rounded-full text-primary">
-                <Check className="h-5 w-5" />
+                <CheckCircle className="h-5 w-5" />
               </div>
             </div>
             <div className="mt-4">

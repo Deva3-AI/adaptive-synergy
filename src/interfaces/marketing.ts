@@ -81,7 +81,25 @@ export interface CompetitorInsight {
   suggestedResponse: string;  // Added explicit property
 }
 
+// This interface needs to match what's being used in SalesDashboard.tsx
 export interface SalesData {
+  totalSales?: number;
+  salesGrowth?: number;
+  conversionRate?: number;
+  customerAcquisitionCost?: number;
+  averageSaleValue?: number;
+  salesByChannel?: {
+    channel: string;
+    amount: number;
+    percentage: number;
+  }[];
+  topProducts?: {
+    name: string;
+    sales: number;
+    revenue: number;
+  }[];
+  
+  // These properties are used in SalesDashboard.tsx but missing in the interface
   monthly_revenue: number;
   annual_target: number;
   growth_rate: number;

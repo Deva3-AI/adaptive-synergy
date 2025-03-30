@@ -11,18 +11,24 @@ interface PieChartProps {
   height?: number;
   width?: number;
   valueFormatter?: (value: number) => string;
+  nameKey?: string;
+  dataKey?: string;
+  className?: string;
 }
 
 const PieChart = ({ 
   data, 
   height = 300, 
   width,
-  valueFormatter = (value) => `${value}`
+  valueFormatter = (value) => `${value}`,
+  nameKey = "name",
+  dataKey = "value",
+  className
 }: PieChartProps) => {
   const chartColors = data.map(item => item.color);
   
   return (
-    <div style={{ width: width || '100%', height }}>
+    <div style={{ width: width || '100%', height }} className={className}>
       <ResponsiveContainer width="100%" height="100%">
         <ReChartsPie>
           <Pie
@@ -32,8 +38,8 @@ const PieChart = ({
             innerRadius={45}
             outerRadius={80}
             paddingAngle={2}
-            dataKey="value"
-            nameKey="name"
+            dataKey={dataKey}
+            nameKey={nameKey}
             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             labelLine={false}
           >

@@ -1,6 +1,17 @@
 
 import React from 'react';
-import { LineChart, BarChart, PieChart, DonutChart, AnalyticsChartProps } from '@/components/ui/charts';
+import { LineChart, BarChart, PieChart, DonutChart } from '@/components/ui/charts';
+
+export interface AnalyticsChartProps {
+  data?: any[];
+  defaultType?: 'line' | 'bar' | 'pie' | 'donut';
+  xAxisKey?: string;
+  height?: number;
+  series?: { name: string; color: string }[];
+  className?: string;
+  valueFormatter?: (value: any) => string;
+  options?: Record<string, any>;
+}
 
 const AnalyticsChart = ({ 
   data = getMockData(), 
@@ -9,6 +20,7 @@ const AnalyticsChart = ({
   height = 350,
   series,
   className,
+  valueFormatter = (value) => value.toString(),
   options = {}
 }: AnalyticsChartProps) => {
   const renderChart = () => {
@@ -19,31 +31,38 @@ const AnalyticsChart = ({
             data={data}
             xAxisKey={xAxisKey}
             series={series || [
-              { key: 'revenue', label: 'Revenue', color: 'var(--chart-primary)' },
-              { key: 'expenses', label: 'Expenses', color: 'var(--chart-secondary)' }
+              { name: 'revenue', color: 'var(--chart-primary)' },
+              { name: 'expenses', color: 'var(--chart-secondary)' }
             ]}
             className={className}
             height={height}
+            valueFormatter={valueFormatter}
           />
         );
       case 'pie':
         return (
           <PieChart
-            data={data}
-            nameKey="name"
-            dataKey="value"
+            data={data.map(item => ({
+              name: item.name || item.label,
+              value: item.value,
+              color: item.color || '#' + Math.floor(Math.random()*16777215).toString(16)
+            }))}
             className={className}
             height={height}
+            valueFormatter={valueFormatter}
           />
         );
       case 'donut':
         return (
           <DonutChart
-            data={data}
-            nameKey="name"
-            dataKey="value"
+            data={data.map(item => ({
+              name: item.name || item.label,
+              value: item.value,
+              color: item.color || '#' + Math.floor(Math.random()*16777215).toString(16)
+            }))}
             className={className}
             height={height}
+            valueFormatter={valueFormatter}
           />
         );
       case 'line':
@@ -53,11 +72,12 @@ const AnalyticsChart = ({
             data={data}
             xAxisKey={xAxisKey}
             series={series || [
-              { key: 'revenue', label: 'Revenue', color: 'var(--chart-primary)' },
-              { key: 'expenses', label: 'Expenses', color: 'var(--chart-secondary)' }
+              { name: 'revenue', color: 'var(--chart-primary)' },
+              { name: 'expenses', color: 'var(--chart-secondary)' }
             ]}
             className={className}
             height={height}
+            valueFormatter={valueFormatter}
           />
         );
     }

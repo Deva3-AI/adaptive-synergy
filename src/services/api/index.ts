@@ -23,6 +23,11 @@ export {
   hrServiceSupabase
 };
 
+// Define a taskModule object to replace the import in taskService.ts
+export const task = {
+  // Add any necessary properties or methods
+};
+
 // For backward compatibility
 const apiService = {
   auth: authService,
