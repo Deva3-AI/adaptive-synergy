@@ -20,7 +20,12 @@ const clientService = {
 
   // Get client details
   getClientDetails: async (clientId: number) => {
-    return apiRequest(`/clients/${clientId}`, 'get', undefined, {});
+    return apiRequest(`/clients/${clientId}`, 'get', undefined, {
+      client_id: clientId,
+      client_name: `Client ${clientId}`,
+      description: "Client description",
+      contact_info: "client@example.com"
+    });
   },
 
   // Create a new client

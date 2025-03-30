@@ -21,6 +21,13 @@ interface ChatMessage {
   timestamp: string;
 }
 
+interface ClientDetails {
+  client_name: string;
+  description: string;
+  contact_info: string;
+  [key: string]: any;
+}
+
 const EnhancedAIAssistant = () => {
   const { clientId } = useParams();
   const [query, setQuery] = useState('');
@@ -38,7 +45,7 @@ const EnhancedAIAssistant = () => {
       if (!clientId) return;
       setIsClientContextLoading(true);
       try {
-        const clientDetails = await clientService.getClientDetails(Number(clientId));
+        const clientDetails = await clientService.getClientDetails(Number(clientId)) as ClientDetails;
         if (clientDetails) {
           setClientContext(`Client Name: ${clientDetails.client_name}\nDescription: ${clientDetails.description}\nContact Info: ${clientDetails.contact_info}`);
         } else {

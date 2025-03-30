@@ -9,10 +9,10 @@ export interface TaskAttachment {
   file_name: string;
   file_type: string;
   file_size: number;
-  description?: string;
   uploaded_by: number;
   upload_date: string;
   url: string;
+  description?: string;
 }
 
 const taskService = {

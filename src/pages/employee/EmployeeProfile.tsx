@@ -1,672 +1,636 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, Mail, Phone, MapPin, BookUser, Clock, Calendar, ArrowUpRight, Users } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { LineChart, BarChart, PieChart } from "@/components/ui/charts";
+import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Calendar as CalendarIcon, 
+  Clock, 
+  Award, 
+  FileText, 
+  Briefcase,
+  GraduationCap,
+  Heart,
+  Star
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, subDays } from 'date-fns';
 
 const EmployeeProfile = () => {
-  const { employeeId } = useParams<{ employeeId: string }>();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [dateRange, setDateRange] = useState<{
-    from: Date;
-    to: Date;
-  }>({
-    from: subDays(new Date(), 30),
+  const { userId } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState<any>({});
+  const [employeeDetails, setEmployeeDetails] = useState<any>({});
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [date, setDate] = useState<{ from: Date; to: Date }>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date()
   });
 
-  // Fetch employee details
-  const { data: employee, isLoading } = useQuery({
-    queryKey: ['employee-profile', employeeId],
-    queryFn: async () => {
+  useEffect(() => {
+    const fetchEmployeeDetails = async () => {
+      if (!userId) return;
+      
       try {
-        // Fetch user details
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
-            user_id,
-            name,
-            email,
-            role_id,
-            roles(role_name),
-            created_at
-          `)
-          .eq('user_id', employeeId)
-          .single();
-
-        if (userError) throw userError;
-
-        // Fetch employee details
-        const { data: employeeData, error: employeeError } = await supabase
+        setLoading(true);
+        const data = await supabase
           .from('employee_details')
-          .select(`
-            joining_date,
-            employee_id,
-            date_of_birth
-          `)
-          .eq('user_id', employeeId)
+          .select('*')
+          .eq('user_id', Number(userId))
           .single();
-
-        // Continue even if employee details have an error, as they might not exist yet
         
-        // Fetch employee attendance data
-        const { data: attendanceData, error: attendanceError } = await supabase
+        if (data.data) {
+          setEmployeeDetails({
+            joining_date: data.data.joining_date || '',
+            employee_id: data.data.employee_id || '',
+            date_of_birth: data.data.date_of_birth || '',
+            phone: data.data.phone || '',
+            address: data.data.address || '',
+            emergency_contact: data.data.emergency_contact || ''
+          });
+        } else {
+          console.error('Error fetching employee details:', data.error);
+        }
+      } catch (error) {
+        console.error('Error in fetchEmployeeDetails:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeDetails();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
           .from('employee_attendance')
           .select('*')
-          .eq('user_id', employeeId)
+          .eq('user_id', Number(userId))
           .order('work_date', { ascending: false })
-          .limit(10);
+          .limit(90);
         
-        if (attendanceError) throw attendanceError;
+        if (error) {
+          throw error;
+        }
         
-        return {
-          ...userData,
-          role_name: userData.roles?.role_name || 'Employee',
-          joining_date: employeeData?.joining_date || null,
-          employee_id: employeeData?.employee_id || null,
-          date_of_birth: employeeData?.date_of_birth || null,
-          // These fields may not exist yet in the database, so we'll mock them
-          phone: '+1 (555) 123-4567',
-          address: '123 Main St, Anytown, CA 12345',
-          emergency_contact: 'Jane Doe (+1 555-987-6543)',
-          attendance: attendanceData || []
-        };
+        if (data) {
+          setAttendanceRecords(data);
+        }
       } catch (error) {
-        console.error('Error fetching employee profile:', error);
-        throw error;
+        console.error('Error fetching attendance:', error);
       }
-    }
-  });
+    };
 
-  // Mock performance data
-  const performanceData = {
-    overview: {
-      tasks_completed: 45,
-      tasks_in_progress: 3,
-      on_time_completion: 92,
-      average_rating: 4.8
-    },
-    tasks_by_client: [
-      { name: 'Social Land', value: 12 },
-      { name: 'Koala Digital', value: 10 },
-      { name: 'AC Digital', value: 8 },
-      { name: 'Muse Digital', value: 5 }
-    ],
-    time_tracking: [
-      { name: 'Mon', value: 7.5 },
-      { name: 'Tue', value: 8.2 },
-      { name: 'Wed', value: 7.8 },
-      { name: 'Thu', value: 8.5 },
-      { name: 'Fri', value: 6.5 },
-      { name: 'Sat', value: 0 },
-      { name: 'Sun', value: 0 }
-    ],
-    recent_tasks: [
-      {
-        id: 1,
-        title: 'Website Redesign',
-        client: 'Social Land',
-        due_date: '2023-09-15',
-        status: 'in_progress',
-        priority: 'High'
-      },
-      {
-        id: 2,
-        title: 'Social Media Campaign',
-        client: 'Koala Digital',
-        due_date: '2023-09-20',
-        status: 'pending',
-        priority: 'Medium'
-      },
-      {
-        id: 3,
-        title: 'Logo Design',
-        client: 'AC Digital',
-        due_date: '2023-09-10',
-        status: 'completed',
-        priority: 'High'
+    fetchAttendance();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!userId) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', Number(userId))
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setProfileData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      } finally {
+        setLoading(false);
       }
-    ],
-    skills: [
-      { name: 'UI Design', level: 90 },
-      { name: 'Frontend Dev', level: 85 },
-      { name: 'UX Research', level: 75 },
-      { name: 'Backend Dev', level: 60 },
-      { name: 'Project Management', level: 80 }
-    ]
+    };
+
+    fetchUserProfile();
+  }, [userId]);
+
+  const getSkillsString = () => {
+    if (Array.isArray(profileData.skills)) {
+      return profileData.skills.join(', ');
+    }
+    return profileData.skills || '';
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex justify-center">
-          <p>Loading employee profile...</p>
-        </div>
-      </div>
-    );
-  }
+  const getInterestsString = () => {
+    if (Array.isArray(profileData.interests)) {
+      return profileData.interests.join(', ');
+    }
+    return profileData.interests || '';
+  };
 
-  if (!employee) {
+  const calculateAttendanceRate = () => {
+    if (!attendanceRecords || attendanceRecords.length === 0) return 0;
+    
+    const presentDays = attendanceRecords.filter(record => record.status === 'present').length;
+    return (presentDays / attendanceRecords.length) * 100;
+  };
+
+  const getAttendanceStatusBadge = (status: string) => {
+    switch (status) {
+      case 'present':
+        return <Badge className="bg-green-500">Present</Badge>;
+      case 'absent':
+        return <Badge className="bg-red-500">Absent</Badge>;
+      case 'late':
+        return <Badge className="bg-yellow-500">Late</Badge>;
+      case 'leave':
+        return <Badge className="bg-blue-500">Leave</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex justify-center">
-          <p className="text-red-500">Employee not found</p>
+      <div className="container mx-auto py-6 space-y-8">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-32 mt-2" />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64 md:col-span-2" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col md:flex-row gap-6">
-        <div className="flex-shrink-0">
-          <Avatar className="h-24 w-24 border-2 border-primary/10">
-            <AvatarImage src="/placeholder.svg" alt={employee.name} />
-            <AvatarFallback className="text-2xl">{employee.name.charAt(0)}</AvatarFallback>
+    <div className="container mx-auto py-6 space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center space-x-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={profileData.avatar_url} alt={profileData.full_name} />
+            <AvatarFallback>{profileData.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
-        </div>
-        <div className="flex-grow space-y-4">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{employee.name}</h1>
-              <Badge variant="outline">{employee.role_name}</Badge>
-              {employee.employee_id && (
-                <Badge variant="secondary">ID: {employee.employee_id}</Badge>
-              )}
-            </div>
-            <p className="text-muted-foreground">
-              {employee.joining_date ? (
-                `Joined on ${format(new Date(employee.joining_date), 'PPP')}`
-              ) : 'New Employee'}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.email}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.phone}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{employee.address}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <BookUser className="h-4 w-4 text-muted-foreground" />
-                <span>Emergency Contact: {employee.emergency_contact}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {employee.date_of_birth ? (
-                    `Date of Birth: ${format(new Date(employee.date_of_birth), 'PPP')}`
-                  ) : 'Date of Birth: Not available'}
-                </span>
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold">{profileData.full_name}</h1>
+            <p className="text-muted-foreground">{profileData.job_title}</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Button>Edit Profile</Button>
-          <Button variant="outline">Message</Button>
+        
+        <div className="flex space-x-2">
+          <Button variant="outline">
+            <Mail className="mr-2 h-4 w-4" />
+            Message
+          </Button>
+          <Button>
+            <FileText className="mr-2 h-4 w-4" />
+            View Documents
+          </Button>
         </div>
       </div>
       
-      <div className="mb-4 flex items-center justify-between">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="skills">Skills & Training</TabsTrigger>
-          </TabsList>
-          
-          <div className="mt-4">
-            <DateRangePicker 
-              range={dateRange}
-              onChange={setDateRange}
-            />
+      <Tabs defaultValue="overview">
+        <TabsList className="grid w-full grid-cols-4 md:w-auto md:grid-cols-none md:flex">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground w-24">Employee ID</span>
+                  <span>{employeeDetails.employee_id}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground w-24">Email</span>
+                  <span>{profileData.email}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground w-24">Phone</span>
+                  <span>{employeeDetails.phone}</span>
+                </div>
+                
+                <div className="flex items-start">
+                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
+                  <span className="text-sm text-muted-foreground w-24">Address</span>
+                  <span>{employeeDetails.address}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground w-24">Birth Date</span>
+                  <span>{employeeDetails.date_of_birth ? format(new Date(employeeDetails.date_of_birth), 'PPP') : 'Not set'}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground w-24">Joined</span>
+                  <span>{employeeDetails.joining_date ? format(new Date(employeeDetails.joining_date), 'PPP') : 'Not set'}</span>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Professional Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Department</h3>
+                  <Badge variant="outline" className="text-sm">{profileData.department}</Badge>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Skills</h3>
+                  <p>{getSkillsString()}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Education</h3>
+                  <div className="flex items-start">
+                    <GraduationCap className="h-4 w-4 mr-2 mt-0.5" />
+                    <div>
+                      <p className="font-medium">{profileData.education?.degree}</p>
+                      <p className="text-sm text-muted-foreground">{profileData.education?.institution}, {profileData.education?.year}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Certifications</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {profileData.certifications?.map((cert: string, index: number) => (
+                      <Badge key={index} variant="secondary">{cert}</Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Interests</h3>
+                  <div className="flex items-center">
+                    <Heart className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <p>{getInterestsString()}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
-          <TabsContent value="overview" className="space-y-6 mt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{performanceData.overview.tasks_completed}</div>
-                  <p className="text-xs text-muted-foreground">Last 30 days</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{performanceData.overview.tasks_in_progress}</div>
-                  <p className="text-xs text-muted-foreground">Active tasks</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">On-Time Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{performanceData.overview.on_time_completion}%</div>
-                  <Progress value={performanceData.overview.on_time_completion} className="h-1 mt-1" />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Avg. Rating</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{performanceData.overview.average_rating}/5</div>
-                  <div className="flex items-center mt-1">
-                    {"★".repeat(Math.floor(performanceData.overview.average_rating))}
-                    {"☆".repeat(5 - Math.floor(performanceData.overview.average_rating))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tasks by Client</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px]">
-                    <PieChart 
-                      data={performanceData.tasks_by_client}
-                      nameKey="name"
-                      dataKey="value"
-                      height={250}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Weekly Hours</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px]">
-                    <BarChart 
-                      data={performanceData.time_tracking}
-                      xAxisKey="name"
-                      yAxisKey="value"
-                      height={250}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Recent Tasks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Task</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Priority</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {performanceData.recent_tasks.map(task => (
-                        <TableRow key={task.id}>
-                          <TableCell className="font-medium">{task.title}</TableCell>
-                          <TableCell>{task.client}</TableCell>
-                          <TableCell>{task.due_date}</TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              task.status === 'completed' ? 'success' :
-                              task.status === 'in_progress' ? 'default' :
-                              'secondary'
-                            }>
-                              {task.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              task.priority === 'High' ? 'destructive' :
-                              task.priority === 'Medium' ? 'default' :
-                              'secondary'
-                            }>
-                              {task.priority}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="attendance" className="space-y-6 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Attendance History</CardTitle>
-                <CardDescription>
-                  Recent attendance records for {employee.name}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Clock In</TableHead>
-                        <TableHead>Clock Out</TableHead>
-                        <TableHead>Total Hours</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {employee.attendance && employee.attendance.length > 0 ? (
-                        employee.attendance.map((record: any, index: number) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              {format(new Date(record.work_date), 'PPP')}
-                            </TableCell>
-                            <TableCell>
-                              {record.login_time
-                                ? format(new Date(record.login_time), 'p')
-                                : 'Not logged in'}
-                            </TableCell>
-                            <TableCell>
-                              {record.logout_time
-                                ? format(new Date(record.logout_time), 'p')
-                                : record.login_time
-                                  ? 'Still working'
-                                  : 'Not logged in'}
-                            </TableCell>
-                            <TableCell>
-                              {record.login_time && record.logout_time
-                                ? ((new Date(record.logout_time).getTime() - new Date(record.login_time).getTime()) / (1000 * 60 * 60)).toFixed(2) + 'h'
-                                : '-'}
-                            </TableCell>
-                            <TableCell>
-                              {!record.login_time ? (
-                                <Badge variant="destructive">Absent</Badge>
-                              ) : !record.logout_time ? (
-                                <Badge variant="outline">In Progress</Badge>
-                              ) : (
-                                <Badge variant="success">Complete</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            No attendance records found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="performance" className="space-y-6 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-                <CardDescription>
-                  Tracking work performance over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-sm">Task Completion</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Completed on time</span>
-                        <span className="font-medium">{performanceData.overview.on_time_completion}%</span>
-                      </div>
-                      <Progress value={performanceData.overview.on_time_completion} />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Quality rating</span>
-                        <span className="font-medium">{performanceData.overview.average_rating}/5</span>
-                      </div>
-                      <Progress value={performanceData.overview.average_rating * 20} />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Client satisfaction</span>
-                        <span className="font-medium">95%</span>
-                      </div>
-                      <Progress value={95} />
-                    </div>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <h3 className="font-semibold text-sm mb-4">Performance Trend</h3>
-                    <LineChart 
-                      data={[
-                        { month: "Jan", performance: 85 },
-                        { month: "Feb", performance: 82 },
-                        { month: "Mar", performance: 88 },
-                        { month: "Apr", performance: 90 },
-                        { month: "May", performance: 92 },
-                        { month: "Jun", performance: 95 }
-                      ]}
-                      xAxisKey="month"
-                      yAxisKey="performance"
-                      height={200}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Client Feedback</CardTitle>
+                <CardTitle>Current Projects</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="p-4 border rounded-md">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-medium">Social Land</p>
-                        <p className="text-sm text-muted-foreground">Website Redesign Project</p>
+                  {profileData.current_projects?.map((project: any, index: number) => (
+                    <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">{project.name}</h3>
+                          <p className="text-sm text-muted-foreground">{project.role}</p>
+                        </div>
+                        <Badge>{project.status}</Badge>
                       </div>
-                      <div className="text-amber-500">★★★★★</div>
-                    </div>
-                    <p className="text-sm">
-                      "{employee.name} consistently delivered high-quality work and was very responsive to feedback. The redesign exceeded our expectations."
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">August 15, 2023</p>
-                  </div>
-                  
-                  <div className="p-4 border rounded-md">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-medium">Koala Digital</p>
-                        <p className="text-sm text-muted-foreground">Social Media Campaign</p>
+                      <div className="mt-2">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Progress</span>
+                          <span>{project.progress}%</span>
+                        </div>
+                        <Progress value={project.progress} className="h-2" />
                       </div>
-                      <div className="text-amber-500">★★★★☆</div>
                     </div>
-                    <p className="text-sm">
-                      "Great work on our campaign. The content was creative and well-executed. Would have appreciated more regular updates."
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">July 28, 2023</p>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-          
-          <TabsContent value="skills" className="space-y-6 mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Skills Assessment</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {performanceData.skills.map((skill, index) => (
-                      <div key={index} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>{skill.name}</span>
-                          <span className="font-medium">{skill.level}%</span>
-                        </div>
-                        <Progress value={skill.level} />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Training & Certifications</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-3 border rounded-md">
-                      <div className="flex justify-between">
-                        <h3 className="font-medium">UX Design Certification</h3>
-                        <Badge>Completed</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Google UX Design Professional Certificate</p>
-                      <p className="text-xs text-muted-foreground mt-2">Completed: March 15, 2023</p>
-                    </div>
-                    
-                    <div className="p-3 border rounded-md">
-                      <div className="flex justify-between">
-                        <h3 className="font-medium">React Advanced Concepts</h3>
-                        <Badge variant="outline">In Progress</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Frontend Masters</p>
-                      <p className="text-xs text-muted-foreground mt-2">Started: July 10, 2023</p>
-                      <div className="mt-2">
-                        <Progress value={65} />
-                        <p className="text-xs text-right mt-1">65% complete</p>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 border rounded-md">
-                      <div className="flex justify-between">
-                        <h3 className="font-medium">Project Management</h3>
-                        <Badge>Completed</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">Internal training</p>
-                      <p className="text-xs text-muted-foreground mt-2">Completed: January 20, 2023</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
             
             <Card>
               <CardHeader>
-                <CardTitle>Recommended Training</CardTitle>
+                <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border p-4 rounded-md">
-                    <h3 className="font-medium">Advanced UI Animation</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Learn advanced animation techniques for web interfaces
-                    </p>
-                    <div className="flex justify-between items-center mt-4">
-                      <Badge variant="outline">15 hours</Badge>
-                      <Button size="sm">
-                        Enroll
-                        <ArrowUpRight className="ml-2 h-4 w-4" />
-                      </Button>
+                <div className="space-y-4">
+                  {profileData.recent_activity?.map((activity: any, index: number) => (
+                    <div key={index} className="flex items-start space-x-3 border-b pb-4 last:border-0 last:pb-0">
+                      <div className="bg-primary/10 p-2 rounded-full">
+                        {activity.type === 'task' && <FileText className="h-4 w-4 text-primary" />}
+                        {activity.type === 'achievement' && <Award className="h-4 w-4 text-primary" />}
+                        {activity.type === 'time' && <Clock className="h-4 w-4 text-primary" />}
+                      </div>
+                      <div>
+                        <p className="text-sm">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground">{activity.time}</p>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="attendance" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Attendance Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Attendance Rate</h3>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-muted-foreground">Overall</span>
+                    <span className="text-sm font-medium">{calculateAttendanceRate().toFixed(1)}%</span>
+                  </div>
+                  <Progress value={calculateAttendanceRate()} className="h-2" />
+                </div>
+                
+                <div className="pt-4">
+                  <h3 className="text-sm font-medium mb-2">Date Range</h3>
+                  <DateRangePicker 
+                    range={{ from: date.from, to: date.to }}
+                    onChange={setDate}
+                    className="w-full"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Attendance Records</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Check In</TableHead>
+                      <TableHead>Check Out</TableHead>
+                      <TableHead>Hours</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendanceRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center">No attendance records found</TableCell>
+                      </TableRow>
+                    ) : (
+                      attendanceRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>{format(new Date(record.work_date), 'MMM dd, yyyy')}</TableCell>
+                          <TableCell>{getAttendanceStatusBadge(record.status)}</TableCell>
+                          <TableCell>{record.check_in ? format(new Date(record.check_in), 'hh:mm a') : '-'}</TableCell>
+                          <TableCell>{record.check_out ? format(new Date(record.check_out), 'hh:mm a') : '-'}</TableCell>
+                          <TableCell>{record.hours_worked || '-'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="performance" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Metrics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Task Completion Rate</h3>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-muted-foreground">Last 30 days</span>
+                    <span className="text-sm font-medium">92%</span>
+                  </div>
+                  <Progress value={92} className="h-2" />
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Quality Score</h3>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-muted-foreground">Last 30 days</span>
+                    <span className="text-sm font-medium">4.8/5</span>
+                  </div>
+                  <div className="flex">
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Productivity</h3>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-muted-foreground">Last 30 days</span>
+                    <span className="text-sm font-medium">88%</span>
+                  </div>
+                  <Progress value={88} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Feedback</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="border-b pb-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">Project X Review</h3>
+                        <p className="text-sm text-muted-foreground">From: Jane Smith (Project Manager)</p>
+                      </div>
+                      <div className="flex">
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm">Excellent work on the project. Delivered ahead of schedule with outstanding quality.</p>
                   </div>
                   
-                  <div className="border p-4 rounded-md">
-                    <h3 className="font-medium">Client Communication Masterclass</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Effective strategies for client communication and management
-                    </p>
-                    <div className="flex justify-between items-center mt-4">
-                      <Badge variant="outline">8 hours</Badge>
-                      <Button size="sm">
-                        Enroll
-                        <ArrowUpRight className="ml-2 h-4 w-4" />
-                      </Button>
+                  <div className="border-b pb-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">Quarterly Review</h3>
+                        <p className="text-sm text-muted-foreground">From: John Doe (Department Head)</p>
+                      </div>
+                      <div className="flex">
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <Star className="h-4 w-4 text-gray-300" />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="border p-4 rounded-md">
-                    <h3 className="font-medium">TypeScript for React Developers</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Master TypeScript in React applications
-                    </p>
-                    <div className="flex justify-between items-center mt-4">
-                      <Badge variant="outline">12 hours</Badge>
-                      <Button size="sm">
-                        Enroll
-                        <ArrowUpRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="border p-4 rounded-md">
-                    <h3 className="font-medium">Advanced Project Management</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Advanced techniques for managing complex projects
-                    </p>
-                    <div className="flex justify-between items-center mt-4">
-                      <Badge variant="outline">20 hours</Badge>
-                      <Button size="sm">
-                        Enroll
-                        <ArrowUpRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
+                    <p className="mt-2 text-sm">Consistently meets deadlines and produces high-quality work. Could improve on communication with team members.</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Goals & Objectives</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border-b pb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">Complete Advanced Certification</h3>
+                      <p className="text-sm text-muted-foreground">Due: December 31, 2023</p>
+                    </div>
+                    <Badge>In Progress</Badge>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Progress</span>
+                      <span>65%</span>
+                    </div>
+                    <Progress value={65} className="h-2" />
+                  </div>
+                </div>
+                
+                <div className="border-b pb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">Improve Client Satisfaction Score</h3>
+                      <p className="text-sm text-muted-foreground">Due: Ongoing</p>
+                    </div>
+                    <Badge>On Track</Badge>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Current: 4.7/5</span>
+                      <span>Target: 4.8/5</span>
+                    </div>
+                    <Progress value={94} className="h-2" />
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">Mentor Junior Team Members</h3>
+                      <p className="text-sm text-muted-foreground">Due: Ongoing</p>
+                    </div>
+                    <Badge className="bg-green-500">Exceeding</Badge>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Target: 2 mentees</span>
+                      <span>Current: 3 mentees</span>
+                    </div>
+                    <Progress value={100} className="h-2" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="documents" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Employee Documents</CardTitle>
+              <CardDescription>View and manage employee-related documents</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border rounded-md p-4 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 mr-3 text-blue-500" />
+                    <div>
+                      <h3 className="font-medium">Employment Contract</h3>
+                      <p className="text-sm text-muted-foreground">Uploaded on {format(new Date('2023-01-15'), 'MMM dd, yyyy')}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">View</Button>
+                </div>
+                
+                <div className="border rounded-md p-4 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 mr-3 text-blue-500" />
+                    <div>
+                      <h3 className="font-medium">Confidentiality Agreement</h3>
+                      <p className="text-sm text-muted-foreground">Uploaded on {format(new Date('2023-01-15'), 'MMM dd, yyyy')}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">View</Button>
+                </div>
+                
+                <div className="border rounded-md p-4 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 mr-3 text-blue-500" />
+                    <div>
+                      <h3 className="font-medium">Performance Review - Q2 2023</h3>
+                      <p className="text-sm text-muted-foreground">Uploaded on {format(new Date('2023-07-10'), 'MMM dd, yyyy')}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">View</Button>
+                </div>
+                
+                <div className="border rounded-md p-4 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 mr-3 text-blue-500" />
+                    <div>
+                      <h3 className="font-medium">Training Certificates</h3>
+                      <p className="text-sm text-muted-foreground">Uploaded on {format(new Date('2023-05-22'), 'MMM dd, yyyy')}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm">View</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -9,7 +9,9 @@ import {
   mockSalesTargets,
   mockGrowthForecast,
   mockSalesFollowUps,
-  mockImprovementSuggestions
+  mockImprovementSuggestions,
+  mockWeeklyReports,
+  mockMonthlyReports
 } from "@/utils/mockData";
 
 // Types
@@ -153,6 +155,16 @@ const financeService = {
   // Complete follow-up
   completeFollowUp: async (followUpId: number, outcome: string, notes?: string) => {
     return apiRequest(`/sales/follow-ups/${followUpId}/complete`, 'post', { outcome, notes }, { success: true });
+  },
+
+  // Get weekly reports
+  getWeeklyReports: async () => {
+    return apiRequest('/sales/weekly-reports', 'get', undefined, mockWeeklyReports || []);
+  },
+
+  // Get monthly reports
+  getMonthlyReports: async () => {
+    return apiRequest('/sales/monthly-reports', 'get', undefined, mockMonthlyReports || []);
   },
 
   // Get financial overview

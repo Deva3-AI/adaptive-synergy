@@ -1,706 +1,797 @@
 
-// Mock data for services
+// Mock data for various services
 
-// Client Brands
+// Client
 export const mockClientBrands = [
   {
     id: 1,
     client_id: 1,
-    name: "Brand One",
-    description: "First brand for Social Land",
-    logo_url: "/placeholder.svg",
-    created_at: "2023-08-01T10:00:00Z"
+    name: "Social Land",
+    description: "Social media marketing brand",
+    logo_url: "/brands/social-land.png",
+    created_at: "2023-01-15T09:30:00Z"
   },
   {
     id: 2,
     client_id: 1,
-    name: "Brand Two",
-    description: "Second brand for Social Land",
-    logo_url: "/placeholder.svg",
-    created_at: "2023-08-05T14:30:00Z"
+    name: "Tech Innovate",
+    description: "Technology solutions brand",
+    logo_url: "/brands/tech-innovate.png",
+    created_at: "2023-02-20T11:45:00Z"
   },
   {
     id: 3,
     client_id: 2,
-    name: "Koala Brand",
-    description: "Main brand for Koala Digital",
-    logo_url: "/placeholder.svg",
-    created_at: "2023-07-20T09:15:00Z"
+    name: "Koala Digital",
+    description: "Digital marketing agency",
+    logo_url: "/brands/koala-digital.png",
+    created_at: "2023-03-10T14:20:00Z"
   }
 ];
 
-// Brand Tasks
 export const mockBrandTasks = [
   {
-    id: 1,
+    id: 101,
     brand_id: 1,
-    title: "Redesign Brand Logo",
-    description: "Create a modern, updated logo for Brand One",
+    title: "Create Instagram campaign",
+    description: "Design and launch an Instagram campaign for product X",
     status: "in_progress",
-    due_date: "2023-09-15",
-    assigned_to: 2
+    due_date: "2023-11-30T23:59:59Z"
   },
   {
-    id: 2,
+    id: 102,
     brand_id: 1,
-    title: "Social Media Campaign",
-    description: "Plan and execute Q3 social media campaign",
+    title: "Optimize Facebook ads",
+    description: "Analyze and optimize existing Facebook ad campaigns",
     status: "pending",
-    due_date: "2023-10-01",
-    assigned_to: 3
+    due_date: "2023-12-15T23:59:59Z"
   },
   {
-    id: 3,
+    id: 103,
     brand_id: 2,
-    title: "Website Update",
-    description: "Update website with new product information",
+    title: "Update website content",
+    description: "Refresh content on the homepage and about page",
     status: "completed",
-    due_date: "2023-08-20",
-    assigned_to: 1
+    due_date: "2023-11-10T23:59:59Z"
   }
 ];
 
-// Client Preferences
 export const mockClientPreferences = [
   {
     client_id: 1,
     communication_channel: "Slack",
     feedback_frequency: "Weekly",
-    design_preferences: "Minimalist, modern, bold colors",
-    response_time_expectation: "Within 24 hours",
-    dos: ["Use brand colors consistently", "Keep copy concise", "Include data visualizations"],
-    donts: ["Avoid stock photography", "Don't use script fonts", "Avoid complex layouts"]
+    design_preferences: "Minimalist, modern, blue color palette",
+    dos: ["Provide regular updates", "Use data-driven insights", "Include case studies"],
+    donts: ["Last-minute changes", "Generic templates", "Technical jargon"]
   },
   {
     client_id: 2,
-    communication_channel: "Discord",
+    communication_channel: "Email",
     feedback_frequency: "Bi-weekly",
-    design_preferences: "Vibrant, playful, illustration-based",
-    response_time_expectation: "Within 48 hours",
-    dos: ["Use illustrations", "Be playful with copy", "Include interactive elements"],
-    donts: ["Don't be too corporate", "Avoid dense text blocks", "Don't use muted colors"]
+    design_preferences: "Bold, colorful, playful",
+    dos: ["Creative concepts", "Video content", "Social proof"],
+    donts: ["Corporate tone", "Long paragraphs", "Stock photos"]
+  }
+];
+
+// User Tasks
+export const mockUserTasks = [
+  {
+    task_id: 1,
+    title: "Design website homepage",
+    description: "Create a responsive design for the client's homepage",
+    client_id: 1,
+    status: "in_progress",
+    start_time: "2023-11-01T09:00:00Z",
+    estimated_time: 8,
+    actual_time: 0,
+    created_at: "2023-10-29T14:30:00Z",
+    updated_at: "2023-11-01T09:00:00Z"
+  },
+  {
+    task_id: 2,
+    title: "Implement authentication system",
+    description: "Set up user authentication with JWT tokens",
+    client_id: 2,
+    status: "pending",
+    estimated_time: 12,
+    created_at: "2023-10-30T11:15:00Z",
+    updated_at: "2023-10-30T11:15:00Z"
+  },
+  {
+    task_id: 3,
+    title: "SEO optimization",
+    description: "Optimize meta tags and content for better search ranking",
+    client_id: 1,
+    status: "completed",
+    start_time: "2023-10-27T10:00:00Z",
+    end_time: "2023-10-28T17:00:00Z",
+    estimated_time: 6,
+    actual_time: 7.5,
+    created_at: "2023-10-25T09:45:00Z",
+    updated_at: "2023-10-28T17:00:00Z"
   }
 ];
 
 // Task Attachments
-export interface MockTaskAttachment {
-  id: number;
-  task_id: number;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  description?: string;
-  uploaded_by: number;
-  upload_date: string;
-  url: string;
-}
-
-export const mockTaskAttachments: MockTaskAttachment[] = [
+export const mockTaskAttachments = [
   {
     id: 1,
     task_id: 1,
-    file_name: "logo_draft_v1.png",
-    file_type: "image/png",
-    file_size: 2500000,
-    description: "First draft of the new logo",
-    uploaded_by: 2,
-    upload_date: "2023-08-25T10:30:00Z",
-    url: "/placeholder.svg"
+    file_name: "homepage-wireframe.pdf",
+    file_type: "application/pdf",
+    file_size: 2560000,
+    uploaded_by: 1,
+    upload_date: "2023-10-29T15:20:00Z",
+    url: "/attachments/homepage-wireframe.pdf",
+    description: "Initial wireframe for homepage design"
   },
   {
     id: 2,
     task_id: 1,
-    file_name: "brand_guidelines.pdf",
-    file_type: "application/pdf",
-    file_size: 5000000,
-    description: "Current brand guidelines for reference",
+    file_name: "color-palette.png",
+    file_type: "image/png",
+    file_size: 1280000,
     uploaded_by: 1,
-    upload_date: "2023-08-20T14:45:00Z",
-    url: "/placeholder.svg"
+    upload_date: "2023-10-30T09:15:00Z",
+    url: "/attachments/color-palette.png",
+    description: "Approved color palette for the project"
   }
 ];
 
-// Financial Data
+// Task Statistics
+export const mockTaskStatistics = {
+  completed_tasks: 24,
+  pending_tasks: 12,
+  in_progress_tasks: 8,
+  overdue_tasks: 3,
+  completion_rate: 75,
+  avg_completion_time: 5.2,
+  monthly_trends: [
+    { month: "Jan", completed: 18, assigned: 23 },
+    { month: "Feb", completed: 21, assigned: 25 },
+    { month: "Mar", completed: 24, assigned: 28 },
+    { month: "Apr", completed: 20, assigned: 24 },
+    { month: "May", completed: 22, assigned: 26 }
+  ],
+  task_distribution: [
+    { category: "Design", count: 15 },
+    { category: "Development", count: 22 },
+    { category: "Marketing", count: 10 },
+    { category: "Content", count: 8 }
+  ]
+};
+
+// Financial Records
 export const mockFinancialRecords = [
   {
     id: 1,
     type: "income",
-    amount: 5000,
-    description: "Client payment - Project Alpha",
-    date: "2023-08-15",
-    category: "Sales"
+    amount: 25000,
+    description: "Client project payment",
+    date: "2023-10-15",
+    category: "Project Revenue"
   },
   {
     id: 2,
     type: "expense",
     amount: 1200,
-    description: "Software subscriptions",
-    date: "2023-08-05",
-    category: "Operations"
+    description: "Office rent",
+    date: "2023-10-01",
+    category: "Facilities"
   },
   {
     id: 3,
     type: "expense",
     amount: 3500,
-    description: "Office rent",
-    date: "2023-08-01",
-    category: "Facilities"
+    description: "Employee salaries",
+    date: "2023-10-05",
+    category: "Payroll"
   },
   {
     id: 4,
     type: "income",
-    amount: 7500,
-    description: "Client payment - Project Beta",
-    date: "2023-08-20",
-    category: "Sales"
+    amount: 15000,
+    description: "Consulting services",
+    date: "2023-10-20",
+    category: "Services"
   }
 ];
 
-// Sales Data
+// Sales Trends
 export const mockSalesTrends = {
   data: [
-    { name: "Jan", value: 12000 },
-    { name: "Feb", value: 15000 },
-    { name: "Mar", value: 18000 },
-    { name: "Apr", value: 16000 },
-    { name: "May", value: 21000 },
-    { name: "Jun", value: 24000 }
+    { date: "2023-06-01", value: 45000 },
+    { date: "2023-07-01", value: 52000 },
+    { date: "2023-08-01", value: 49000 },
+    { date: "2023-09-01", value: 58000 },
+    { date: "2023-10-01", value: 62000 },
+    { date: "2023-11-01", value: 68000 }
   ],
   insights: [
-    "Revenue has increased by 20% compared to the previous quarter",
-    "Customer acquisition cost has decreased by 15%",
-    "Recurring revenue now accounts for 65% of total revenue",
-    "The new service line contributed to 25% of Q2 revenue"
+    "Q3 sales increased by 22% compared to Q2",
+    "Web development services show the strongest growth at 35%",
+    "Average deal size has increased from $8,500 to $12,500",
+    "Recurring revenue clients now account for 65% of total revenue"
   ],
   activities: [
-    {
-      id: 1,
-      title: "Quarterly Review Meeting",
-      date: "Sep 15, 2023",
-      time: "10:00 AM"
-    },
-    {
-      id: 2,
-      title: "Sales Team Strategy Session",
-      date: "Sep 18, 2023",
-      time: "2:00 PM"
-    },
-    {
-      id: 3,
-      title: "Client Success Story Interview",
-      date: "Sep 20, 2023",
-      time: "11:30 AM"
-    }
+    { id: 1, title: "Client review meeting", date: "Nov 28, 2023", time: "10:00 AM" },
+    { id: 2, title: "Proposal presentation", date: "Nov 30, 2023", time: "2:30 PM" },
+    { id: 3, title: "Contract renewal discussion", date: "Dec 2, 2023", time: "11:00 AM" }
   ]
 };
 
+// Sales By Channel
 export const mockSalesByChannel = [
-  { name: "Direct Sales", value: 45 },
-  { name: "Partner Referrals", value: 25 },
-  { name: "Website", value: 15 },
-  { name: "Social Media", value: 10 },
-  { name: "Other", value: 5 }
+  { name: "Direct", value: 45 },
+  { name: "Referral", value: 30 },
+  { name: "Partnership", value: 15 },
+  { name: "Online", value: 10 }
 ];
 
+// Top Products
 export const mockTopProducts = [
   {
     id: 1,
-    name: "Web Design Package",
-    sales: 24,
-    units: 24,
-    revenue: 48000,
+    name: "Web Development",
+    sales: 32,
+    units: 32,
+    revenue: 320000,
     growth: 15
   },
   {
     id: 2,
-    name: "SEO Service Package",
-    sales: 18,
-    units: 18,
-    revenue: 27000,
-    growth: 8
+    name: "Digital Marketing",
+    sales: 28,
+    units: 28,
+    revenue: 224000,
+    growth: 12
   },
   {
     id: 3,
-    name: "Social Media Management",
-    sales: 15,
-    units: 15,
-    revenue: 18000,
-    growth: 20
+    name: "UI/UX Design",
+    sales: 24,
+    units: 24,
+    revenue: 144000,
+    growth: 8
   },
   {
     id: 4,
-    name: "Content Writing",
-    sales: 12,
-    units: 48,
-    revenue: 14400,
+    name: "SEO Services",
+    sales: 18,
+    units: 18,
+    revenue: 90000,
     growth: -5
   }
 ];
 
+// Sales Growth Data
 export const mockSalesGrowthData = {
   trends: [
-    { name: "Q1", previous: 100000, current: 120000 },
-    { name: "Q2", previous: 120000, current: 150000 },
-    { name: "Q3", previous: 140000, current: 180000 },
-    { name: "Q4", previous: 160000, current: 200000 }
+    { month: "Jan", current: 45000, previous: 38000 },
+    { month: "Feb", current: 48000, previous: 40000 },
+    { month: "Mar", current: 52000, previous: 42000 },
+    { month: "Apr", current: 49000, previous: 45000 },
+    { month: "May", current: 56000, previous: 46000 },
+    { month: "Jun", current: 60000, previous: 48000 }
   ],
   currentPeriod: {
-    revenueGrowth: 25,
-    customerGrowth: 18
+    revenueGrowth: 20,
+    customerGrowth: 15
   },
   growthDrivers: [
-    { factor: "New Customers", impact: 40, performance: "positive" },
-    { factor: "Upsells", impact: 35, performance: "positive" },
-    { factor: "Pricing Strategy", impact: 15, performance: "neutral" },
-    { factor: "Churn Reduction", impact: 10, performance: "negative" }
+    { factor: "New Clients", impact: 35, performance: "positive" },
+    { factor: "Upselling", impact: 28, performance: "positive" },
+    { factor: "Referrals", impact: 22, performance: "positive" },
+    { factor: "Retention", impact: 15, performance: "neutral" }
   ]
 };
 
+// Sales Targets
 export const mockSalesTargets = [
   {
     id: 1,
-    category: "Total Revenue",
-    current: 180000,
-    target: 200000,
-    percentage: 90
+    category: "Overall Revenue",
+    current: 420000,
+    target: 500000,
+    percentage: 84
   },
   {
     id: 2,
-    category: "New Customers",
-    current: 28,
-    target: 30,
-    percentage: 93
+    category: "New Clients",
+    current: 18,
+    target: 20,
+    percentage: 90
   },
   {
     id: 3,
-    category: "Recurring Revenue",
+    category: "Upsell Revenue",
     current: 85000,
     target: 100000,
     percentage: 85
   },
   {
     id: 4,
-    category: "Average Deal Size",
-    current: 12000,
-    target: 15000,
-    percentage: 80
+    category: "Referral Sales",
+    current: 120000,
+    target: 125000,
+    percentage: 96
   }
 ];
 
+// Growth Forecast
 export const mockGrowthForecast = {
   chart: [
-    { name: "Q1", projected: 220000 },
-    { name: "Q2", projected: 250000 },
-    { name: "Q3", projected: 285000 },
-    { name: "Q4", projected: 320000 }
+    { month: "Dec", projected: 75000, range: [70000, 80000] },
+    { month: "Jan", projected: 78000, range: [72000, 84000] },
+    { month: "Feb", projected: 82000, range: [75000, 89000] },
+    { month: "Mar", projected: 85000, range: [78000, 92000] }
   ],
   insights: [
-    {
-      type: "trend",
-      text: "Revenue is projected to grow by 25% in the next fiscal year"
+    { 
+      type: "positive", 
+      text: "Projected 15% YoY growth in Q1 based on current pipeline and market conditions" 
     },
-    {
-      type: "trend",
-      text: "Recurring revenue is expected to increase to 70% of total revenue"
+    { 
+      type: "positive", 
+      text: "Web development services expected to remain the top revenue generator with 22% growth" 
     },
-    {
-      type: "warning",
-      text: "Market competition is increasing, which may impact growth in Q3"
+    { 
+      type: "warning", 
+      text: "Potential economic slowdown in Q2 may impact growth in the design services sector" 
     },
-    {
-      type: "trend",
-      text: "New product launch in Q2 expected to accelerate growth by 10%"
+    { 
+      type: "positive", 
+      text: "New partnership opportunities could add additional 10-15% to revenue projections" 
     }
   ]
 };
 
+// Sales Follow-ups
 export const mockSalesFollowUps = [
   {
     id: 1,
-    client_name: "Social Land",
-    contact_person: "John Smith",
-    last_interaction: "2023-08-25",
-    next_followup: "2023-09-10",
-    potential_value: 25000,
+    clientName: "Acme Corporation",
+    contactPerson: "John Smith",
+    email: "john@acmecorp.com",
+    phone: "+1 555-123-4567",
+    type: "call",
+    dueDate: "2023-11-28",
     status: "pending",
-    notes: "Discussed new service package, seemed interested"
+    notes: "Follow up on the proposal sent last week, address any questions about pricing structure."
   },
   {
     id: 2,
-    client_name: "Koala Digital",
-    contact_person: "Lisa Johnson",
-    last_interaction: "2023-08-28",
-    next_followup: "2023-09-05",
-    potential_value: 15000,
+    clientName: "TechStart Inc",
+    contactPerson: "Sarah Johnson",
+    email: "sarah@techstart.com",
+    phone: "+1 555-987-6543",
+    type: "meeting",
+    dueDate: "2023-12-01",
     status: "pending",
-    notes: "Send proposal for website redesign"
+    notes: "Schedule a demo of the new platform features, focus on automation capabilities."
   },
   {
     id: 3,
-    client_name: "AC Digital",
-    contact_person: "Michael Brown",
-    last_interaction: "2023-08-20",
-    next_followup: "2023-09-01",
-    potential_value: 10000,
-    status: "completed",
-    notes: "Closed deal for social media management"
+    clientName: "Global Retail Group",
+    contactPerson: "Michael Brown",
+    email: "michael@grg.com",
+    phone: "+1 555-456-7890",
+    type: "email",
+    dueDate: "2023-11-25",
+    status: "pending",
+    notes: "Send case studies relevant to their industry, particularly focusing on ROI metrics."
   }
 ];
 
+// Improvement Suggestions
 export const mockImprovementSuggestions = [
   {
     id: 1,
-    category: "Sales Process",
-    suggestion: "Reduce time between first contact and proposal by 20%",
-    impact: "high",
-    implementation_difficulty: "medium"
+    title: "Implement Value-Based Pricing",
+    description: "Transition from hourly to value-based pricing for select services to increase margins and better communicate value to clients.",
+    priority: "high"
   },
   {
     id: 2,
-    category: "Client Communication",
-    suggestion: "Implement automated follow-up emails after meetings",
-    impact: "medium",
-    implementation_difficulty: "low"
+    title: "Develop Industry-Specific Packages",
+    description: "Create tailored service packages for key industries (healthcare, finance, education) to streamline proposals and capitalize on expertise.",
+    priority: "medium"
   },
   {
     id: 3,
-    category: "Pricing Strategy",
-    suggestion: "Introduce tiered pricing for enterprise clients",
-    impact: "high",
-    implementation_difficulty: "high"
+    title: "Enhance CRM Usage",
+    description: "Improve data capture in CRM system to better track touchpoints, improve forecasting, and identify upsell opportunities.",
+    priority: "high"
   }
 ];
 
-// Marketing Data
+// Marketing Email Templates
 export const mockEmailTemplates = [
   {
     id: 1,
     name: "New Client Welcome",
-    subject: "Welcome to Our Services!",
-    description: "Initial welcome email for new clients",
-    created_at: "2023-07-15",
-    last_modified: "2023-08-10",
+    subject: "Welcome to Our Agency!",
+    content: "Hello [Client Name],\n\nWe're thrilled to welcome you to [Agency Name]! We're excited to start working with you on [Project Description]...",
+    created_at: "2023-06-15",
+    last_used: "2023-11-05",
     performance: {
-      opens: 92,
-      clicks: 78,
-      responses: 45
+      open_rate: 85,
+      response_rate: 72
     }
   },
   {
     id: 2,
-    name: "Project Follow-up",
-    subject: "Following Up on Your Project",
-    description: "Follow-up email after project completion",
-    created_at: "2023-06-20",
-    last_modified: "2023-08-05",
+    name: "Project Proposal",
+    subject: "Your Custom [Service] Proposal",
+    content: "Hello [Client Name],\n\nThank you for the opportunity to present our proposal for [Project Name]...",
+    created_at: "2023-07-22",
+    last_used: "2023-11-12",
     performance: {
-      opens: 88,
-      clicks: 65,
-      responses: 40
+      open_rate: 92,
+      response_rate: 68
     }
   },
   {
     id: 3,
-    name: "Service Proposal",
-    subject: "Custom Proposal for Your Business",
-    description: "Email template for sending service proposals",
-    created_at: "2023-08-01",
-    last_modified: "2023-08-15",
+    name: "Follow-up Meeting",
+    subject: "Next Steps After Our Meeting",
+    content: "Hello [Client Name],\n\nThank you for your time today discussing [Meeting Topic]...",
+    created_at: "2023-08-10",
+    last_used: "2023-11-18",
     performance: {
-      opens: 95,
-      clicks: 82,
-      responses: 60
+      open_rate: 78,
+      response_rate: 65
     }
   }
 ];
 
-export const mockEmailOutreach = {
-  campaigns: [
-    {
-      id: 1,
-      name: "Q3 Client Re-engagement",
-      status: "active",
-      emails_sent: 150,
-      opens: 120,
-      responses: 35,
-      meetings_booked: 12
-    },
-    {
-      id: 2,
-      name: "New Service Announcement",
-      status: "completed",
-      emails_sent: 200,
-      opens: 180,
-      responses: 45,
-      meetings_booked: 15
-    },
-    {
-      id: 3,
-      name: "Referral Program",
-      status: "planned",
-      emails_sent: 0,
-      opens: 0,
-      responses: 0,
-      meetings_booked: 0
-    }
-  ],
-  metrics: {
-    total_emails: 350,
-    average_open_rate: 85.7,
-    average_response_rate: 22.9,
-    meetings_booked: 27
-  },
-  upcoming_emails: 125
-};
-
-export const mockLeads = [
+// Email Outreach Data
+export const mockEmailOutreach = [
   {
     id: 1,
-    name: "Tech Innovators Inc.",
-    contact_person: "Sarah Johnson",
-    email: "sarah@techinnovators.com",
-    phone: "555-123-4567",
-    source: "Website Form",
-    status: "New",
-    created_at: "2023-08-28",
-    notes: "Interested in web development services",
-    assigned_to: "Mike Brown"
+    recipient: "John Smith",
+    recipientCompany: "Acme Corp",
+    subject: "Digital Marketing Partnership Opportunity",
+    status: "opened",
+    sentAt: "2023-11-15T09:30:00Z",
+    source: "linkedin",
+    followUpScheduled: true
   },
   {
     id: 2,
-    name: "Creative Solutions Co.",
-    contact_person: "David Lee",
-    email: "david@creativesolutions.co",
-    phone: "555-987-6543",
-    source: "Referral",
-    status: "Contacted",
-    created_at: "2023-08-25",
-    notes: "Referred by Social Land, looking for branding services",
-    assigned_to: "Jane Smith"
+    recipient: "Emily Johnson",
+    recipientCompany: "Tech Innovators",
+    subject: "Web Development Services Proposal",
+    status: "replied",
+    sentAt: "2023-11-16T10:15:00Z",
+    source: "referral",
+    followUpScheduled: false
   },
   {
     id: 3,
-    name: "Global Retail Group",
-    contact_person: "Amanda White",
-    email: "amanda@globalretail.com",
-    phone: "555-456-7890",
-    source: "LinkedIn",
-    status: "Meeting Scheduled",
-    created_at: "2023-08-22",
-    notes: "Meeting scheduled for Sep 5 to discuss e-commerce solutions",
-    assigned_to: "Mike Brown"
+    recipient: "Michael Brown",
+    recipientCompany: "Global Retail Group",
+    subject: "E-commerce Optimization Solutions",
+    status: "sent",
+    sentAt: "2023-11-18T14:45:00Z",
+    source: "cold_outreach",
+    followUpScheduled: true
   },
   {
     id: 4,
-    name: "Health Innovations Ltd.",
-    contact_person: "Robert Chen",
-    email: "robert@healthinnovations.com",
-    phone: "555-789-0123",
-    source: "Conference",
-    status: "Qualified",
-    created_at: "2023-08-20",
-    notes: "Met at HealthTech conference, needs a new website and digital marketing",
-    assigned_to: "Jane Smith"
+    recipient: "Sarah Williams",
+    recipientCompany: "Education First",
+    subject: "Digital Transformation Partnership",
+    status: "bounced",
+    sentAt: "2023-11-17T11:30:00Z",
+    source: "conference",
+    followUpScheduled: false
   }
 ];
 
+// Lead Profiles
+export const mockLeads = [
+  {
+    id: 1,
+    name: "David Chen",
+    company: "Innovate Solutions",
+    position: "Marketing Director",
+    email: "david@innovatesolutions.com",
+    phone: "+1 555-123-7890",
+    source: "Website Contact Form",
+    status: "new",
+    score: 85,
+    lastContactedAt: null,
+    notes: "Interested in a complete website redesign and SEO services"
+  },
+  {
+    id: 2,
+    name: "Amanda Rodriguez",
+    company: "Global Retail Inc",
+    position: "Digital Manager",
+    email: "amanda@globalretail.com",
+    phone: "+1 555-456-7890",
+    source: "LinkedIn Outreach",
+    status: "contacted",
+    score: 72,
+    lastContactedAt: "2023-11-10T15:30:00Z",
+    notes: "Needs help with e-commerce optimization and social media marketing"
+  },
+  {
+    id: 3,
+    name: "James Wilson",
+    company: "Tech Startup Hub",
+    position: "CEO",
+    email: "james@techstartup.com",
+    phone: "+1 555-789-1234",
+    source: "Referral",
+    status: "meeting_scheduled",
+    score: 90,
+    lastContactedAt: "2023-11-15T10:00:00Z",
+    notes: "Looking for full-service digital marketing for their new product launch"
+  },
+  {
+    id: 4,
+    name: "Sophia Lee",
+    company: "Healthcare Solutions",
+    position: "Content Manager",
+    email: "sophia@healthcaresolutions.com",
+    phone: "+1 555-234-5678",
+    source: "Content Download",
+    status: "proposal_sent",
+    score: 65,
+    lastContactedAt: "2023-11-08T09:15:00Z",
+    notes: "Interested specifically in content marketing and SEO for healthcare industry"
+  }
+];
+
+// Marketing Plans
 export const mockMarketingPlans = [
   {
     id: 1,
-    title: "Q4 Social Media Growth Strategy",
-    description: "Comprehensive plan to increase social media engagement and followers",
-    status: "active",
-    created_at: "2023-08-15",
-    timeline: "Sep 1 - Dec 31, 2023",
-    kpis: [
-      "Increase followers by 25%",
-      "Improve engagement rate to 3.5%",
-      "Generate 20 qualified leads"
-    ],
-    tasks: [
-      "Content calendar creation",
-      "Audience analysis",
-      "Paid promotion strategy",
-      "Weekly performance reviews"
+    title: "Q1 Growth Strategy",
+    description: "Comprehensive plan for Q1 focusing on lead generation and conversion optimization",
+    created_at: "2023-10-15",
+    updated_at: "2023-11-05",
+    owner: "Marketing Team",
+    status: "in_progress",
+    progress: 35,
+    content: "Detailed strategy document outlining objectives, tactics, and KPIs for Q1 growth initiatives."
+  },
+  {
+    id: 2,
+    title: "Social Media Expansion",
+    description: "Strategy to expand presence across new social platforms and improve engagement",
+    created_at: "2023-11-01",
+    updated_at: "2023-11-10",
+    owner: "Social Media Team",
+    status: "in_progress",
+    progress: 20,
+    content: "Platform-specific strategies, content calendars, and performance metrics for social media expansion."
+  },
+  {
+    id: 3,
+    title: "Content Marketing Refresh",
+    description: "Updated approach to content creation and distribution across channels",
+    created_at: "2023-10-20",
+    updated_at: "2023-11-15",
+    owner: "Content Team",
+    status: "draft",
+    progress: 65,
+    content: "Analysis of existing content performance and strategies for improving content quality, distribution, and conversion."
+  }
+];
+
+// Marketing Trends
+export const mockMarketingTrends = [
+  {
+    id: 1,
+    category: "Content Marketing",
+    trend: "Video-first Content Strategy",
+    description: "Shifting focus to short-form videos as primary content format across platforms",
+    impact_level: "high",
+    adoption_rate: 72,
+    insights: [
+      "60% higher engagement than static content",
+      "Most effective for awareness and consideration stages",
+      "Requires additional production resources and expertise"
     ]
   },
   {
     id: 2,
-    title: "Website SEO Improvement Plan",
-    description: "Strategy to improve website organic search rankings and traffic",
-    status: "draft",
-    created_at: "2023-08-20",
-    timeline: "Oct 1 - Dec 31, 2023",
-    kpis: [
-      "Improve key rankings by 10 positions",
-      "Increase organic traffic by 35%",
-      "Reduce bounce rate by 15%"
-    ],
-    tasks: [
-      "Technical SEO audit",
-      "Content gap analysis",
-      "Keyword optimization",
-      "Backlink acquisition"
+    category: "Social Media",
+    trend: "Private Community Building",
+    description: "Creating exclusive communities rather than focusing solely on broad reach",
+    impact_level: "medium",
+    adoption_rate: 45,
+    insights: [
+      "Higher engagement and customer loyalty",
+      "Provides valuable first-party data",
+      "Requires consistent management and value provision"
     ]
   },
   {
     id: 3,
-    title: "Email Marketing Automation",
-    description: "Implementation of automated email workflows for lead nurturing",
-    status: "completed",
-    created_at: "2023-07-10",
-    timeline: "Jul 15 - Aug 31, 2023",
-    kpis: [
-      "Set up 5 automated workflows",
-      "Increase email open rate to 25%",
-      "Improve click-through rate to 3.2%"
-    ],
-    tasks: [
-      "Email template design",
-      "Workflow mapping",
-      "A/B testing setup",
-      "Performance tracking"
+    category: "SEO",
+    trend: "AI-Generated Content Optimization",
+    description: "Using AI tools to create and optimize content for search visibility",
+    impact_level: "high",
+    adoption_rate: 58,
+    insights: [
+      "Enables scale while maintaining quality with proper oversight",
+      "Requires human editing and optimization",
+      "Search engines increasingly able to detect purely AI content"
     ]
   }
 ];
 
-export const mockMarketingTrends = {
-  trends: [
-    {
-      id: 1,
-      name: "AI Content Creation",
-      relevance: "high",
-      adoption_stage: "early majority",
-      description: "Using AI tools to generate and optimize content",
-      potential_impact: "Reduce content creation time by 40%, improve personalization"
-    },
-    {
-      id: 2,
-      name: "Video-First Social Strategy",
-      relevance: "high",
-      adoption_stage: "early majority",
-      description: "Prioritizing short-form video content across platforms",
-      potential_impact: "Increase engagement by 35%, improve brand recall"
-    },
-    {
-      id: 3,
-      name: "Zero-Party Data Collection",
-      relevance: "medium",
-      adoption_stage: "early adopters",
-      description: "Directly collecting data that customers intentionally share",
-      potential_impact: "Improve targeting precision, prepare for cookie-less future"
-    },
-    {
-      id: 4,
-      name: "Sustainable Marketing",
-      relevance: "medium",
-      adoption_stage: "innovators",
-      description: "Highlighting environmental and social responsibility",
-      potential_impact: "Appeal to conscious consumers, build brand loyalty"
-    }
-  ],
-  recommended_actions: [
-    "Invest in AI content tools and training",
-    "Develop video content strategy for all major platforms",
-    "Create direct data collection touchpoints",
-    "Highlight existing sustainability practices"
-  ]
-};
-
+// Competitor Insights
 export const mockCompetitorInsights = [
   {
-    competitor: "Digital Apex",
-    strengths: ["Strong social media presence", "Proprietary technology platform", "Premium pricing"],
-    weaknesses: ["Limited service offerings", "Small team size", "Regional focus only"],
-    recent_moves: ["Launched new AI service", "Hired industry influencer", "Redesigned website"],
-    market_share: 15
+    id: 1,
+    competitor_name: "Digital Innovators",
+    strengths: [
+      "Strong presence in healthcare and finance verticals",
+      "Proprietary analytics platform",
+      "Large team with specialized expertise"
+    ],
+    weaknesses: [
+      "Higher pricing structure",
+      "Slower project turnaround times",
+      "Less focus on small business clients"
+    ],
+    recent_moves: [
+      "Launched new AI-powered marketing automation tool",
+      "Acquired smaller social media agency",
+      "Expanded into the European market"
+    ],
+    threat_level: "high"
   },
   {
-    competitor: "WebSphere Solutions",
-    strengths: ["Comprehensive service range", "Large team", "International presence"],
-    weaknesses: ["Higher prices", "Slower delivery times", "Less personalized service"],
-    recent_moves: ["Acquired smaller agency", "New enterprise client announcements", "Rebranding initiative"],
-    market_share: 22
+    id: 2,
+    competitor_name: "CreativeForce Agency",
+    strengths: [
+      "Award-winning creative work",
+      "Strong brand recognition",
+      "Innovative campaign approaches"
+    ],
+    weaknesses: [
+      "Limited technical capabilities",
+      "Less data-driven approach",
+      "Customer service complaints"
+    ],
+    recent_moves: [
+      "Rebranded agency and positioning",
+      "Introduced performance-based pricing model",
+      "New focus on sustainability-focused clients"
+    ],
+    threat_level: "medium"
   },
   {
-    competitor: "Nimble Digital",
-    strengths: ["Competitive pricing", "Fast turnaround times", "Strong client testimonials"],
-    weaknesses: ["Less established brand", "Smaller portfolio", "Limited expertise in some areas"],
-    recent_moves: ["Aggressive social media campaign", "New partnership program", "Free resource library launch"],
-    market_share: 8
+    id: 3,
+    competitor_name: "Growth Hackers Inc",
+    strengths: [
+      "Lower pricing model",
+      "Quick project implementation",
+      "Strong results for startups"
+    ],
+    weaknesses: [
+      "Limited service depth",
+      "Small team with capacity constraints",
+      "Less established with enterprise clients"
+    ],
+    recent_moves: [
+      "Launched productized service offerings",
+      "New venture funding round",
+      "Released free marketing tools to generate leads"
+    ],
+    threat_level: "medium"
   }
 ];
 
-// Task data
-export const mockUserTasks = [
+// Add weekly and monthly reports
+export const mockWeeklyReports = [
   {
-    task_id: 101,
-    title: "Complete website redesign",
-    description: "Update the client's website with new branding and improved UX",
-    status: "in_progress",
-    priority: "high",
-    progress: 60,
-    client_id: 1,
-    client_name: "Social Land",
-    assigned_to: 1
-  },
-  {
-    task_id: 102,
-    title: "SEO optimization",
-    description: "Improve search rankings for key terms",
-    status: "pending",
-    priority: "medium",
-    progress: 0,
-    client_id: 2,
-    client_name: "Koala Digital",
-    assigned_to: 1
-  },
-  {
-    task_id: 103,
-    title: "Content calendar creation",
-    description: "Develop Q4 content calendar for social media",
-    status: "completed",
-    priority: "medium",
-    progress: 100,
-    client_id: 3,
-    client_name: "AC Digital",
-    assigned_to: 1
-  }
-];
-
-export const mockTaskStatistics = {
-  completion_rate: 85,
-  on_time_completion: 92,
-  average_task_duration: 4.3,
-  tasks_by_status: [
-    { name: "Completed", value: 45 },
-    { name: "In Progress", value: 12 },
-    { name: "Pending", value: 8 },
-    { name: "Cancelled", value: 2 }
-  ],
-  tasks_by_priority: [
-    { name: "High", value: 15 },
-    { name: "Medium", value: 32 },
-    { name: "Low", value: 20 }
-  ],
-  recent_completions: [
-    {
-      id: 1,
-      title: "Website Launch",
-      completed_date: "2023-08-25",
-      client: "Tech Innovators"
-    },
-    {
-      id: 2,
-      title: "Brand Guidelines",
-      completed_date: "2023-08-23",
-      client: "Creative Solutions"
-    },
-    {
-      id: 3,
-      title: "Marketing Campaign",
-      completed_date: "2023-08-20",
-      client: "Health Innovations"
+    id: 1,
+    title: "Weekly Sales Report",
+    period: "Nov 13-19, 2023",
+    sales: 58000,
+    target: 55000,
+    progress: 105,
+    performanceData: [
+      { day: "Mon", sales: 12000 },
+      { day: "Tue", sales: 9500 },
+      { day: "Wed", sales: 11000 },
+      { day: "Thu", sales: 8500 },
+      { day: "Fri", sales: 17000 }
+    ],
+    metrics: {
+      conversionRate: 4.2,
+      prevConversionRate: 3.8,
+      avgSaleValue: 2850,
+      prevAvgSaleValue: 2700,
+      newLeads: 35,
+      prevNewLeads: 32,
+      closedDeals: 20,
+      prevClosedDeals: 18
     }
-  ]
-};
+  },
+  {
+    id: 2,
+    title: "Weekly Sales Report",
+    period: "Nov 6-12, 2023",
+    sales: 52000,
+    target: 53000,
+    progress: 98,
+    performanceData: [
+      { day: "Mon", sales: 10500 },
+      { day: "Tue", sales: 11000 },
+      { day: "Wed", sales: 9000 },
+      { day: "Thu", sales: 10500 },
+      { day: "Fri", sales: 11000 }
+    ],
+    metrics: {
+      conversionRate: 3.8,
+      prevConversionRate: 3.5,
+      avgSaleValue: 2700,
+      prevAvgSaleValue: 2650,
+      newLeads: 32,
+      prevNewLeads: 30,
+      closedDeals: 18,
+      prevClosedDeals: 17
+    }
+  }
+];
+
+export const mockMonthlyReports = [
+  {
+    id: 1,
+    title: "Monthly Sales Report",
+    period: "October 2023",
+    sales: 235000,
+    target: 220000,
+    progress: 107,
+    performanceData: [
+      { week: "Week 1", sales: 52000 },
+      { week: "Week 2", sales: 58000 },
+      { week: "Week 3", sales: 62000 },
+      { week: "Week 4", sales: 63000 }
+    ],
+    metrics: {
+      conversionRate: 4.1,
+      prevConversionRate: 3.7,
+      avgSaleValue: 2800,
+      prevAvgSaleValue: 2600,
+      newLeads: 120,
+      prevNewLeads: 110,
+      closedDeals: 84,
+      prevClosedDeals: 78
+    }
+  },
+  {
+    id: 2,
+    title: "Monthly Sales Report",
+    period: "September 2023",
+    sales: 210000,
+    target: 215000,
+    progress: 98,
+    performanceData: [
+      { week: "Week 1", sales: 45000 },
+      { week: "Week 2", sales: 52000 },
+      { week: "Week 3", sales: 58000 },
+      { week: "Week 4", sales: 55000 }
+    ],
+    metrics: {
+      conversionRate: 3.7,
+      prevConversionRate: 3.6,
+      avgSaleValue: 2600,
+      prevAvgSaleValue: 2550,
+      newLeads: 110,
+      prevNewLeads: 105,
+      closedDeals: 78,
+      prevClosedDeals: 75
+    }
+  }
+];

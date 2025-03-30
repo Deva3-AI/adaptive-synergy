@@ -1,199 +1,204 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { taskService, type TaskAttachment } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useDropzone } from 'react-dropzone';
-import { FileText, Upload, Paperclip, Download, Trash2, X } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import taskService, { TaskAttachment } from '@/services/api/taskService';
+import {
+  FileText,
+  Upload,
+  FileUp,
+  Download,
+  Trash,
+  Plus,
+  File,
+  X
+} from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { formatFileSize } from '@/utils/formatters';
 
 interface TaskAttachmentsPanelProps {
   taskId: number;
+  className?: string;
 }
 
-const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId }) => {
+const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, className }) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
-  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const queryClient = useQueryClient();
 
   // Fetch task attachments
   const { data: attachments = [], isLoading } = useQuery({
-    queryKey: ['task-attachments', taskId],
+    queryKey: ['taskAttachments', taskId],
     queryFn: () => taskService.getTaskAttachments(taskId),
   });
 
-  // Upload mutation
+  // Upload attachment mutation
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => {
+    mutationFn: async ({ file, description }: { file: File, description?: string }) => {
       return taskService.uploadTaskAttachment(taskId, file, description);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-attachments', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['taskAttachments', taskId] });
       toast.success('Attachment uploaded successfully');
+      setSelectedFile(null);
       setDescription('');
-      setShowUploadForm(false);
     },
     onError: (error) => {
+      console.error('Error uploading attachment:', error);
       toast.error('Failed to upload attachment');
-      console.error('Upload error:', error);
     }
   });
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: (attachmentId: number) => {
-      // This function doesn't exist yet, so we'll mock it
-      return Promise.resolve({ success: true });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['task-attachments', taskId] });
-      toast.success('Attachment deleted');
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
     }
-  });
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles) => {
-      if (acceptedFiles[0]) {
-        uploadMutation.mutate(acceptedFiles[0]);
-      }
-    },
-    maxSize: 10485760, // 10MB
-    multiple: false
-  });
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
+  // Handle file upload
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    
+    setIsUploading(true);
+    try {
+      await uploadMutation.mutateAsync({ 
+        file: selectedFile,
+        description: description || undefined
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Handle file selection button click
+  const handleSelectFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Handle cancel file selection
+  const handleCancelSelection = () => {
+    setSelectedFile(null);
+    setDescription('');
+  };
+
+  // Get file icon based on file type
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return '🖼️';
+    // Simple file type detection
+    if (fileType.includes('image')) return '🖼️';
     if (fileType.includes('pdf')) return '📄';
-    if (fileType.includes('document') || fileType.includes('word')) return '📝';
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return '📊';
+    if (fileType.includes('word') || fileType.includes('document')) return '📝';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
+    if (fileType.includes('zip') || fileType.includes('archive')) return '🗄️';
     return '📁';
   };
 
-  const handleManualUpload = (e: React.FormEvent) => {
-    e.preventDefault();
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    if (fileInput?.files?.[0]) {
-      uploadMutation.mutate(fileInput.files[0]);
-    } else {
-      toast.error('Please select a file to upload');
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle className="text-base font-medium">Task Attachments</CardTitle>
-          <CardDescription>Files associated with this task</CardDescription>
-        </div>
-        {!showUploadForm && (
-          <Button size="sm" onClick={() => setShowUploadForm(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
-        )}
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle className="text-lg font-medium">Task Attachments</CardTitle>
       </CardHeader>
-      <CardContent>
-        {showUploadForm && (
-          <div className="mb-6 border rounded-md p-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium">Upload Attachment</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowUploadForm(false)}>
-                <X className="h-4 w-4" />
+      <CardContent className="space-y-4">
+        {/* File Upload Section */}
+        <div className="border rounded-lg p-4">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          
+          {selectedFile ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <File className="h-5 w-5 text-blue-500" />
+                  <span className="font-medium">{selectedFile.name}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleCancelSelection}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Add a description for this file..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="h-20 resize-none"
+                />
+              </div>
+              
+              <Button 
+                onClick={handleUpload} 
+                disabled={isUploading}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>Uploading...</>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload File
+                  </>
+                )}
               </Button>
             </div>
-            
-            <form onSubmit={handleManualUpload}>
-              <div 
-                {...getRootProps()} 
-                className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer mb-4 ${
-                  isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300'
-                }`}
-              >
-                <input {...getInputProps({ id: 'file-upload' })} />
-                <Paperclip className="h-6 w-6 mb-2 mx-auto text-muted-foreground" />
-                {isDragActive ? (
-                  <p className="text-sm">Drop the file here</p>
-                ) : (
-                  <div>
-                    <p className="text-sm mb-1">Drag & drop a file here, or click to select</p>
-                    <p className="text-xs text-muted-foreground">Max file size: 10MB</p>
-                  </div>
-                )}
-              </div>
-              
-              <Textarea 
-                placeholder="Description (optional)" 
-                className="mb-4" 
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-              
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setShowUploadForm(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={uploadMutation.isPending}>
-                  {uploadMutation.isPending ? 'Uploading...' : 'Upload File'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        )}
+          ) : (
+            <div className="flex flex-col items-center justify-center py-6">
+              <FileUp className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-muted-foreground mb-2">Drag and drop files or</p>
+              <Button onClick={handleSelectFile}>
+                <Plus className="mr-2 h-4 w-4" />
+                Select File
+              </Button>
+            </div>
+          )}
+        </div>
         
+        {/* Attachments List */}
         {isLoading ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">Loading attachments...</p>
-          </div>
+          <div className="text-center py-4">Loading attachments...</div>
         ) : attachments.length === 0 ? (
-          <div className="py-8 text-center border border-dashed rounded-md">
-            <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-muted-foreground">No attachments yet</p>
-            <p className="text-sm text-muted-foreground">Upload files to share with the team</p>
+          <div className="text-center py-4 text-muted-foreground">
+            No attachments found for this task
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {attachments.map((attachment: TaskAttachment) => (
-              <div key={attachment.id} className="flex items-center justify-between border p-3 rounded-md">
-                <div className="flex items-center">
-                  <div className="mr-3 text-2xl">{getFileIcon(attachment.file_type)}</div>
-                  <div>
-                    <p className="font-medium text-sm">{attachment.file_name}</p>
-                    {attachment.description && (
-                      <p className="text-xs text-muted-foreground">{attachment.description}</p>
-                    )}
-                    <div className="flex items-center mt-1 text-xs text-muted-foreground">
-                      <span>{formatFileSize(attachment.file_size || 0)}</span>
-                      <span className="mx-2">•</span>
-                      <span>{new Date(attachment.upload_date).toLocaleDateString()}</span>
+              <div key={attachment.id} className="flex items-start justify-between border rounded-md p-3">
+                <div className="flex-1">
+                  <div className="flex items-center">
+                    <span className="mr-2 text-lg">
+                      {getFileIcon(attachment.file_type)}
+                    </span>
+                    <div>
+                      <h4 className="font-medium text-sm">{attachment.file_name}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(attachment.file_size)} • Uploaded {format(new Date(attachment.upload_date), 'MMM d, yyyy')}
+                      </p>
                     </div>
                   </div>
+                  {attachment.description && (
+                    <p className="mt-2 text-sm text-muted-foreground">{attachment.description}</p>
+                  )}
                 </div>
-                <div className="flex space-x-1">
-                  <Button variant="ghost" size="sm" asChild>
-                    <a href={attachment.url} download={attachment.file_name} target="_blank" rel="noopener noreferrer">
-                      <Download className="h-4 w-4" />
-                    </a>
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this attachment?')) {
-                        deleteMutation.mutate(attachment.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
+                  <Button variant="outline" size="sm" className="text-destructive">
+                    <Trash className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
