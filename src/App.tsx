@@ -1,104 +1,165 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+import { Toaster } from 'sonner';
 
-import React from "react";
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Navigate,
-  BrowserRouter,
-  Routes,
-  Route
-} from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
+// Import pages
+import Index from './pages/Index';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
+import PasswordRecovery from './pages/auth/PasswordRecovery';
+import VerifyEmail from './pages/auth/VerifyEmail';
+import Dashboard from './pages/Dashboard';
+import EmployeeDashboard from './pages/employee/Dashboard';
+import EmployeeTasks from './pages/employee/Tasks';
+import EmployeeTaskDetail from './pages/employee/TaskDetail';
+import EmployeeDirectory from './pages/employee/Directory';
+import EmployeeProfile from './pages/employee/Profile';
+import ClientDashboard from './pages/client/Dashboard';
+import ClientTasks from './pages/client/Tasks';
+import ClientTaskDetail from './pages/client/TaskDetail';
+import BrandsDashboard from './pages/client/BrandsDashboard';
+import ClientReports from './pages/client/Reports';
+import NotFound from './pages/NotFound';
 
-import Index from "@/pages/Index";
-import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
-import PasswordRecovery from "@/pages/PasswordRecovery";
-import VerifyEmail from "@/pages/VerifyEmail";
-import AppLayout from "@/components/layout/AppLayout";
-import Dashboard from "@/pages/Dashboard";
-import EmployeeDirectory from "@/pages/employee/EmployeeDirectory";
-import EmployeeProfile from "@/pages/employee/EmployeeProfile";
-import Clients from "@/pages/Clients";
-import ClientDashboard from "@/pages/client/Dashboard";
-import ClientTasks from "@/pages/client/Tasks";
-import TaskDetail from "@/pages/tasks/TaskDetail";
-import Reports from "@/pages/Reports";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
-import MarketingDashboard from "@/pages/marketing/Dashboard";
-import Campaigns from "@/pages/marketing/Campaigns";
-import EmailTemplates from "@/pages/marketing/EmailTemplates";
-import Meetings from "@/pages/marketing/Meetings";
-import Analytics from "@/pages/marketing/Analytics";
-import FinancialDashboard from "@/pages/finance/FinancialDashboard";
-import Invoices from "@/pages/finance/Invoices";
-import Expenses from "@/pages/finance/Expenses";
-import Budgets from "@/pages/finance/Budgets";
-import FinanceReports from "@/pages/finance/Reports";
-import FinancePerformance from "@/pages/finance/Performance";
-import HRDashboard from "@/pages/hr/HRDashboard";
-import EmployeeManagement from "@/pages/hr/EmployeeManagement";
-import Recruitment from "@/pages/hr/Recruitment";
-import PerformanceReviews from "@/pages/hr/PerformanceReviews";
-import HRReports from "@/pages/hr/Reports";
-import BrandsDashboard from "./pages/client/BrandsDashboard";
-import SalesDashboard from "./pages/finance/SalesDashboard";
-import EmployeeDashboard from "./pages/employee/Dashboard";
-import { AuthProvider } from "./hooks/use-auth";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
+// Define a ProtectedRoute component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a more sophisticated loading indicator
+  }
+
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+};
 
 function App() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a more sophisticated loading indicator
+  }
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/password-recovery" element={<PasswordRecovery />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          
-          <Route path="/app" element={
+    <>
+      <Routes>
+        {/* Auth routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/password-recovery" element={<PasswordRecovery />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
             <ProtectedRoute>
-              <AppLayout />
+              <Dashboard />
             </ProtectedRoute>
-          }>
-            <Route index element={<Dashboard />} />
-            <Route path="employees" element={<EmployeeDirectory />} />
-            <Route path="employees/:employeeId" element={<EmployeeProfile />} />
-            <Route path="clients" element={<Clients />} />
-            <Route path="client/dashboard" element={<ClientDashboard />} />
-            <Route path="client/brands" element={<BrandsDashboard />} />
-            <Route path="client/tasks" element={<ClientTasks />} />
-            <Route path="client/tasks/:taskId" element={<TaskDetail />} />
-            <Route path="client/reports" element={<Reports />} />
-            <Route path="employee/dashboard" element={<EmployeeDashboard />} />
-            <Route path="marketing/dashboard" element={<MarketingDashboard />} />
-            <Route path="marketing/campaigns" element={<Campaigns />} />
-            <Route path="marketing/email-templates" element={<EmailTemplates />} />
-            <Route path="marketing/meetings" element={<Meetings />} />
-            <Route path="marketing/analytics" element={<Analytics />} />
-            <Route path="finance/dashboard" element={<FinancialDashboard />} />
-            <Route path="finance/invoices" element={<Invoices />} />
-            <Route path="finance/expenses" element={<Expenses />} />
-            <Route path="finance/budgets" element={<Budgets />} />
-            <Route path="finance/reports" element={<FinanceReports />} />
-            <Route path="finance/performance" element={<FinancePerformance />} />
-            <Route path="finance/sales" element={<SalesDashboard />} />
-            <Route path="hr/dashboard" element={<HRDashboard />} />
-            <Route path="hr/employee-management" element={<EmployeeManagement />} />
-            <Route path="hr/recruitment" element={<Recruitment />} />
-            <Route path="hr/performance-reviews" element={<PerformanceReviews />} />
-            <Route path="hr/reports" element={<HRReports />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </AuthProvider>
-    </BrowserRouter>
+          }
+        />
+        
+        {/* New AI Client Requirements route */}
+        <Route
+          path="/ai/client-requirements"
+          element={
+            <ProtectedRoute>
+              <React.lazy(() => import('./pages/ai/ClientRequirements')) as any
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Employee routes */}
+        <Route
+          path="/employee/dashboard"
+          element={
+            <ProtectedRoute>
+              <EmployeeDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee/tasks"
+          element={
+            <ProtectedRoute>
+              <EmployeeTasks />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee/tasks/:taskId"
+          element={
+            <ProtectedRoute>
+              <EmployeeTaskDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee/directory"
+          element={
+            <ProtectedRoute>
+              <EmployeeDirectory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee/profile/:userId"
+          element={
+            <ProtectedRoute>
+              <EmployeeProfile />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Client routes */}
+        <Route
+          path="/client/dashboard"
+          element={
+            <ProtectedRoute>
+              <ClientDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/client/tasks"
+          element={
+            <ProtectedRoute>
+              <ClientTasks />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/client/tasks/:taskId"
+          element={
+            <ProtectedRoute>
+              <ClientTaskDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/client/brands"
+          element={
+            <ProtectedRoute>
+              <BrandsDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/client/reports"
+          element={
+            <ProtectedRoute>
+              <ClientReports />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* 404 - Not Found */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 

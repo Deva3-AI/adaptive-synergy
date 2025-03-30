@@ -1,25 +1,35 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Check, Clock, CalendarClock } from "lucide-react";
+import { PlusCircle, Check, Clock, CalendarClock, Brain, Sparkles, User, RotateCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from '@tanstack/react-query';
 import { aiService, taskService } from '@/services/api';
+import { toast } from 'sonner';
 
 interface TaskRecommendationsProps {
   userId: number;
+  clientId?: number;
   className?: string;
 }
 
-const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ userId, className }) => {
-  // Mock data for now until proper implementation of AI service
-  const { data: recommendedTasks = [], isLoading } = useQuery({
-    queryKey: ['recommendedTasks', userId],
+const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ 
+  userId, 
+  clientId,
+  className 
+}) => {
+  const [creatingTaskId, setCreatingTaskId] = useState<number | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Fetch recommendations from AI service
+  const { data: recommendedTasks = [], isLoading, refetch } = useQuery({
+    queryKey: ['recommendedTasks', userId, clientId, refreshKey],
     queryFn: async () => {
       try {
-        // Fallback to mock data if aiService isn't fully implemented
-        return aiService.getTaskRecommendations?.(userId) || [];
+        return await aiService.getTaskRecommendations(userId);
       } catch (error) {
         console.error('Error fetching task recommendations:', error);
         return [];
@@ -40,54 +50,174 @@ const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ userId, class
     },
   });
 
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    refetch();
+    toast.info("Refreshing AI task recommendations...");
+  };
+
+  const handleCreateTask = async (task: any) => {
+    if (!task) return;
+    
+    setCreatingTaskId(task.task_id);
+    
+    try {
+      // Prepare task data with client ID if available
+      const taskData = {
+        title: task.title,
+        description: task.description,
+        assigned_to: userId,
+        status: 'pending',
+        estimated_time: task.estimated_time || 1,
+        ...(clientId ? { client_id: clientId } : {})
+      };
+      
+      await taskService.createTask(taskData);
+      toast.success("Task added to your list");
+      
+      // Refresh recommendations after creating a task
+      refetch();
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast.error("Failed to create task");
+    } finally {
+      setCreatingTaskId(null);
+    }
+  };
+
   const calculateTaskCompletion = (taskId: number) => {
     const task = userTasks.find(task => task.task_id === taskId);
     if (!task) return 0;
-    // Example: Assuming description length indicates progress
-    return Math.min(100, (task.description?.length || 0) * (100 / 200));
+    return task.progress || 0;
   };
+
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>AI Task Recommendations</CardTitle>
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Brain className="h-3.5 w-3.5" />
+              <span>AI Powered</span>
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="border rounded-md p-4 animate-pulse">
+                <div className="h-5 bg-muted rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-muted rounded w-full mb-1"></div>
+                <div className="h-4 bg-muted rounded w-5/6 mb-3"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-muted rounded w-1/4"></div>
+                  <div className="h-8 bg-muted rounded w-1/4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>AI Task Recommendations</CardTitle>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>AI Task Recommendations</CardTitle>
+            <CardDescription>
+              Personalized tasks based on your work patterns
+            </CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRefresh}
+            title="Refresh recommendations"
+          >
+            <RotateCw className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <p>Loading task recommendations...</p>
-        ) : recommendedTasks.length > 0 ? (
+        {recommendedTasks.length > 0 ? (
           <ul className="space-y-4">
             {recommendedTasks.map((task, index) => (
               <li key={index} className="border rounded-md p-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">{task.title}</h3>
-                  <Button size="sm" variant="outline">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Task
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-medium">{task.title}</h3>
+                  <Badge variant={
+                    task.priority === 'high' ? 'destructive' : 
+                    task.priority === 'medium' ? 'default' : 
+                    'secondary'
+                  }>
+                    {task.priority}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">{task.description}</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                    <div className="flex items-center">
+                      <Clock className="mr-1 h-3.5 w-3.5" />
+                      <span>{task.estimated_time} hrs</span>
+                    </div>
+                    
+                    {calculateTaskCompletion(task.task_id) > 0 && (
+                      <div className="flex items-center">
+                        <Check className="mr-1 h-3.5 w-3.5 text-green-500" />
+                        <span>{calculateTaskCompletion(task.task_id)}% done</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleCreateTask(task)}
+                    disabled={creatingTaskId === task.task_id}
+                  >
+                    {creatingTaskId === task.task_id ? (
+                      <>
+                        <RotateCw className="mr-1 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <PlusCircle className="mr-1 h-4 w-4" />
+                        Add Task
+                      </>
+                    )}
                   </Button>
                 </div>
-                <p className="text-sm mt-2">{task.description}</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-xs">
-                    <Badge variant="secondary">
-                      <Clock className="mr-1 h-3 w-3" />
-                      Due: <CalendarClock className="ml-1 h-3 w-3" />
-                    </Badge>
-                    <Badge variant="outline">
-                      Priority: High
-                    </Badge>
-                  </div>
-                  <div className="w-1/2">
-                    <Progress value={calculateTaskCompletion(task.task_id)} />
-                  </div>
-                </div>
+                
+                {calculateTaskCompletion(task.task_id) > 0 && (
+                  <Progress 
+                    value={calculateTaskCompletion(task.task_id)} 
+                    className="h-1 mt-3" 
+                  />
+                )}
               </li>
             ))}
           </ul>
         ) : (
-          <p>No task recommendations found.</p>
+          <div className="text-center py-8">
+            <Sparkles className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-3" />
+            <p className="text-muted-foreground">No task recommendations available</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={handleRefresh}>
+              <RotateCw className="mr-1 h-4 w-4" />
+              Generate Recommendations
+            </Button>
+          </div>
         )}
       </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">
+        <div className="flex items-center">
+          <Brain className="h-3 w-3 mr-1 opacity-70" />
+          <span>Recommendations based on your work patterns and client requirements</span>
+        </div>
+      </CardFooter>
     </Card>
   );
 };
