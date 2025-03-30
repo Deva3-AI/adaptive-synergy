@@ -1,7 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskService, type TaskAttachment } from '@/services/api';
+import taskService from '@/services/api/taskService';
+import type { TaskAttachment } from '@/services/api/taskService';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

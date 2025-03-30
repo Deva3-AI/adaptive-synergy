@@ -1,13 +1,18 @@
 
 import employeeService from './employeeService';
-import clientService, { type Brand } from './clientService';
-import financeService, { type Invoice, type FinancialRecord } from './financeService';
+import clientService from './clientService';
+import financeService from './financeService';
 import hrService from './hrService';
 import marketingService from './marketingService';
-import taskService, { type TaskAttachment } from './taskService';
+import taskService from './taskService';
 import aiService from './aiService';
 import authService from './authService';
 import reportService from './reportService';
+
+// Re-export types
+import type { Brand } from './clientService';
+import type { Invoice, FinancialRecord } from './financeService';
+import type { TaskAttachment, TaskStatistics } from './taskService';
 
 export {
   employeeService,
@@ -23,5 +28,6 @@ export {
   type Brand,
   type Invoice,
   type FinancialRecord,
-  type TaskAttachment
+  type TaskAttachment,
+  type TaskStatistics
 };
