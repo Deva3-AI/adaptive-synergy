@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
@@ -73,11 +72,11 @@ const InvoicesDashboard = () => {
   };
 
   const filteredInvoices = invoices?.filter((invoice: Invoice) => {
-    const matchesSearch = invoice.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = invoice.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesDate = selectedDate ? 
-      new Date(invoice.due_date).toDateString() === selectedDate.toDateString() : 
+      new Date(invoice.dueDate).toDateString() === selectedDate.toDateString() : 
       true;
     
     return matchesSearch && matchesDate;
@@ -162,15 +161,15 @@ const InvoicesDashboard = () => {
             </div>
           ) : (
             filteredInvoices?.map((invoice: Invoice) => (
-              <Card key={invoice.invoice_id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <Card key={invoice.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardContent className="p-0">
                   <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                       <h3 className="font-medium">
-                        {invoice.client_name || `Client #${invoice.client_id}`}
+                        {invoice.clientName || `Client #${invoice.clientId}`}
                       </h3>
                       <div className="text-sm text-muted-foreground">
-                        Invoice #{invoice.invoice_number}
+                        Invoice #{invoice.invoiceNumber}
                       </div>
                     </div>
                     
@@ -181,7 +180,7 @@ const InvoicesDashboard = () => {
                       
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Clock className="h-3.5 w-3.5 mr-1" />
-                        {new Date(invoice.due_date).toLocaleDateString()}
+                        {new Date(invoice.dueDate).toLocaleDateString()}
                       </div>
                       
                       <InvoiceStatusBadge status={invoice.status} />
@@ -191,7 +190,7 @@ const InvoicesDashboard = () => {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleSendReminder(invoice.invoice_id)}
+                            onClick={() => handleSendReminder(invoice.id)}
                           >
                             <Mail className="h-3.5 w-3.5 mr-1.5" />
                             Remind
@@ -206,7 +205,7 @@ const InvoicesDashboard = () => {
                         {invoice.status === 'pending' && (
                           <Button 
                             size="sm"
-                            onClick={() => handleUpdateStatus(invoice.invoice_id, 'paid')}
+                            onClick={() => handleUpdateStatus(invoice.id, 'paid')}
                           >
                             Mark as Paid
                           </Button>

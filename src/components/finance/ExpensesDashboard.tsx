@@ -70,7 +70,7 @@ const ExpensesTrendChart = ({ data }: { data: any[] }) => {
   // Group expenses by month
   const expensesByMonth: Record<string, number> = {};
   data.forEach(record => {
-    const date = new Date(record.record_date);
+    const date = new Date(record.recordDate);
     const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     expensesByMonth[monthYear] = (expensesByMonth[monthYear] || 0) + record.amount;
   });
@@ -239,13 +239,13 @@ const ExpensesDashboard = () => {
                 </div>
               ) : (
                 filteredRecords?.map((record: FinancialRecord) => (
-                  <Card key={record.record_id} className="overflow-hidden hover:shadow-md transition-shadow">
+                  <Card key={record.id} className="overflow-hidden hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                           <h3 className="font-medium">{record.description}</h3>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(record.record_date).toLocaleDateString()}
+                            {new Date(record.recordDate).toLocaleDateString()}
                           </div>
                         </div>
                         

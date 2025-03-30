@@ -3,120 +3,135 @@ import apiClient from '@/utils/apiUtils';
 
 export interface TaskAttachment {
   id: number;
-  taskId: number;
+  task_id: number;
   filename: string;
-  fileType: string;
-  fileUrl: string;
-  uploadedBy: number;
-  uploadedAt: string;
+  file_url: string;
+  file_type: string;
+  uploaded_at: string;
+  uploaded_by: number;
 }
 
 const taskService = {
-  getTasks: async (filter?: string) => {
+  getTasks: async (filters?: any) => {
     try {
-      const url = filter ? `/tasks?filter=${filter}` : '/tasks';
-      const response = await apiClient.get(url);
+      const response = await apiClient.get('/tasks', { params: filters });
       return response.data;
     } catch (error) {
-      console.error('Get tasks error:', error);
+      console.error('Error fetching tasks:', error);
       return [];
     }
   },
-  
+
   getTaskDetails: async (taskId: number) => {
     try {
       const response = await apiClient.get(`/tasks/${taskId}`);
       return response.data;
     } catch (error) {
-      console.error('Get task details error:', error);
+      console.error(`Error fetching task ${taskId}:`, error);
       return null;
     }
   },
-  
+
   createTask: async (taskData: any) => {
     try {
       const response = await apiClient.post('/tasks', taskData);
       return response.data;
     } catch (error) {
-      console.error('Create task error:', error);
+      console.error('Error creating task:', error);
       throw error;
     }
   },
-  
+
   updateTask: async (taskId: number, taskData: any) => {
     try {
       const response = await apiClient.put(`/tasks/${taskId}`, taskData);
       return response.data;
     } catch (error) {
-      console.error('Update task error:', error);
+      console.error(`Error updating task ${taskId}:`, error);
       throw error;
     }
   },
-  
+
   deleteTask: async (taskId: number) => {
     try {
       const response = await apiClient.delete(`/tasks/${taskId}`);
       return response.data;
     } catch (error) {
-      console.error('Delete task error:', error);
+      console.error(`Error deleting task ${taskId}:`, error);
       throw error;
     }
   },
-  
-  getTasksByClient: async (clientId: number) => {
-    try {
-      const response = await apiClient.get(`/clients/${clientId}/tasks`);
-      return response.data;
-    } catch (error) {
-      console.error('Get tasks by client error:', error);
-      return [];
-    }
-  },
-  
-  getTasksByEmployee: async (employeeId: number) => {
-    try {
-      const response = await apiClient.get(`/employees/${employeeId}/tasks`);
-      return response.data;
-    } catch (error) {
-      console.error('Get tasks by employee error:', error);
-      return [];
-    }
-  },
-  
+
   getTaskAttachments: async (taskId: number) => {
     try {
       const response = await apiClient.get(`/tasks/${taskId}/attachments`);
-      return response.data as TaskAttachment[];
+      return response.data;
     } catch (error) {
-      console.error('Get task attachments error:', error);
+      console.error(`Error fetching attachments for task ${taskId}:`, error);
       return [];
     }
   },
-  
-  uploadTaskAttachment: async (taskId: number, file: File) => {
+
+  uploadTaskAttachment: async (taskId: number, fileData: FormData) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
+      const response = await apiClient.post(`/tasks/${taskId}/attachments`, fileData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
       return response.data;
     } catch (error) {
-      console.error('Upload task attachment error:', error);
+      console.error(`Error uploading attachment for task ${taskId}:`, error);
       throw error;
     }
   },
-  
+
   deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
     try {
       const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
       return response.data;
     } catch (error) {
-      console.error('Delete task attachment error:', error);
+      console.error(`Error deleting attachment ${attachmentId} for task ${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  getTaskComments: async (taskId: number) => {
+    try {
+      const response = await apiClient.get(`/tasks/${taskId}/comments`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching comments for task ${taskId}:`, error);
+      return [];
+    }
+  },
+
+  addTaskComment: async (taskId: number, commentData: any) => {
+    try {
+      const response = await apiClient.post(`/tasks/${taskId}/comments`, commentData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error adding comment to task ${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  updateTaskComment: async (taskId: number, commentId: number, commentData: any) => {
+    try {
+      const response = await apiClient.put(`/tasks/${taskId}/comments/${commentId}`, commentData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating comment ${commentId} for task ${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  deleteTaskComment: async (taskId: number, commentId: number) => {
+    try {
+      const response = await apiClient.delete(`/tasks/${taskId}/comments/${commentId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting comment ${commentId} for task ${taskId}:`, error);
       throw error;
     }
   }
