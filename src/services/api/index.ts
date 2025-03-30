@@ -10,14 +10,10 @@ import aiService from './aiService';
 import authService from './authService';
 import reportService from './reportService';
 
-// Import types from various services
-import type { 
-  TaskAttachment, 
-  TaskStatistics,
-  TaskComment,
-  TaskWithDetails
-} from './taskService';
+// Import types from task service
+import type { Task } from './taskService';
 
+// Import types from client service
 import type { 
   Brand, 
   ClientPreferences 
@@ -56,10 +52,7 @@ export {
 
 // Export types 
 export type {
-  TaskAttachment,
-  TaskStatistics,
-  TaskComment,
-  TaskWithDetails,
+  Task,
   Brand,
   ClientPreferences,
   Invoice,

@@ -6,10 +6,10 @@ import PieChart from './PieChart';
 import DonutChart from './DonutChart';
 
 // Import and re-export types
-import type { BarChartProps } from './BarChart';
-import type { LineChartProps } from './LineChart';
-import type { PieChartProps } from './PieChart';
-import type { DonutChartProps } from './DonutChart';
+export type { BarChartProps } from './BarChart';
+export type { LineChartProps } from './LineChart';
+export type { PieChartProps } from './PieChart';
+export type { DonutChartProps } from './DonutChart';
 
 // Export components
 export {
@@ -17,12 +17,4 @@ export {
   LineChart,
   PieChart,
   DonutChart
-};
-
-// Export types
-export type {
-  BarChartProps,
-  LineChartProps,
-  PieChartProps,
-  DonutChartProps
 };
