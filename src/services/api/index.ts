@@ -9,7 +9,7 @@ import aiService from './aiService';
 import authService from './authService';
 import reportService from './reportService';
 
-// Export types from service files
+// Export service types
 export type { TaskAttachment, TaskStatistics } from './taskService';
 export type { Brand, ClientPreferences } from './clientService';
 export type { Invoice, FinancialRecord } from './financeService';

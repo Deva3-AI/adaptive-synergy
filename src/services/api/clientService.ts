@@ -79,6 +79,61 @@ const mockBrands: Brand[] = [
   }
 ];
 
+// Mock client preferences data
+const mockClientPreferences: ClientPreferences[] = [
+  {
+    id: 1,
+    client_id: 1,
+    communication_frequency: "weekly",
+    preferred_contact_method: "email",
+    design_preferences: { 
+      color_scheme: "blue",
+      style: "modern",
+      font_preference: "sans-serif"
+    },
+    industry_specific_requirements: {
+      compliance: ["GDPR", "CCPA"],
+      features: ["inventory management", "customer portal"]
+    },
+    created_at: "2022-06-15T10:00:00Z",
+    updated_at: "2023-01-10T15:30:00Z"
+  },
+  {
+    id: 2,
+    client_id: 2,
+    communication_frequency: "daily",
+    preferred_contact_method: "slack",
+    design_preferences: { 
+      color_scheme: "dark",
+      style: "minimalist",
+      font_preference: "monospace"
+    },
+    industry_specific_requirements: {
+      compliance: ["SOC2", "HIPAA"],
+      features: ["real-time monitoring", "audit logs"]
+    },
+    created_at: "2023-01-10T09:15:00Z",
+    updated_at: "2023-02-20T11:45:00Z"
+  },
+  {
+    id: 3,
+    client_id: 3,
+    communication_frequency: "monthly",
+    preferred_contact_method: "phone",
+    design_preferences: { 
+      color_scheme: "neutral",
+      style: "corporate",
+      font_preference: "serif"
+    },
+    industry_specific_requirements: {
+      compliance: ["ISO9001"],
+      features: ["multi-language support", "currency conversion"]
+    },
+    created_at: "2022-11-18T15:20:00Z",
+    updated_at: "2023-03-05T10:00:00Z"
+  }
+];
+
 const clientService = {
   getClients: async () => {
     try {
@@ -242,6 +297,52 @@ const clientService = {
     } catch (error) {
       console.error('Error creating brand:', error);
       return apiRequest('/client/brands', 'post', brandData, {});
+    }
+  },
+  
+  // Client preferences methods
+  getClientPreferences: async (clientId: number): Promise<ClientPreferences | null> => {
+    try {
+      // In a real implementation, this would fetch from the database
+      const preferences = mockClientPreferences.find(p => p.client_id === clientId);
+      return preferences || null;
+    } catch (error) {
+      console.error('Error fetching client preferences:', error);
+      return apiRequest(`/client/preferences/${clientId}`, 'get', undefined, null);
+    }
+  },
+  
+  updateClientPreferences: async (clientId: number, preferencesData: Partial<ClientPreferences>): Promise<ClientPreferences> => {
+    try {
+      // In a real implementation, this would update the database
+      const index = mockClientPreferences.findIndex(p => p.client_id === clientId);
+      
+      if (index >= 0) {
+        mockClientPreferences[index] = {
+          ...mockClientPreferences[index],
+          ...preferencesData,
+          updated_at: new Date().toISOString()
+        };
+        return mockClientPreferences[index];
+      }
+      
+      // If no preferences exist yet, create them
+      const newPreferences: ClientPreferences = {
+        id: mockClientPreferences.length + 1,
+        client_id: clientId,
+        communication_frequency: preferencesData.communication_frequency || 'weekly',
+        preferred_contact_method: preferencesData.preferred_contact_method || 'email',
+        design_preferences: preferencesData.design_preferences || {},
+        industry_specific_requirements: preferencesData.industry_specific_requirements || {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      mockClientPreferences.push(newPreferences);
+      return newPreferences;
+    } catch (error) {
+      console.error('Error updating client preferences:', error);
+      return apiRequest(`/client/preferences/${clientId}`, 'put', preferencesData, {});
     }
   }
 };
