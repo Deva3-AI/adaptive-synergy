@@ -12,13 +12,21 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from 'sonner';
-import { Brand } from '@/services/api';
-import { useRouter } from 'next/router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Image, ArrowLeft, Clock, Filter, MoreHorizontal, ArrowRight } from "lucide-react";
 
+// Import Brand type from clientService
+interface Brand {
+  id: number;
+  name: string;
+  description?: string;
+  logo?: string;
+  client_id: number;
+}
+
 const BrandsDashboard = () => {
-  const router = useRouter();
-  const { clientId } = router.query;
+  const navigate = useNavigate();
+  const { clientId } = useParams();
 
   const [isAddBrandDialogOpen, setIsAddBrandDialogOpen] = useState(false);
   const [newBrandName, setNewBrandName] = useState('');
@@ -95,7 +103,7 @@ const BrandsDashboard = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => router.back()}
+              onClick={() => navigate(-1)}
               className="h-8 w-8 p-0"
             >
               <ArrowLeft className="h-4 w-4" />
