@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import taskService from '@/services/api/taskService';
-import aiService from '@/services/api/aiService';
-import userService from '@/services/api/userService';
+import { taskService, aiService, userService } from '@/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +49,7 @@ const EmployeeDashboard = () => {
 
   const { data: productivityInsights, isLoading: loadingInsights } = useQuery({
     queryKey: ['productivity-insights', userId],
-    queryFn: ()Service.getProductivityInsights(userId),
+    queryFn: () => aiService.getProductivityInsights(userId),
     enabled: !!userId,
     meta: {
       onError: (error: any) => {
