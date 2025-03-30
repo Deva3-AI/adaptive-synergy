@@ -11,22 +11,28 @@ import authService from './authService';
 import reportService from './reportService';
 
 // Import types from task service
-import type { Task } from './taskService';
+import { 
+  Task,
+  TaskAttachment,
+  TaskComment,
+  TaskStatistics,
+  TaskWithDetails
+} from './taskService';
 
 // Import types from client service
-import type { 
+import { 
   Brand, 
   ClientPreferences 
 } from './clientService';
 
-import type { 
+import { 
   Invoice, 
   FinancialRecord,
   FinancialMetrics,
   SalesMetrics
 } from './financeService';
 
-import type { 
+import { 
   EmailOutreach, 
   MarketingMeeting, 
   LeadProfile,
@@ -53,6 +59,10 @@ export {
 // Export types 
 export type {
   Task,
+  TaskAttachment,
+  TaskComment,
+  TaskStatistics,
+  TaskWithDetails,
   Brand,
   ClientPreferences,
   Invoice,

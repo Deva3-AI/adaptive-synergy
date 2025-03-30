@@ -1,22 +1,26 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, 
-  DialogTitle, DialogTrigger
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Link2, Briefcase, Image as ImageIcon } from "lucide-react";
-import { clientService } from '@/services/api';
-import { Brand } from '@/services/api';
-import { useAuth } from '@/hooks/use-auth'; // Fixed import path
+import { supabase } from '@/integrations/supabase/client';
+import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
+
+interface Brand {
+  id: number;
+  name: string;
+  logo?: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  client_id: number;
+  created_at?: string;
+}
 
 interface BrandsDashboardProps {
   clientId?: number;
@@ -32,26 +36,52 @@ const BrandsDashboard: React.FC<BrandsDashboardProps> = ({ clientId: propClientI
     industry: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { user } = useAuth();
+
+  const { user } = useUser();
   const queryClient = useQueryClient();
-  
-  // Use the clientId from props or from the user context
+
   const clientId = propClientId || user?.client_id;
-  
-  // Get client brands
+
   const { data: brands = [], isLoading } = useQuery({
     queryKey: ['client-brands', clientId],
-    queryFn: () => clientService.getClientBrands(clientId!),
+    queryFn: async () => {
+      try {
+        if (!clientId) throw new Error('Client ID is required');
+        
+        const { data, error } = await supabase
+          .from('brands')
+          .select('*')
+          .eq('client_id', clientId);
+          
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching brands:', error);
+        return [];
+      }
+    },
     enabled: !!clientId
   });
-  
-  // Create brand mutation
+
   const createBrandMutation = useMutation({
-    mutationFn: (brandData: Omit<Brand, 'id' | 'created_at'>) => 
-      clientService.createBrand(brandData),
+    mutationFn: async (brandData: { client_id: number; name: string; logo?: string; description?: string; website?: string; industry?: string }) => {
+      try {
+        const { data, error } = await supabase
+          .from('brands')
+          .insert(brandData)
+          .select();
+          
+        if (error) throw error;
+        return data[0];
+      } catch (error) {
+        console.error('Error creating brand:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['client-brands', clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ['client-brands', clientId]
+      });
       toast.success('Brand created successfully');
       setIsDialogOpen(false);
       setFormData({
@@ -69,15 +99,17 @@ const BrandsDashboard: React.FC<BrandsDashboardProps> = ({ clientId: propClientI
       setIsSubmitting(false);
     }
   });
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!clientId) {
       toast.error('Client ID is required');
       return;
@@ -90,13 +122,12 @@ const BrandsDashboard: React.FC<BrandsDashboardProps> = ({ clientId: propClientI
     
     setIsSubmitting(true);
     
-    // Create the brand
     createBrandMutation.mutate({
       ...formData,
       client_id: clientId
     });
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -284,4 +315,3 @@ const BrandsDashboard: React.FC<BrandsDashboardProps> = ({ clientId: propClientI
 };
 
 export default BrandsDashboard;
-

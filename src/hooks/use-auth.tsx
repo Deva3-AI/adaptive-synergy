@@ -1,175 +1,196 @@
 
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import authService from '@/services/api/authService';
-import { toast } from 'sonner';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-// Define the user type
-export type User = {
+interface User {
   id: number;
   name: string;
   email: string;
   role: string;
-};
+  client_id?: number;
+}
 
-// Define the authentication context type
-export type AuthContextType = {
-  user: User | null;
+interface AuthState {
   isAuthenticated: boolean;
-  isLoggedIn: boolean;
+  user: User | null;
   loading: boolean;
-  isEmployee: boolean;
-  isClient: boolean;
-  isMarketing: boolean;
-  isHR: boolean;
-  isFinance: boolean;
-  isAdmin: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  signup: (userData: any) => Promise<void>;
-};
+}
 
-// Create the context with default values
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isAuthenticated: false,
-  isLoggedIn: false,
-  loading: true,
-  isEmployee: false,
-  isClient: false,
-  isMarketing: false,
-  isHR: false,
-  isFinance: false,
-  isAdmin: false,
-  login: async () => {},
-  logout: () => {},
-  signup: async () => {},
-});
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  register: (userData: any) => Promise<{ success: boolean; error?: string }>;
+}
 
-// Create the provider component
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
+    user: null,
+    loading: true,
+  });
+
   useEffect(() => {
-    // Check if user is logged in from localStorage or token
-    const checkAuth = async () => {
+    // Try to get user from localStorage first (for quick loading)
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
       try {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser) {
-          console.log('User found in localStorage:', currentUser);
-          setUser(currentUser);
-        } else {
-          console.log('No user found in localStorage');
-        }
-      } catch (error) {
-        console.error('Error checking authentication:', error);
-      } finally {
-        setLoading(false);
+        const parsedUser = JSON.parse(storedUser);
+        setAuthState({
+          isAuthenticated: true,
+          user: parsedUser,
+          loading: false,
+        });
+        console.info('User found in localStorage:', parsedUser);
+      } catch (e) {
+        console.error('Error parsing stored user:', e);
+        setAuthState(prev => ({ ...prev, loading: false }));
       }
-    };
+    } else {
+      setAuthState(prev => ({ ...prev, loading: false }));
+    }
     
-    checkAuth();
-  }, []);
-  
-  // Login function
-  const login = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      const response = await authService.login(email, password);
-      console.log('Login response:', response);
-      
-      // Get the current user after login
-      const currentUser = authService.getCurrentUser();
-      if (currentUser) {
-        console.log('Setting user after login:', currentUser);
-        setUser(currentUser);
-        
-        // Navigate based on user role
-        if (currentUser.role === 'admin') {
-          navigate('/app');
-        } else if (['employee', 'client', 'marketing', 'hr', 'finance'].includes(currentUser.role)) {
-          navigate(`/app/${currentUser.role}/dashboard`);
-        } else {
-          navigate('/app');
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          // Get user details from the database
+          try {
+            const { data: userData, error } = await supabase
+              .from('users')
+              .select(`
+                user_id,
+                name,
+                email,
+                roles (role_name)
+              `)
+              .eq('user_id', session.user.id)
+              .single();
+            
+            if (error) throw error;
+            
+            const user: User = {
+              id: userData.user_id,
+              name: userData.name,
+              email: userData.email,
+              role: userData.roles?.role_name || 'user',
+            };
+            
+            // Store in localStorage and update state
+            localStorage.setItem('user', JSON.stringify(user));
+            setAuthState({
+              isAuthenticated: true,
+              user,
+              loading: false,
+            });
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+            setAuthState({
+              isAuthenticated: false,
+              user: null,
+              loading: false,
+            });
+          }
+        } else if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('user');
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            loading: false,
+          });
         }
-        
-        toast.success(`Welcome back, ${currentUser.name}!`);
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Login failed. Please check your credentials.');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Logout function
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-    navigate('/login');
-    toast.info('You have been logged out');
-  };
-  
-  // Signup function
-  const signup = async (userData: any) => {
-    setLoading(true);
+    );
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (email: string, password: string) => {
     try {
-      await authService.register(
-        userData.name, 
-        userData.email, 
-        userData.password,
-        userData.role || 'employee'
-      );
-      
-      toast.success('Account created successfully! Please log in.');
-      navigate('/login');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // User details will be fetched and state updated by the auth listener
+      return { success: true };
     } catch (error: any) {
-      console.error('Signup error:', error);
-      toast.error(error.message || 'Registration failed. Please try again.');
-      throw error;
-    } finally {
-      setLoading(false);
+      console.error('Login error:', error.message);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to login. Please check your credentials.' 
+      };
     }
   };
-  
-  // Role check helper functions
-  const isAuthenticated = !!user;
-  const isEmployee = user?.role === 'employee';
-  const isClient = user?.role === 'client';
-  const isMarketing = user?.role === 'marketing';
-  const isHR = user?.role === 'hr';
-  const isFinance = user?.role === 'finance';
-  const isAdmin = user?.role === 'admin';
-  
-  // Log for debugging
-  console.log('Auth state:', { isAuthenticated, user, loading });
-  
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated,
-        isLoggedIn: !!user,
-        loading,
-        isEmployee,
-        isClient,
-        isMarketing,
-        isHR,
-        isFinance,
-        isAdmin,
-        login,
-        logout,
-        signup,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('user');
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        loading: false,
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const register = async (userData: any) => {
+    try {
+      // Register with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+      });
+
+      if (error) throw error;
+
+      // Create user record in users table
+      const { error: userError } = await supabase.from('users').insert({
+        user_id: data.user?.id,
+        name: userData.name,
+        email: userData.email,
+        role_id: userData.role_id || 1, // Default role
+      });
+
+      if (userError) throw userError;
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Registration error:', error.message);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to register. Please try again.' 
+      };
+    }
+  };
+
+  const value = {
+    ...authState,
+    login,
+    logout,
+    register,
+  };
+
+  console.info('Auth state:', authState);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook for using the auth context
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default useAuth;

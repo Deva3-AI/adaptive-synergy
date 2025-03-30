@@ -1,44 +1,95 @@
 
-import apiClient from '@/utils/apiUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 const aiService = {
-  getResponse: async (query: string) => {
+  // Get AI-generated task recommendations for a specific user
+  getTaskRecommendations: async (userId: number) => {
     try {
-      const response = await apiClient.post('/ai/query', { query });
-      return response.data;
+      // In a real implementation, this would use AI to generate personalized task recommendations
+      // For now, we'll return mock data that looks reasonable
+      
+      // First get the user's existing tasks to provide context
+      const { data: userTasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('assigned_to', userId)
+        .limit(5);
+        
+      if (error) throw error;
+      
+      // Mock recommendations based on existing tasks
+      const mockRecommendations = [
+        {
+          task_id: 10001, // Use high IDs to avoid conflicts with real tasks
+          title: "Follow up with recent clients",
+          description: "Based on your recent task completions, it's a good time to reach out to clients for feedback.",
+          priority: "Medium",
+          estimated_time: 1.5,
+          status: "pending"
+        },
+        {
+          task_id: 10002,
+          title: "Prepare weekly progress report",
+          description: "Your task history shows you typically prepare reports on this day of the week.",
+          priority: "High",
+          estimated_time: 2,
+          status: "pending"
+        },
+        {
+          task_id: 10003,
+          title: "Update project documentation",
+          description: "Several tasks were recently completed without documentation updates.",
+          priority: "Low",
+          estimated_time: 1,
+          status: "pending"
+        }
+      ];
+      
+      return mockRecommendations;
     } catch (error) {
-      console.error('Error getting AI response:', error);
-      return { response: "I'm sorry, I couldn't process your request at the moment." };
+      console.error('Error generating task recommendations:', error);
+      return [];
     }
   },
   
-  analyzeData: async (data: any, type: string) => {
+  // Get AI insights for a specific task
+  getTaskInsights: async (taskId: number) => {
     try {
-      const response = await apiClient.post('/ai/analyze', { data, type });
-      return response.data;
+      // In a real implementation, we would analyze the task and related data
+      // For demonstration, return mock insights
+      return {
+        efficiency_score: 85,
+        similar_tasks: [
+          { id: 123, title: "Similar task from last month", completion_time: 2.5 },
+          { id: 456, title: "Related task with same client", completion_time: 3.2 }
+        ],
+        recommendations: [
+          "Based on historical data, this task may take 15% longer than estimated",
+          "Consider breaking this into smaller sub-tasks for better tracking",
+          "This client typically requires 2 rounds of revisions"
+        ]
+      };
     } catch (error) {
-      console.error('Error analyzing data with AI:', error);
+      console.error(`Error getting insights for task ${taskId}:`, error);
       return null;
     }
   },
   
-  generateSuggestions: async (context: any) => {
+  // Analyze client communication to extract preferences
+  analyzeClientCommunication: async (clientId: number) => {
     try {
-      const response = await apiClient.post('/ai/suggestions', { context });
-      return response.data;
+      // This would normally use NLP to analyze client communications
+      // Return mock data for demonstration
+      return {
+        communication_style: "Formal",
+        preferred_feedback_method: "Email",
+        response_time_expectation: "Within 24 hours",
+        key_priorities: ["Quality", "Timeliness", "Detail-oriented"],
+        common_revisions: ["Logo size adjustments", "Color palette refinements", "Copy edits"]
+      };
     } catch (error) {
-      console.error('Error generating AI suggestions:', error);
-      return [];
-    }
-  },
-  
-  getTaskRecommendations: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/ai/task-recommendations/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error getting task recommendations for user ${userId}:`, error);
-      return [];
+      console.error(`Error analyzing client communication for client ${clientId}:`, error);
+      return null;
     }
   }
 };

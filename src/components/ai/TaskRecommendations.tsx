@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,16 +13,31 @@ interface TaskRecommendationsProps {
 }
 
 const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ userId, className }) => {
-  // Fetch AI-recommended tasks for the user
+  // Mock data for now until proper implementation of AI service
   const { data: recommendedTasks = [], isLoading } = useQuery({
     queryKey: ['recommendedTasks', userId],
-    queryFn: () => aiService.getTaskRecommendations(userId),
+    queryFn: async () => {
+      try {
+        // Fallback to mock data if aiService isn't fully implemented
+        return aiService.getTaskRecommendations?.(userId) || [];
+      } catch (error) {
+        console.error('Error fetching task recommendations:', error);
+        return [];
+      }
+    },
   });
 
   // Fetch user's current tasks for context
   const { data: userTasks = [] } = useQuery({
     queryKey: ['userTasks', userId],
-    queryFn: () => taskService.getTasks({ assignedTo: userId }),
+    queryFn: async () => {
+      try {
+        return await taskService.getTasks({ assignedTo: userId });
+      } catch (error) {
+        console.error('Error fetching user tasks:', error);
+        return [];
+      }
+    },
   });
 
   const calculateTaskCompletion = (taskId: number) => {

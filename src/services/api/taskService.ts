@@ -1,7 +1,21 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import apiClient from '@/utils/apiUtils';
-import { Task } from '@/interfaces/task';
+
+export interface Task {
+  task_id: number;
+  title: string;
+  description?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  estimated_time?: number;
+  actual_time?: number;
+  start_time?: string;
+  end_time?: string;
+  created_at: string | Date;
+  updated_at: string | Date;
+  assigned_to?: number;
+  client_id?: number;
+  client_name?: string;
+  due_date?: string;
+}
 
 export interface TaskAttachment {
   id: number;
@@ -108,8 +122,7 @@ const taskService = {
       }));
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      // Fallback to API
-      return apiClient.get('/tasks', { params: filters }).then(res => res.data);
+      return [];
     }
   },
 
@@ -145,7 +158,7 @@ const taskService = {
       };
     } catch (error) {
       console.error(`Error fetching task ${taskId}:`, error);
-      return apiClient.get(`/tasks/${taskId}`).then(res => res.data);
+      return null;
     }
   },
 
@@ -383,9 +396,17 @@ const taskService = {
       return statistics;
     } catch (error) {
       console.error('Error fetching task statistics:', error);
-      return apiClient.get('/tasks/statistics', {
-        params: userId ? { userId } : {}
-      }).then(res => res.data);
+      return {
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        cancelled: 0,
+        totalTasks: 0,
+        completionRate: 0,
+        averageCompletionTime: 0,
+        tasksByDay: [],
+        tasksByPriority: []
+      };
     }
   }
 };

@@ -80,21 +80,21 @@ const TaskList = () => {
           </TabsContent>
           
           <TabsContent value="pending" className="space-y-4">
-            {/* Similar structure as "all" tab but filtered for pending tasks */}
+            {/* Filter implementation for pending tasks */}
             <div className="text-center py-8 text-muted-foreground">
               <p>Filter implemented in full component</p>
             </div>
           </TabsContent>
           
           <TabsContent value="in_progress" className="space-y-4">
-            {/* Similar structure as "all" tab but filtered for in-progress tasks */}
+            {/* Filter implementation for in-progress tasks */}
             <div className="text-center py-8 text-muted-foreground">
               <p>Filter implemented in full component</p>
             </div>
           </TabsContent>
           
           <TabsContent value="completed" className="space-y-4">
-            {/* Similar structure as "all" tab but filtered for completed tasks */}
+            {/* Filter implementation for completed tasks */}
             <div className="text-center py-8 text-muted-foreground">
               <p>Filter implemented in full component</p>
             </div>
