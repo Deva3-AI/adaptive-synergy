@@ -134,6 +134,48 @@ const taskService = {
       console.error(`Error deleting comment ${commentId} for task ${taskId}:`, error);
       throw error;
     }
+  },
+
+  // Add missing methods
+  getTasksByEmployee: async (employeeId: number) => {
+    try {
+      const response = await apiClient.get(`/employees/${employeeId}/tasks`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching tasks for employee ${employeeId}:`, error);
+      return {
+        active: [
+          {
+            id: 123,
+            title: "Design homepage mockup",
+            status: "in_progress",
+            due_date: "2023-11-15",
+            client: "Acme Inc.",
+            priority: "high"
+          }
+        ],
+        upcoming: [
+          {
+            id: 124,
+            title: "Create social media assets",
+            status: "planned",
+            due_date: "2023-11-20",
+            client: "TechCorp",
+            priority: "medium"
+          }
+        ],
+        completed: [
+          {
+            id: 120,
+            title: "Brand style guide",
+            status: "completed",
+            completed_date: "2023-11-05",
+            client: "Global Solutions",
+            priority: "high"
+          }
+        ]
+      };
+    }
   }
 };
 

@@ -106,6 +106,67 @@ const clientService = {
         ]
       };
     }
+  },
+
+  // Add missing methods
+  getClientBrands: async (clientId: number) => {
+    try {
+      const response = await apiClient.get(`/clients/${clientId}/brands`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching brands for client ${clientId}:`, error);
+      return [
+        {
+          id: 1,
+          name: "Brand One",
+          description: "Main consumer brand",
+          logo: "/logos/brand1.png",
+          client_id: clientId
+        },
+        {
+          id: 2,
+          name: "Brand Two",
+          description: "B2B services brand",
+          logo: "/logos/brand2.png",
+          client_id: clientId
+        }
+      ];
+    }
+  },
+
+  getBrandTasks: async (brandId: number) => {
+    try {
+      const response = await apiClient.get(`/brands/${brandId}/tasks`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching tasks for brand ${brandId}:`, error);
+      return [
+        {
+          id: 101,
+          title: "Brand refresh",
+          status: "in_progress",
+          due_date: "2023-11-30",
+          assigned_to: "Designer Team"
+        },
+        {
+          id: 102,
+          title: "Social media assets",
+          status: "pending",
+          due_date: "2023-12-15",
+          assigned_to: "Marketing Team"
+        }
+      ];
+    }
+  },
+
+  createBrand: async (brandData: any) => {
+    try {
+      const response = await apiClient.post('/brands', brandData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating brand:', error);
+      throw error;
+    }
   }
 };
 

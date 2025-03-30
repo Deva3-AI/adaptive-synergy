@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,12 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
   });
 
   const uploadAttachmentMutation = useMutation({
-    mutationFn: (file: File) => taskId ? taskService.uploadTaskAttachment(taskId, file) : Promise.reject('No taskId provided'),
+    mutationFn: (file: File) => {
+      // Create FormData and append file
+      const formData = new FormData();
+      formData.append('file', file);
+      return taskId ? taskService.uploadTaskAttachment(taskId, formData) : Promise.reject('No taskId provided');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['taskAttachments', taskId] });
       toast.success('Attachment uploaded successfully!');
@@ -108,8 +114,8 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
             {attachments.map((attachment: TaskAttachment) => (
               <div key={attachment.id} className="py-2 flex items-center justify-between">
                 <div className="flex items-center">
-                  {renderAttachmentIcon(attachment.fileType)}
-                  <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" className="underline text-sm hover:text-primary">
+                  {renderAttachmentIcon(attachment.file_type)}
+                  <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="underline text-sm hover:text-primary">
                     {attachment.filename}
                   </a>
                 </div>

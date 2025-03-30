@@ -138,6 +138,120 @@ const aiService = {
         ]
       };
     }
+  },
+
+  // Add missing methods needed by components
+  getAssistantResponse: async (message: string, context: any = {}) => {
+    try {
+      const response = await apiClient.post('/ai/assistant', { message, context });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting AI assistant response:', error);
+      return {
+        message: "I'd be happy to help with that! Based on the available data, I can provide some insights on your question. Would you like more specific information on any particular aspect?",
+        suggested_actions: [
+          "View related tasks",
+          "Schedule a follow-up",
+          "Generate a report"
+        ]
+      };
+    }
+  },
+
+  generateSuggestedTasks: async (projectDescription: string, clientId?: number) => {
+    try {
+      const payload = clientId ? { description: projectDescription, client_id: clientId } : { description: projectDescription };
+      const response = await apiClient.post('/ai/generate-tasks', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error generating suggested tasks:', error);
+      return {
+        suggested_tasks: [
+          { 
+            title: "Create wireframes", 
+            description: "Design initial wireframes for the project", 
+            estimated_time: 8, 
+            priority_level: "high" 
+          },
+          { 
+            title: "Content strategy", 
+            description: "Develop content strategy based on user personas", 
+            estimated_time: 10, 
+            priority_level: "medium" 
+          },
+          { 
+            title: "Research competitors", 
+            description: "Analyze top competitors in the market", 
+            estimated_time: 6, 
+            priority_level: "medium" 
+          }
+        ]
+      };
+    }
+  },
+
+  getProductivityInsights: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/ai/productivity/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting productivity insights:', error);
+      return {
+        productivity_score: 85,
+        time_management: {
+          average_task_completion_time: "2.3 days",
+          trend: "improving",
+          recommendation: "Continue to break large tasks into smaller chunks"
+        },
+        focus_areas: [
+          { area: "Documentation", score: 92 },
+          { area: "Code Reviews", score: 78 },
+          { area: "Meeting Participation", score: 88 }
+        ],
+        improvements: [
+          "Task switching has decreased by 15%",
+          "Deep work sessions increased by 22%"
+        ],
+        suggestions: [
+          "Consider blocking 2-hour focus periods in the morning",
+          "Reduce meeting time by 10% for more individual work"
+        ]
+      };
+    }
+  },
+
+  getSuggestedTasks: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/ai/suggested-tasks/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting suggested tasks:', error);
+      return {
+        tasks: [
+          {
+            title: "Review client feedback",
+            priority: "high",
+            estimated_time: 0.5,
+            deadline: "Today",
+            benefit: "Address recent client concerns quickly"
+          },
+          {
+            title: "Plan Q4 marketing strategy",
+            priority: "medium",
+            estimated_time: 3,
+            deadline: "This week",
+            benefit: "Stay ahead of quarterly planning"
+          },
+          {
+            title: "Update documentation",
+            priority: "low",
+            estimated_time: 1.5,
+            deadline: "Next week",
+            benefit: "Improve onboarding for new team members"
+          }
+        ]
+      };
+    }
   }
 };
 
