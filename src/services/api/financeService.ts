@@ -4,6 +4,7 @@ import apiClient from '@/utils/apiUtils';
 export interface Invoice {
   id: number;
   client_id: number;
+  client_name: string;  // Added client_name to fix the error
   invoice_number: string;
   amount: number;
   due_date: string;
