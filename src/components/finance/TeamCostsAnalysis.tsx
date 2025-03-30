@@ -1,223 +1,195 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
-import { BarChart } from "@/components/ui/charts";
-import DonutChart from "@/components/ui/charts/DonutChart";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, Users, Building, Briefcase } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from '@/components/ui/skeleton';
+import { DonutChart } from '@/components/ui/charts';
+import { BarChart } from '@/components/ui/charts';
 
-interface TeamCostsAnalysisProps {
-  period: "month" | "quarter" | "year";
-}
-
-const TeamCostsAnalysis: React.FC<TeamCostsAnalysisProps> = ({ period }) => {
-  const { data: teamCosts, isLoading } = useQuery({
-    queryKey: ['team-costs', period],
-    queryFn: () => financeService.analyzeTeamCosts(period),
+const TeamCostsAnalysis = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  
+  // Mock teamCosts query while we implement the actual service
+  const { data: teamCosts, isLoading, error } = useQuery({
+    queryKey: ['team-costs', selectedPeriod],
+    queryFn: () => {
+      // Temporary mock function until financeService.analyzeTeamCosts is implemented
+      const mockData = {
+        totalCost: 125000,
+        departmentBreakdown: [
+          { name: 'Design', value: 45000 },
+          { name: 'Development', value: 35000 },
+          { name: 'Marketing', value: 25000 },
+          { name: 'Management', value: 20000 }
+        ],
+        roleBreakdown: [
+          { name: 'Junior', value: 30000 },
+          { name: 'Mid-level', value: 45000 },
+          { name: 'Senior', value: 35000 },
+          { name: 'Lead', value: 15000 }
+        ],
+        monthlyTrend: [
+          { name: 'Jan', cost: 110000 },
+          { name: 'Feb', cost: 115000 },
+          { name: 'Mar', cost: 120000 },
+          { name: 'Apr', cost: 125000 },
+          { name: 'May', cost: 122000 },
+          { name: 'Jun', cost: 126000 }
+        ],
+        efficiencyMetrics: {
+          costPerTask: 450,
+          costPerTaskByDepartment: [
+            { name: 'Design', value: 500 },
+            { name: 'Development', value: 600 },
+            { name: 'Marketing', value: 350 },
+            { name: 'Management', value: 250 }
+          ]
+        }
+      };
+      
+      return Promise.resolve(mockData);
+    }
   });
-
-  // Format number as currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
+  
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-1/3" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Cost Analysis</CardTitle>
+          <CardDescription>Cost breakdown by department and role</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[300px] w-full" />
+        </CardContent>
+      </Card>
     );
   }
-
+  
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Cost Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">Error loading team cost data.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight">Team Costs Analysis</h2>
-      <Tabs defaultValue="department">
-        <TabsList>
-          <TabsTrigger value="department">By Department</TabsTrigger>
-          <TabsTrigger value="project-type">By Project Type</TabsTrigger>
-          <TabsTrigger value="client">By Client</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="department" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  <div className="flex items-center">
-                    <Users className="h-5 w-5 mr-2" />
-                    Department Cost Distribution
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-64">
-                <DonutChart 
-                  data={teamCosts?.by_department || []} 
-                  innerRadius={60}
-                  outerRadius={90}
-                />
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Total Cost Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">
-                      {formatCurrency(teamCosts?.total_cost || 0)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Total cost for the {period}
-                    </div>
-                  </div>
-                  
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Department</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-right">Percentage</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(teamCosts?.by_department || []).map((dept: any) => (
-                        <TableRow key={dept.name}>
-                          <TableCell>{dept.name}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(dept.value)}</TableCell>
-                          <TableCell className="text-right">
-                            {Math.round((dept.value / teamCosts?.total_cost) * 100)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="project-type" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  <div className="flex items-center">
-                    <Briefcase className="h-5 w-5 mr-2" />
-                    Project Type Cost Distribution
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-64">
-                <DonutChart 
-                  data={teamCosts?.by_project_type || []} 
-                  innerRadius={60}
-                  outerRadius={90}
-                />
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Cost by Project Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Project Type</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Percentage</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(teamCosts?.by_project_type || []).map((type: any) => (
-                      <TableRow key={type.name}>
-                        <TableCell>{type.name}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(type.value)}</TableCell>
-                        <TableCell className="text-right">
-                          {Math.round((type.value / teamCosts?.total_cost) * 100)}%
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Team Cost Analysis</CardTitle>
+        <CardDescription>Cost breakdown by department and role</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="department" className="space-y-6">
+          <TabsList className="mb-4">
+            <TabsTrigger value="department">By Department</TabsTrigger>
+            <TabsTrigger value="role">By Role</TabsTrigger>
+            <TabsTrigger value="trends">Monthly Trends</TabsTrigger>
+            <TabsTrigger value="efficiency">Cost Efficiency</TabsTrigger>
+          </TabsList>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Project Cost Distribution</CardTitle>
-            </CardHeader>
-            <CardContent className="h-64">
-              <BarChart 
-                data={teamCosts?.by_project_type || []} 
-                xAxisKey="name"
-                yAxisKey="value"
+          <TabsContent value="department" className="space-y-4">
+            <div className="flex items-center justify-center">
+              <DonutChart 
+                data={teamCosts?.departmentBreakdown || []} 
+                nameKey="name" 
+                dataKey="value" 
+                innerRadius={60} 
+                outerRadius={80} 
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="client" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">
-                <div className="flex items-center">
-                  <Building className="h-5 w-5 mr-2" />
-                  Cost & Revenue by Client
+            </div>
+            <div className="mt-4 grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-muted p-3">
+                  <div className="text-sm font-medium">Total Department Costs</div>
+                  <div className="text-2xl font-bold">${teamCosts?.totalCost.toLocaleString()}</div>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
-                    <TableHead className="text-right">Profit</TableHead>
-                    <TableHead className="text-right">Margin</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(teamCosts?.cost_per_client || []).map((client: any) => (
-                    <TableRow key={client.client}>
-                      <TableCell>{client.client}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(client.cost)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(client.revenue)}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={client.profit >= 0 ? "text-green-600" : "text-red-600"}>
-                          {formatCurrency(client.profit)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={client.profit >= 0 ? "text-green-600" : "text-red-600"}>
-                          {Math.round((client.profit / client.revenue) * 100)}%
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+                <div className="rounded-lg bg-muted p-3">
+                  <div className="text-sm font-medium">Highest Department</div>
+                  <div className="text-2xl font-bold">
+                    {teamCosts?.departmentBreakdown.sort((a, b) => b.value - a.value)[0]?.name}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="role" className="space-y-4">
+            <div className="flex items-center justify-center">
+              <DonutChart 
+                data={teamCosts?.roleBreakdown || []} 
+                nameKey="name" 
+                dataKey="value" 
+                innerRadius={60} 
+                outerRadius={80} 
+              />
+            </div>
+            <div className="mt-4 grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-muted p-3">
+                  <div className="text-sm font-medium">Total Role Costs</div>
+                  <div className="text-2xl font-bold">${teamCosts?.totalCost.toLocaleString()}</div>
+                </div>
+                <div className="rounded-lg bg-muted p-3">
+                  <div className="text-sm font-medium">Highest Cost Role</div>
+                  <div className="text-2xl font-bold">
+                    {teamCosts?.roleBreakdown.sort((a, b) => b.value - a.value)[0]?.name}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="trends">
+            <div className="h-[300px]">
+              <BarChart 
+                data={teamCosts?.monthlyTrend || []}
+                index="name"
+                categories={["cost"]} 
+                yAxisWidth={60}
+                colors={["hsl(var(--primary))"]}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="efficiency">
+            <div className="space-y-6">
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-sm font-medium">Average Cost per Task</div>
+                <div className="text-3xl font-bold mt-1">
+                  ${teamCosts?.efficiencyMetrics.costPerTask.toLocaleString()}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-3">Cost per Task by Department</h4>
+                <BarChart 
+                  data={teamCosts?.efficiencyMetrics.costPerTaskByDepartment || []}
+                  index="name"
+                  categories={["value"]}
+                  colors={["hsl(var(--primary))"]}
+                  yAxisWidth={60}
+                  height={200}
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 

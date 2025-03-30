@@ -23,9 +23,21 @@ interface Employee {
   name: string;
   email: string;
   role: string;
-  joiningDate?: string;
-  employeeId?: string;
-  dateOfBirth?: string;
+  joiningDate?: string | null;
+  employeeId?: string | null;
+  dateOfBirth?: string | null;
+}
+
+interface EmployeeData {
+  user_id: any;
+  name: any;
+  email: any;
+  roles: { role_name: any }[];
+  employee_details?: { 
+    joining_date: any; 
+    employee_id: any; 
+    date_of_birth: any; 
+  } | null;
 }
 
 const EmployeesList = () => {
@@ -53,15 +65,15 @@ const EmployeesList = () => {
 
         if (error) throw error;
         
-        return data.map((employee) => ({
+        return (data || []).map((employee: EmployeeData) => ({
           user_id: employee.user_id,
           name: employee.name,
           email: employee.email,
-          role: employee.roles?.role_name || 'Unknown',
+          role: employee.roles && employee.roles[0] ? employee.roles[0].role_name : 'Unknown',
           joiningDate: employee.employee_details?.joining_date || null,
           employeeId: employee.employee_details?.employee_id || null,
           dateOfBirth: employee.employee_details?.date_of_birth || null
-        }));
+        })) as Employee[];
       } catch (error) {
         console.error('Error fetching employees:', error);
         throw error;

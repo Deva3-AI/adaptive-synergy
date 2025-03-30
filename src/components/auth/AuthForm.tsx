@@ -15,51 +15,59 @@ export interface AuthFormProps {
   mode?: 'login' | 'signup' | 'recover';
 }
 
+// Create a type for the login schema
+type LoginSchema = z.infer<ReturnType<typeof createLoginSchema>>;
+
+// Create a type for the signup schema
+type SignupSchema = z.infer<ReturnType<typeof createSignupSchema>>;
+
+// Create a type for the recover schema
+type RecoverSchema = z.infer<ReturnType<typeof createRecoverSchema>>;
+
+// Create a union type for all form values
+type FormValues = LoginSchema | SignupSchema | RecoverSchema;
+
+const createLoginSchema = () => z.object({
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+const createSignupSchema = () => z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+const createRecoverSchema = () => z.object({
+  email: z.string().email('Please enter a valid email'),
+});
+
 const AuthForm = ({ mode = 'login' }: AuthFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login, signup, requestPasswordReset } = useAuth();
 
-  // Dynamic schema based on mode
-  const getSchema = (mode: 'login' | 'signup' | 'recover') => {
-    const emailSchema = z.string().email('Please enter a valid email');
-    const passwordSchema = mode === 'recover' 
-      ? z.string().optional()
-      : z.string().min(8, 'Password must be at least 8 characters');
-    
-    const baseSchema = {
-      email: emailSchema,
-      password: passwordSchema,
-    };
-    
-    if (mode === 'signup') {
-      return z.object({
-        ...baseSchema,
-        name: z.string().min(2, 'Name must be at least 2 characters'),
-        confirmPassword: z.string(),
-      }).refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
-        path: ["confirmPassword"],
-      });
-    }
-    
-    return z.object(baseSchema);
-  };
+  // Choose the appropriate schema based on mode
+  const schema = 
+    mode === 'login' ? createLoginSchema() :
+    mode === 'signup' ? createSignupSchema() :
+    createRecoverSchema();
 
-  const schema = getSchema(mode);
-
-  type FormValues = z.infer<typeof schema>;
-
-  const form = useForm<FormValues>({
+  // Set up the form with the selected schema
+  const form = useForm<any>({
     resolver: zodResolver(schema),
     defaultValues: {
       email: '',
-      password: '',
+      password: mode !== 'recover' ? '' : undefined,
       ...(mode === 'signup' ? { name: '', confirmPassword: '' } : {}),
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: any) => {
     setIsLoading(true);
     
     try {
@@ -67,7 +75,7 @@ const AuthForm = ({ mode = 'login' }: AuthFormProps) => {
         await login(values.email, values.password);
         navigate('/dashboard');
       } else if (mode === 'signup') {
-        await signup(values.email, values.password, values.name as string);
+        await signup(values.email, values.password, values.name);
         toast.success('Account created! Please verify your email to continue.');
         navigate('/verify-email', { state: { email: values.email } });
       } else if (mode === 'recover') {

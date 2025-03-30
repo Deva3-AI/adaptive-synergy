@@ -1,31 +1,41 @@
 
+export interface EmailTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  content: string;
+  category: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  performanceMetrics: {
+    openRate: number;
+    clickRate: number;
+    replyRate: number;
+    conversionRate: number;
+  };
+}
+
 export interface EmailOutreach {
   id: number;
-  subject: string;
-  email_body: string;
   recipient: string;
-  recipient_name?: string;
-  status: 'draft' | 'sent' | 'opened' | 'replied';
-  sent_date?: string;
-  opened_date?: string;
-  replied_date?: string;
-  created_at: string;
-  created_by: number;
+  recipientCompany: string;
+  subject: string;
+  status: 'sent' | 'opened' | 'replied' | 'bounced' | 'scheduled';
+  sentAt: string;
+  source: string;
+  followUpScheduled: boolean;
 }
 
 export interface MarketingMeeting {
   id: number;
-  title: string;
-  description?: string;
-  date: string;
-  time: string;
+  leadName: string;
+  leadCompany: string;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
+  scheduledTime: string;
   duration: number;
-  location: string;
-  attendees: string[];
+  platform: string;
   notes?: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
-  follow_up_tasks?: string[];
-  created_at: string;
 }
 
 export interface LeadProfile {
@@ -35,95 +45,55 @@ export interface LeadProfile {
   position: string;
   email: string;
   phone?: string;
+  status: string;
   source: string;
-  status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
-  interest_level: 'low' | 'medium' | 'high';
-  notes?: string;
-  created_at: string;
-  last_contact?: string;
-}
-
-export interface EmailTemplate {
-  id: number;
-  name: string;
-  subject: string;
-  body: string;
-  variables: string[];
-  category: string;
-  created_at: string;
-  created_by: number;
-  usage_count: number;
-}
-
-export interface MarketingPlan {
-  id: number;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  goals: string[];
-  strategies: string[];
-  budget: number;
-  status: 'draft' | 'active' | 'completed';
-  created_at: string;
-  metrics: {
-    target: string;
-    current: number;
-    goal: number;
-  }[];
-}
-
-export interface MarketingMetrics {
-  emailMetrics: {
-    sent: number;
-    opened: number;
-    openRate: number;
-    clicked: number;
-    clickRate: number;
-    converted: number;
-    conversionRate: number;
-  };
-  socialMetrics: {
-    followers: number;
-    engagement: number;
-    impressions: number;
-    clicks: number;
-    conversionRate: number;
-  };
-  websiteMetrics: {
-    visitors: number;
-    pageViews: number;
-    averageSessionDuration: number;
-    bounceRate: number;
-    conversionRate: number;
-  };
-  leadMetrics: {
-    newLeads: number;
-    qualifiedLeads: number;
-    convertedLeads: number;
-    conversionRate: number;
-    costPerLead: number;
-  };
-}
-
-export interface CompetitorInsight {
-  id: number;
-  competitor_name: string;
-  strengths: string[];
-  weaknesses: string[];
-  opportunities: string[];
-  threats: string[];
-  created_at: string;
-  updated_at: string;
+  score: number;
+  last_contact: string;
 }
 
 export interface MarketingTrend {
   id: number;
   title: string;
   description: string;
-  impact_level: 'low' | 'medium' | 'high';
   relevance_score: number;
-  action_items: string[];
-  created_at: string;
+  category: string;
+  source?: string;
+  discoveredAt: string;
+  actionable: boolean;
+  suggestedActions: string[];
+}
+
+export interface CompetitorInsight {
+  id: number;
+  competitor_name: string;
+  description: string;
+  impact: 'high' | 'medium' | 'low';
+  type: string;
+  discoveredAt: string;
   source: string;
+  suggestedResponse: string;
+}
+
+export interface SalesData {
+  monthly_revenue: number;
+  annual_target: number;
+  growth_rate: number;
+  client_acquisition: number;
+  conversion_rate: number;
+  avg_deal_size: number;
+  top_clients: {
+    client_id: number;
+    client_name: string;
+    revenue: number;
+    growth: number;
+  }[];
+  monthly_trend: {
+    month: string;
+    revenue: number;
+    target: number;
+  }[];
+  sales_by_service: {
+    service: string;
+    value: number;
+  }[];
 }
