@@ -13,6 +13,7 @@ export interface DonutChartProps {
   height?: number;
   className?: string;
   showLegend?: boolean;
+  valueFormatter?: (value: number) => string;
 }
 
 const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -25,8 +26,9 @@ const DonutChart: React.FC<DonutChartProps> = ({
   innerRadius = 60,
   outerRadius = 80,
   height = 300,
-  className,
+  className = "",
   showLegend = true,
+  valueFormatter = value => `${value}`
 }) => {
   // Check if required props are provided
   if (!data || !nameKey || !dataKey) {
@@ -51,10 +53,10 @@ const DonutChart: React.FC<DonutChartProps> = ({
             nameKey={nameKey}
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              <Cell key={`cell-${index}`} fill={entry.color || colors[index % colors.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => [`${value}`, dataKey]} />
+          <Tooltip formatter={(value: number) => [valueFormatter(value), dataKey]} />
           {showLegend && <Legend />}
         </RechartsPieChart>
       </ResponsiveContainer>

@@ -1,100 +1,77 @@
-import axios from 'axios';
-import apiClient from '@/utils/apiUtils';
 
-export interface Notification {
-  id: number;
-  userId: number;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  isRead: boolean;
-  createdAt: string;
-  link?: string;
-}
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import config from '@/config/config';
+import { toast } from 'sonner';
 
+// Create base URL for notifications API
+const BASE_URL = `${config.apiUrl}/notifications`;
+
+// Generic API request function with correct typing
+const apiRequest = async <T>(url: string, options?: AxiosRequestConfig): Promise<T> => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios(url, {
+      ...options,
+      headers: {
+        ...options?.headers,
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+};
+
+// Notification service
 const notificationService = {
   // Get all notifications for the current user
-  getNotifications: async (userId: number | undefined) => {
-    if (!userId) return [];
-    
-    return apiClient<Notification[]>(
-      `/notifications?userId=${userId}`,
-      'get',
-      undefined,
-      [] // Mock data in case API fails
-    );
+  getNotifications: async () => {
+    return apiRequest<any[]>(`${BASE_URL}`);
   },
-  
-  // Get unread notification count
-  getUnreadCount: async (userId: number | undefined) => {
-    if (!userId) return 0;
-    
-    const notifications = await notificationService.getNotifications(userId);
-    return notifications.filter(n => !n.isRead).length;
+
+  // Get unread notifications count
+  getUnreadCount: async () => {
+    return apiRequest<number>(`${BASE_URL}/unread/count`);
   },
-  
+
   // Mark a notification as read
   markAsRead: async (notificationId: number) => {
-    return apiClient<Notification>(
-      `/notifications/${notificationId}/read`,
-      'put'
-    );
+    return apiRequest<any>(`${BASE_URL}/${notificationId}/read`, {
+      method: 'PUT',
+    });
   },
-  
+
   // Mark all notifications as read
-  markAllAsRead: async (userId: number | undefined) => {
-    if (!userId) return;
-    
-    return apiClient<{ success: boolean }>(
-      `/notifications/mark-all-read`,
-      'put',
-      { userId }
-    );
+  markAllAsRead: async () => {
+    return apiRequest<any>(`${BASE_URL}/read-all`, {
+      method: 'PUT',
+    });
   },
-  
+
   // Delete a notification
   deleteNotification: async (notificationId: number) => {
-    return apiClient<{ success: boolean }>(
-      `/notifications/${notificationId}`,
-      'delete'
-    );
+    return apiRequest<any>(`${BASE_URL}/${notificationId}`, {
+      method: 'DELETE',
+    });
   },
-  
-  // Create a new notification
-  createNotification: async (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => {
-    return apiClient<Notification>(
-      '/notifications',
-      'post',
-      {
-        ...notification,
-        isRead: false
-      }
-    );
-  },
-  
-  // Display a toast notification
-  showNotification: (notification: Pick<Notification, 'title' | 'message' | 'type'>) => {
-    switch (notification.type) {
+
+  // Show a notification toast
+  showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
+    switch (type) {
       case 'success':
-        toast.success(notification.title, {
-          description: notification.message,
-        });
+        toast.success(message);
         break;
       case 'error':
-        toast.error(notification.title, {
-          description: notification.message,
-        });
+        toast.error(message);
         break;
       case 'warning':
-        toast.warning(notification.title, {
-          description: notification.message,
-        });
+        toast.warning(message);
         break;
       case 'info':
       default:
-        toast.info(notification.title, {
-          description: notification.message,
-        });
+        toast.info(message);
         break;
     }
   }

@@ -1,40 +1,4 @@
 
-export interface Employee {
-  user_id: number;
-  name: string;
-  email: string;
-  role_id: number;
-  role: string;
-  joining_date?: string;
-  employee_id?: string;
-  date_of_birth?: string;
-  department?: string;
-  position?: string;
-  status?: 'active' | 'inactive' | 'on_leave';
-}
-
-export interface EmployeeAttendance {
-  attendance_id: number;
-  user_id: number;
-  login_time: string | null;
-  logout_time: string | null;
-  work_date: string;
-  employee_name?: string;
-  department?: string;
-  total_hours?: number;
-  status?: 'present' | 'absent' | 'late' | 'half_day' | 'on_leave';
-}
-
-export interface AttendanceStats {
-  present_count: number;
-  absent_count: number;
-  late_count: number;
-  leave_count: number;
-  total_employees: number;
-  average_hours: number;
-  records: EmployeeAttendance[];
-}
-
 export interface LeaveRequest {
   id: number;
   employeeId: number;
@@ -60,26 +24,23 @@ export interface PaySlip {
   deductions: number;
   netSalary: number;
   paidDate?: string;
-  status: 'paid' | 'pending' | 'draft' | 'final';
+  status: 'draft' | 'final' | 'pending' | 'paid';
 }
 
-export interface JobOpening {
+export interface HRTask {
   id: number;
   title: string;
-  department: string;
-  location: string;
-  type: 'full_time' | 'part_time' | 'contract' | 'remote';
   description: string;
-  requirements: string[];
-  responsibilities: string[];
-  salary_range?: {
-    min: number;
-    max: number;
-  };
-  posted_date: string;
-  status: 'open' | 'closed' | 'on_hold';
-  applicants_count: number;
-  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'other';
+  assignee: number;
+  assigneeName: string;
+  dueDate: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+  category: 'recruitment' | 'payroll' | 'training' | 'administrative' | 'other';
+  estimatedHours: number;
+  actualHours?: number;
 }
 
 export interface Candidate {
@@ -94,28 +55,9 @@ export interface Candidate {
   skills: string[];
   experience: number;
   education: string;
-  status: 'new' | 'screening' | 'interview' | 'offer' | 'rejected' | 'hired';
-  match_score: number;
+  status: 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected';
   notes: string;
-  strengths: string[];
-  gaps: string[];
-  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'email' | 'other';
-  last_contact?: string;
-}
-
-export interface PerformanceMetric {
-  id: number;
-  employee_id: number;
-  employee_name: string;
-  productivity_score: number;
-  quality_score: number;
-  communication_score: number;
-  teamwork_score: number;
-  punctuality_score: number;
-  overall_score: number;
-  period: string;
-  strengths: string[];
-  areas_for_improvement: string[];
-  feedback: string;
-  created_at: string;
+  match_score: number;
+  source: string;
+  last_contact: string;
 }

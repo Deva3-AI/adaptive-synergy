@@ -18,8 +18,11 @@ const AnalyticsChart = ({
   defaultType = 'line',
   xAxisKey = 'month',
   height = 350,
-  series,
-  className,
+  series = [
+    { name: 'revenue', color: '#2563eb' },
+    { name: 'expenses', color: '#16a34a' }
+  ],
+  className = '',
   valueFormatter = (value) => value.toString(),
   options = {}
 }: AnalyticsChartProps) => {
@@ -30,13 +33,10 @@ const AnalyticsChart = ({
           <BarChart
             data={data}
             xAxisKey={xAxisKey}
-            series={series || [
-              { name: 'revenue', color: 'var(--chart-primary)' },
-              { name: 'expenses', color: 'var(--chart-secondary)' }
-            ]}
-            className={className}
+            series={series}
             height={height}
             valueFormatter={valueFormatter}
+            className={className}
           />
         );
       case 'pie':
@@ -47,9 +47,9 @@ const AnalyticsChart = ({
               value: item.value,
               color: item.color || '#' + Math.floor(Math.random()*16777215).toString(16)
             }))}
-            className={className}
             height={height}
             valueFormatter={valueFormatter}
+            className={className}
           />
         );
       case 'donut':
@@ -60,9 +60,11 @@ const AnalyticsChart = ({
               value: item.value,
               color: item.color || '#' + Math.floor(Math.random()*16777215).toString(16)
             }))}
-            className={className}
+            nameKey="name"
+            dataKey="value"
             height={height}
             valueFormatter={valueFormatter}
+            className={className}
           />
         );
       case 'line':
@@ -71,13 +73,10 @@ const AnalyticsChart = ({
           <LineChart
             data={data}
             xAxisKey={xAxisKey}
-            series={series || [
-              { name: 'revenue', color: 'var(--chart-primary)' },
-              { name: 'expenses', color: 'var(--chart-secondary)' }
-            ]}
-            className={className}
+            series={series}
             height={height}
             valueFormatter={valueFormatter}
+            className={className}
           />
         );
     }

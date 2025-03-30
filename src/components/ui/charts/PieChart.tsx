@@ -2,7 +2,7 @@
 import React from 'react';
 import { PieChart as ReChartsPie, Pie, ResponsiveContainer, Cell, Legend, Tooltip } from 'recharts';
 
-interface PieChartProps {
+export interface PieChartProps {
   data: {
     name: string;
     value: number;
@@ -23,7 +23,7 @@ const PieChart = ({
   valueFormatter = (value) => `${value}`,
   nameKey = "name",
   dataKey = "value",
-  className
+  className = ""
 }: PieChartProps) => {
   const chartColors = data.map(item => item.color);
   
@@ -50,7 +50,7 @@ const PieChart = ({
               />
             ))}
           </Pie>
-          <Tooltip formatter={valueFormatter} />
+          <Tooltip formatter={(value: number) => [valueFormatter(value), '']} />
           <Legend verticalAlign="bottom" iconType="circle" />
         </ReChartsPie>
       </ResponsiveContainer>

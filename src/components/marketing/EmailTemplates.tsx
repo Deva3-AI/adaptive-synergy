@@ -1,574 +1,504 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { marketingService } from '@/services/api';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow 
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Plus, Edit, Eye, Copy, AlertTriangle, AlertCircle, BarChart2, SendHorizonal, MoreHorizontal, Trash2 } from 'lucide-react';
-import { EmailTemplate } from '@/interfaces/marketing';
+import { 
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Copy,
+  Pencil,
+  Mail,
+  Save,
+  X,
+  Tag,
+  Clock,
+  BarChart,
+  Variable
+} from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-
-// Helper function to get badge color based on performance
-const getPerformanceBadge = (value: number, type: string) => {
-  let variant: 'default' | 'outline' | 'secondary' | 'destructive' | 'success' = 'default';
-  
-  if (type === 'open' || type === 'click' || type === 'reply' || type === 'conversion') {
-    if (value >= 40) variant = 'success';
-    else if (value >= 20) variant = 'default';
-    else variant = 'destructive';
-  }
-  
-  return <Badge variant={variant}>{value}%</Badge>;
-};
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from '@/components/ui/dialog';
+import { marketingService } from '@/services/api';
 
 const EmailTemplates = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [editMode, setEditMode] = useState(false);
-  const [currentTab, setCurrentTab] = useState('templates');
-  const [editedTemplate, setEditedTemplate] = useState<EmailTemplate>({
-    id: 0,
-    name: '',
-    subject: '',
-    content: '',
-    body: '',
-    category: '',
-    tags: [],
-    createdAt: '',
-    updatedAt: '',
-    variables: [],
-    performanceMetrics: {
-      openRate: 0,
-      clickRate: 0,
-      replyRate: 0,
-      conversionRate: 0,
-      responseRate: 0,
-      usageCount: 0
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  
+  const queryClient = useQueryClient();
+  
+  const { data: templates, isLoading, error } = useQuery({
+    queryKey: ['email-templates'],
+    queryFn: () => marketingService.getEmailTemplates(),
+  });
+  
+  const saveTemplateMutation = useMutation({
+    mutationFn: (templateData: any) => {
+      // In a real app, call an API endpoint to save the template
+      // For now, we'll just simulate a successful save
+      console.log('Saving template:', templateData);
+      return Promise.resolve(templateData);
+    },
+    onSuccess: () => {
+      toast.success('Template saved successfully');
+      setEditingTemplate(null);
+      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to save template');
+      console.error(error);
     }
   });
   
-  const queryClient = useQueryClient();
-
-  // Fetch email templates
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['email-templates'],
-    queryFn: () => marketingService.getEmailTemplates()
-  });
-
-  // Filter templates based on search term
-  const filteredTemplates = templates.filter(template => 
-    template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  // Sort by newest
-  const sortedTemplates = [...filteredTemplates].sort((a, b) => 
-    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
-
-  // Group templates by category
-  const groupedTemplates = sortedTemplates.reduce((acc, template) => {
-    if (!acc[template.category]) {
-      acc[template.category] = [];
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (templateId: number) => {
+      // In a real app, call an API endpoint to delete the template
+      // For now, we'll just simulate a successful deletion
+      console.log('Deleting template:', templateId);
+      return Promise.resolve();
+    },
+    onSuccess: () => {
+      toast.success('Template deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to delete template');
+      console.error(error);
     }
-    acc[template.category].push(template);
-    return acc;
-  }, {} as Record<string, EmailTemplate[]>);
-
-  const categories = Object.keys(groupedTemplates).sort();
-
-  // Handle template selection
-  const handleSelectTemplate = (template: EmailTemplate) => {
-    setSelectedTemplate(template);
-    setEditedTemplate(template);
+  });
+  
+  const duplicateTemplateMutation = useMutation({
+    mutationFn: (template: any) => {
+      // In a real app, call an API endpoint to duplicate the template
+      // For now, we'll just simulate a successful duplication
+      const duplicatedTemplate = {
+        ...template,
+        id: Date.now(), // Generate a new ID
+        name: `${template.name} (Copy)`,
+        usage_count: 0
+      };
+      console.log('Duplicating template:', duplicatedTemplate);
+      return Promise.resolve(duplicatedTemplate);
+    },
+    onSuccess: () => {
+      toast.success('Template duplicated successfully');
+      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to duplicate template');
+      console.error(error);
+    }
+  });
+  
+  const handleSaveTemplate = () => {
+    saveTemplateMutation.mutate(editingTemplate);
   };
-
-  // Handle template edit
-  const handleEditTemplate = () => {
-    if (!selectedTemplate) return;
-    setEditMode(true);
+  
+  const handleDeleteTemplate = (templateId: number) => {
+    if (window.confirm('Are you sure you want to delete this template?')) {
+      deleteTemplateMutation.mutate(templateId);
+    }
   };
-
-  // Handle save changes
-  const handleSaveChanges = () => {
-    // In a real app, you would call an API to update the template
-    toast.success("Template updated successfully");
-    setEditMode(false);
-    // Update the selected template with edited values
-    setSelectedTemplate(editedTemplate);
-    // In a real app, you would invalidate queries here
+  
+  const handleDuplicateTemplate = (template: any) => {
+    duplicateTemplateMutation.mutate(template);
   };
-
-  // Handle template preview using template variables
-  const replaceTemplateVariables = (content: string) => {
-    if (!content) return '';
+  
+  const filteredTemplates = templates ? templates.filter((template: any) => 
+    template.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    template.subject.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+  
+  const renderTemplateEditor = () => {
+    if (!editingTemplate) return null;
     
-    let replacedContent = content;
-    const sampleValues = {
-      'company': 'Acme Corp',
-      'name': 'John Smith',
-      'date': new Date().toLocaleDateString(),
-      'product': 'Enterprise Plan',
-      'link': 'https://example.com/offer'
-    };
-    
-    // Replace {{variable}} with corresponding value
-    Object.entries(sampleValues).forEach(([key, value]) => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      replacedContent = replacedContent.replace(regex, value);
-    });
-    
-    return replacedContent;
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Edit Template</h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setEditingTemplate(null)}
+            aria-label="Close editor"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="template-name" className="block text-sm font-medium mb-1">Template Name</label>
+            <Input 
+              id="template-name" 
+              value={editingTemplate.name} 
+              onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="template-subject" className="block text-sm font-medium mb-1">Subject Line</label>
+            <Input 
+              id="template-subject" 
+              value={editingTemplate.subject} 
+              onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="template-body" className="block text-sm font-medium mb-1">Email Body</label>
+            <Textarea 
+              id="template-body" 
+              rows={12}
+              value={editingTemplate.body} 
+              onChange={(e) => setEditingTemplate({...editingTemplate, body: e.target.value})}
+              className="font-mono text-sm"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Variables</label>
+            <div className="flex flex-wrap gap-2">
+              {editingTemplate.variables.map((variableName: string, index: number) => (
+                <Badge key={index} variant="outline" className="flex items-center gap-1">
+                  <Variable className="h-3 w-3" />
+                  {variableName}
+                </Badge>
+              ))}
+              <Button variant="outline" size="sm" className="h-6">
+                <Plus className="h-3 w-3 mr-1" />
+                Add
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Tags</label>
+            <div className="flex flex-wrap gap-2">
+              {editingTemplate.tags.map((tag: string, index: number) => (
+                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                  <Tag className="h-3 w-3" />
+                  {tag}
+                </Badge>
+              ))}
+              <Button variant="outline" size="sm" className="h-6">
+                <Plus className="h-3 w-3 mr-1" />
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-2 pt-2">
+          <Button variant="outline" onClick={() => setEditingTemplate(null)}>Cancel</Button>
+          <Button onClick={handleSaveTemplate} disabled={saveTemplateMutation.isPending}>
+            {saveTemplateMutation.isPending ? 'Saving...' : 'Save Template'}
+          </Button>
+        </div>
+      </div>
+    );
   };
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
+  
+  const renderTemplateStats = (template: any) => {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{template.name} - Performance</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">Usage Count</div>
+            <div className="text-2xl font-bold">{template.usage_count}</div>
+            <div className="text-xs text-muted-foreground flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              Last used 5 days ago
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">Conversion Rate</div>
+            <div className="text-2xl font-bold">{template.conversion_rate}%</div>
+            <Progress value={template.conversion_rate} className="h-2" />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">Engagement Metrics</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground">Open Rate</div>
+              <div className="text-lg font-semibold">35.6%</div>
+              <Progress value={35.6} className="h-2" />
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Click Rate</div>
+              <div className="text-lg font-semibold">12.8%</div>
+              <Progress value={12.8} className="h-2" />
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Reply Rate</div>
+              <div className="text-lg font-semibold">8.3%</div>
+              <Progress value={8.3} className="h-2" />
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Bounce Rate</div>
+              <div className="text-lg font-semibold">2.1%</div>
+              <Progress value={2.1} className="h-2" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">Performance by Recipient</h4>
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Recipient Type</TableHead>
+                  <TableHead>Open Rate</TableHead>
+                  <TableHead>Click Rate</TableHead>
+                  <TableHead>Conversion</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell>C-Level</TableCell>
+                  <TableCell>32.5%</TableCell>
+                  <TableCell>10.2%</TableCell>
+                  <TableCell>8.5%</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Director</TableCell>
+                  <TableCell>38.2%</TableCell>
+                  <TableCell>15.6%</TableCell>
+                  <TableCell>12.3%</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Manager</TableCell>
+                  <TableCell>42.1%</TableCell>
+                  <TableCell>18.7%</TableCell>
+                  <TableCell>14.2%</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">AI Improvement Suggestions</h4>
+          <div className="space-y-2">
+            <div className="text-sm bg-muted p-3 rounded-md">
+              <span className="font-medium">Subject line:</span> Try adding a personalization variable or creating urgency to increase open rates.
+            </div>
+            <div className="text-sm bg-muted p-3 rounded-md">
+              <span className="font-medium">Email length:</span> Consider shortening the email by 20% to improve readability and response rates.
+            </div>
+            <div className="text-sm bg-muted p-3 rounded-md">
+              <span className="font-medium">Call-to-action:</span> Make the primary CTA more prominent and action-oriented.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
-
-  // Update edited template field
-  const updateTemplateField = (field: keyof EmailTemplate, value: any) => {
-    setEditedTemplate(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  
+  const renderTemplatePreview = (template: any) => {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">{template.name} - Preview</h3>
+        </div>
+        
+        <div className="border rounded-md p-4 space-y-4">
+          <div className="border-b pb-2">
+            <div className="text-sm text-muted-foreground">From: Your Company <yourname@company.com></div>
+            <div className="text-sm text-muted-foreground">To: [recipient_email]</div>
+            <div className="text-sm font-medium">Subject: {template.subject}</div>
+          </div>
+          
+          <div className="whitespace-pre-line text-sm">
+            {template.body}
+          </div>
+        </div>
+        
+        <div className="border rounded-md p-4">
+          <h4 className="text-sm font-medium mb-2">Template Variables</h4>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            {template.variables.map((variable: string, index: number) => (
+              <div key={index} className="flex justify-between text-sm">
+                <span className="text-muted-foreground">[{variable}]</span>
+                <span>Example value</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
-
+  
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="relative w-full md:w-[280px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="text-xl font-bold">Email Templates</div>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          New Template
+        </Button>
+      </div>
+      
+      <div className="border rounded-md p-4 bg-muted/50">
+        <div className="text-sm">
+          Templates help you standardize your outreach and follow-up communications. Use variables like [first_name] to personalize your emails.
+        </div>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
+            type="search"
             placeholder="Search templates..."
-            className="pl-10"
+            className="pl-9"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            Import Templates
-          </Button>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
-          </Button>
-        </div>
+        
+        <Button variant="outline" size="sm">
+          <Tag className="h-4 w-4 mr-2" />
+          Filter by Tag
+        </Button>
       </div>
       
-      <Tabs value={currentTab} onValueChange={setCurrentTab}>
-        <TabsList>
-          <TabsTrigger value="templates">Email Templates</TabsTrigger>
-          <TabsTrigger value="performance">Performance Analytics</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="templates" className="space-y-6">
-          {isLoading ? (
-            // Loading state
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((_, index) => (
-                <Skeleton key={index} className="h-[220px] w-full" />
-              ))}
-            </div>
-          ) : sortedTemplates.length === 0 ? (
-            // Empty state
-            <div className="text-center py-12 border rounded-lg">
-              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <AlertCircle className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium">No templates found</h3>
-              <p className="text-muted-foreground mt-1">
-                {searchTerm ? "Try adjusting your search terms" : "Create your first email template"}
-              </p>
-              <Button className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Template
-              </Button>
-            </div>
-          ) : (
-            // Templates grid
-            <div className="space-y-6">
-              {categories.map(category => (
-                <div key={category} className="space-y-3">
-                  <h3 className="text-lg font-semibold">{category}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {groupedTemplates[category].map(template => (
-                      <Card 
-                        key={template.id} 
-                        className="cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => handleSelectTemplate(template)}
-                      >
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between">
-                            <CardTitle className="text-base">{template.name}</CardTitle>
-                            <Badge variant="outline">{template.category}</Badge>
-                          </div>
-                          <CardDescription className="line-clamp-1">
-                            {template.subject}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <div className="text-sm text-muted-foreground mt-1 line-clamp-3">
-                            {template.content.substring(0, 150)}...
-                          </div>
-                        </CardContent>
-                        <CardFooter className="flex justify-between pt-0">
-                          <div className="text-xs text-muted-foreground">
-                            Updated: {formatDate(template.updatedAt)}
-                          </div>
-                          <div className="flex gap-1">
-                            {template.tags.slice(0, 2).map(tag => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                            {template.tags.length > 2 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{template.tags.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="performance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Template Performance</CardTitle>
-              <CardDescription>
-                Analyze the performance of your email templates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+      {editingTemplate ? (
+        renderTemplateEditor()
+      ) : (
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Template Name</TableHead>
+                <TableHead>Subject Line</TableHead>
+                <TableHead className="hidden md:table-cell">Usage</TableHead>
+                <TableHead className="hidden md:table-cell">Conversion</TableHead>
+                <TableHead className="hidden lg:table-cell">Last Modified</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
-                <Skeleton className="h-[400px] w-full" />
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    Loading templates...
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-red-500">
+                    Error loading templates
+                  </TableCell>
+                </TableRow>
+              ) : filteredTemplates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No templates found
+                  </TableCell>
+                </TableRow>
               ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Average Open Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {Math.round(
-                            templates.reduce((sum, t) => sum + t.performanceMetrics.openRate, 0) / templates.length
-                          )}%
-                        </div>
-                        <Progress value={
-                          Math.round(
-                            templates.reduce((sum, t) => sum + t.performanceMetrics.openRate, 0) / templates.length
-                          )
-                        } className="h-2 mt-2" />
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Average Click Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {Math.round(
-                            templates.reduce((sum, t) => sum + t.performanceMetrics.clickRate, 0) / templates.length
-                          )}%
-                        </div>
-                        <Progress value={
-                          Math.round(
-                            templates.reduce((sum, t) => sum + t.performanceMetrics.clickRate, 0) / templates.length
-                          )
-                        } className="h-2 mt-2" />
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Average Reply Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {Math.round(
-                            templates.reduce((sum, t) => sum + (t.performanceMetrics.replyRate || t.performanceMetrics.responseRate || 0), 0) / templates.length
-                          )}%
-                        </div>
-                        <Progress value={
-                          Math.round(
-                            templates.reduce((sum, t) => sum + (t.performanceMetrics.replyRate || t.performanceMetrics.responseRate || 0), 0) / templates.length
-                          )
-                        } className="h-2 mt-2" />
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {Math.round(
-                            templates.reduce((sum, t) => sum + t.performanceMetrics.conversionRate, 0) / templates.length
-                          )}%
-                        </div>
-                        <Progress value={
-                          Math.round(
-                            templates.reduce((sum, t) => sum + t.performanceMetrics.conversionRate, 0) / templates.length
-                          )
-                        } className="h-2 mt-2" />
-                      </CardContent>
-                    </Card>
-                  </div>
-                  
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Template Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Open Rate</TableHead>
-                        <TableHead>Click Rate</TableHead>
-                        <TableHead>Reply Rate</TableHead>
-                        <TableHead>Conversion</TableHead>
-                        <TableHead>Usage</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedTemplates.map(template => (
-                        <TableRow key={template.id}>
-                          <TableCell className="font-medium">{template.name}</TableCell>
-                          <TableCell>{template.category}</TableCell>
-                          <TableCell>{getPerformanceBadge(template.performanceMetrics.openRate, 'open')}</TableCell>
-                          <TableCell>{getPerformanceBadge(template.performanceMetrics.clickRate, 'click')}</TableCell>
-                          <TableCell>{getPerformanceBadge(template.performanceMetrics.replyRate || template.performanceMetrics.responseRate || 0, 'reply')}</TableCell>
-                          <TableCell>{getPerformanceBadge(template.performanceMetrics.conversionRate, 'conversion')}</TableCell>
-                          <TableCell>{template.performanceMetrics.usageCount || 0}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Template Detail Dialog */}
-      {selectedTemplate && (
-        <Dialog open={!!selectedTemplate} onOpenChange={(open) => !open && setSelectedTemplate(null)}>
-          <DialogContent className="sm:max-w-[700px]">
-            <DialogHeader>
-              <DialogTitle>{editMode ? 'Edit Template' : selectedTemplate.name}</DialogTitle>
-              <DialogDescription>
-                {editMode ? 'Make changes to this email template' : selectedTemplate.category}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              {editMode ? (
-                // Edit mode UI
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Template Name</Label>
-                      <Input 
-                        id="name" 
-                        value={editedTemplate.name} 
-                        onChange={(e) => updateTemplateField('name', e.target.value)} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category</Label>
-                      <Select 
-                        value={editedTemplate.category}
-                        onValueChange={(value) => updateTemplateField('category', value)}
-                      >
-                        <SelectTrigger id="category">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Outreach">Outreach</SelectItem>
-                          <SelectItem value="Follow-up">Follow-up</SelectItem>
-                          <SelectItem value="Newsletters">Newsletters</SelectItem>
-                          <SelectItem value="Promotional">Promotional</SelectItem>
-                          <SelectItem value="Transactional">Transactional</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input 
-                      id="subject" 
-                      value={editedTemplate.subject} 
-                      onChange={(e) => updateTemplateField('subject', e.target.value)} 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Email Body</Label>
-                    <Textarea 
-                      id="content" 
-                      rows={12}
-                      value={editedTemplate.content || editedTemplate.body || ''} 
-                      onChange={(e) => {
-                        updateTemplateField('content', e.target.value);
-                        updateTemplateField('body', e.target.value);
-                      }} 
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tags">Tags (comma separated)</Label>
-                    <Input 
-                      id="tags" 
-                      value={editedTemplate.tags.join(', ')} 
-                      onChange={(e) => updateTemplateField('tags', e.target.value.split(',').map(tag => tag.trim()))} 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Template Variables</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {(editedTemplate.variables || ['company', 'name', 'date', 'product', 'link']).map((variable) => (
-                        <Badge key={variable} variant="outline">
-                          {`{{${variable}}}`}
-                        </Badge>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Use these variables in your template content by typing {{variable}}.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                // View mode UI
-                <div className="space-y-4">
-                  <div className="bg-muted p-3 rounded-md">
-                    <p className="font-medium">Subject:</p>
-                    <p>{selectedTemplate.subject}</p>
-                  </div>
-                  <div className="bg-muted p-3 rounded-md h-[300px] overflow-y-auto">
-                    <p className="font-medium mb-2">Email Body:</p>
-                    <div className="whitespace-pre-line">
-                      {replaceTemplateVariables(selectedTemplate.content || selectedTemplate.body || '')}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTemplate.tags.map(tag => (
-                      <Badge key={tag} variant="secondary">{tag}</Badge>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 border-t pt-4">
-                    <div>
-                      <p className="text-sm font-medium">Performance Metrics</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Open Rate:</span>
-                          <Badge variant={selectedTemplate.performanceMetrics.openRate > 30 ? "success" : "default"}>
-                            {selectedTemplate.performanceMetrics.openRate}%
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Click Rate:</span>
-                          <Badge variant={selectedTemplate.performanceMetrics.clickRate > 20 ? "success" : "default"}>
-                            {selectedTemplate.performanceMetrics.clickRate}%
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Reply Rate:</span>
-                          <Badge variant={(selectedTemplate.performanceMetrics.replyRate || selectedTemplate.performanceMetrics.responseRate || 0) > 10 ? "success" : "default"}>
-                            {selectedTemplate.performanceMetrics.replyRate || selectedTemplate.performanceMetrics.responseRate || 0}%
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Conversion:</span>
-                          <Badge variant={selectedTemplate.performanceMetrics.conversionRate > 5 ? "success" : "default"}>
-                            {selectedTemplate.performanceMetrics.conversionRate}%
-                          </Badge>
-                        </div>
+                filteredTemplates.map((template: any) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell className="max-w-md truncate">{template.subject}</TableCell>
+                    <TableCell className="hidden md:table-cell">{template.usage_count}</TableCell>
+                    <TableCell className="hidden md:table-cell">{template.conversion_rate}%</TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {new Date(template.last_modified).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-1">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Mail className="h-4 w-4" />
+                              <span className="sr-only">Preview</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            {renderTemplatePreview(template)}
+                          </DialogContent>
+                        </Dialog>
+                        
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <BarChart className="h-4 w-4" />
+                              <span className="sr-only">Stats</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            {renderTemplateStats(template)}
+                          </DialogContent>
+                        </Dialog>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => setEditingTemplate(template)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleDuplicateTemplate(template)}
+                        >
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">Duplicate</span>
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-red-500"
+                          onClick={() => handleDeleteTemplate(template.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Template Info</p>
-                      <div className="space-y-2 mt-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Created:</span>
-                          <span>{formatDate(selectedTemplate.createdAt)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Last updated:</span>
-                          <span>{formatDate(selectedTemplate.updatedAt)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Category:</span>
-                          <Badge variant="outline">{selectedTemplate.category}</Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Usage count:</span>
-                          <span>{selectedTemplate.performanceMetrics.usageCount || 0}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-            </div>
-            <DialogFooter>
-              {editMode ? (
-                <>
-                  <Button variant="outline" onClick={() => setEditMode(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSaveChanges}>
-                    Save Changes
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex gap-2 mr-auto">
-                    <Button variant="outline" size="icon">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
-                    Close
-                  </Button>
-                  <Button variant="outline" onClick={handleEditTemplate}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button>
-                    <SendHorizonal className="h-4 w-4 mr-2" />
-                    Use Template
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );

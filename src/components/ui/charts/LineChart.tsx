@@ -32,6 +32,7 @@ export interface LineChartProps {
   showGrid?: boolean;
   showTooltip?: boolean;
   showDots?: boolean;
+  className?: string;
 }
 
 const LineChart = ({
@@ -47,10 +48,11 @@ const LineChart = ({
   showLegend = true,
   showGrid = true,
   showTooltip = true,
-  showDots = true
+  showDots = true,
+  className = ""
 }: LineChartProps) => {
   return (
-    <Card>
+    <Card className={className}>
       {(title || description) && (
         <CardHeader>
           {title && <CardTitle>{title}</CardTitle>}

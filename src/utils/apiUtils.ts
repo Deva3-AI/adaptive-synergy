@@ -28,7 +28,7 @@ export interface PaySlip {
   deductions: number;
   netSalary: number;
   paidDate?: string;
-  status: 'draft' | 'final' | 'paid' | 'pending';
+  status: 'draft' | 'final' | 'pending' | 'paid';
 }
 
 export interface SalesData {
@@ -92,7 +92,7 @@ export const handleApiError = (error: any, defaultValue: any = null) => {
   return defaultValue;
 };
 
-// Add the missing fetchData function
+// Fetch data function used in components
 export const fetchData = async (url: string, params?: any) => {
   try {
     const response = await axios.get(url, { params });

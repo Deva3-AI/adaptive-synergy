@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayCircle, StopCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
-interface AttendanceWidgetProps {
+export interface AttendanceWidgetProps {
   isWorking: boolean;
   onStartWork: () => void;
   onEndWork: () => void;
@@ -13,7 +13,7 @@ interface AttendanceWidgetProps {
   todayHours: number;
 }
 
-const AttendanceWidget = ({ isWorking, onStartWork, onEndWork, startTime, todayHours }: AttendanceWidgetProps) => {
+const AttendanceWidget: React.FC<AttendanceWidgetProps> = ({ isWorking, onStartWork, onEndWork, startTime, todayHours }) => {
   return (
     <Card>
       <CardHeader className="pb-2">

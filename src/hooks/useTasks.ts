@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { taskService } from '@/services/api';
-import { Task } from '@/services/api/taskService';
+import taskService from '@/services/api/taskService';
+import { Task } from '@/interfaces/tasks';
 
 export const useTasks = (filters?: { status?: string; assigned_to?: number; client_id?: number }) => {
   const [tasks, setTasks] = useState<Task[]>([]);

@@ -31,6 +31,7 @@ export interface BarChartProps {
   showLegend?: boolean;
   showGrid?: boolean;
   showTooltip?: boolean;
+  className?: string;
 }
 
 const BarChart = ({
@@ -45,10 +46,11 @@ const BarChart = ({
   valueFormatter = (value) => `${value}`,
   showLegend = true,
   showGrid = true,
-  showTooltip = true
+  showTooltip = true,
+  className = ""
 }: BarChartProps) => {
   return (
-    <Card>
+    <Card className={className}>
       {(title || description) && (
         <CardHeader>
           {title && <CardTitle>{title}</CardTitle>}
