@@ -1,219 +1,256 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart } from "@/components/ui/charts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { LineChart } from "recharts";
-import { ArrowUp, ArrowDown, TrendingUp, Calendar, AlertCircle } from "lucide-react";
-import { useQuery } from '@tanstack/react-query';
-import DonutChart from "@/components/ui/charts/DonutChart";
-import taskService from "@/services/api/taskService";
+import { CheckCircle2, Clock, CalendarClock, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface TaskStatistics {
-  total: number;
-  completed: number;
-  in_progress: number;
-  pending: number;
-  cancelled: number;
-  avg_completion_time: number;
-  completion_rate: number;
+interface InsightProps {
+  tasks: any[];
+  period?: 'week' | 'month' | 'quarter';
 }
 
-interface TaskProgressInsightsProps {
-  userId?: number;
-  clientId?: number;
-  dateRange?: { start: string; end: string };
-  className?: string;
-}
-
-const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({
-  userId,
-  clientId,
-  dateRange,
-  className
-}) => {
-  const { data: stats, isLoading, error } = useQuery({
-    queryKey: ['taskStatistics', userId, clientId, dateRange],
-    queryFn: async () => {
-      return await taskService.getTaskStatistics(userId, clientId, dateRange);
-    },
-    enabled: !!(userId || clientId)
-  });
-
-  if (isLoading) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle>Task Progress Insights</CardTitle>
-          <CardDescription>Analysis of task completion and efficiency</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <Skeleton className="h-[200px] w-full" />
-              <Skeleton className="h-[200px] w-full" />
-            </div>
-            <div className="space-y-4">
-              <Skeleton className="h-[200px] w-full" />
-              <Skeleton className="h-[200px] w-full" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle>Task Progress Insights</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertTitle>Error Loading Data</AlertTitle>
-            <AlertDescription>
-              There was a problem loading the task statistics. Please try again later.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle>Task Progress Insights</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No task data available for analysis.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Create chart data
-  const statusData = [
-    { name: 'Completed', value: stats.completed },
-    { name: 'In Progress', value: stats.in_progress },
-    { name: 'Pending', value: stats.pending },
-    { name: 'Cancelled', value: stats.cancelled }
-  ];
-
+const TaskProgressInsights = ({ tasks, period = 'week' }: InsightProps) => {
+  // Filter completed tasks
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
+  const pendingTasks = tasks.filter(task => task.status === 'pending');
+  
+  // Calculate completion rate
+  const completionRate = tasks.length > 0 
+    ? Math.round((completedTasks.length / tasks.length) * 100) 
+    : 0;
+  
+  // Calculate on-time delivery rate
+  const onTimeDeliveries = completedTasks.filter(task => 
+    new Date(task.end_time) <= new Date(task.dueDate)
+  ).length;
+  
+  const onTimeRate = completedTasks.length > 0 
+    ? Math.round((onTimeDeliveries / completedTasks.length) * 100) 
+    : 0;
+  
+  // Calculate average time to complete tasks (in days)
+  const avgCompletionTime = completedTasks.length > 0
+    ? completedTasks.reduce((sum, task) => {
+        const startDate = new Date(task.start_time);
+        const endDate = new Date(task.end_time);
+        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        return sum + days;
+      }, 0) / completedTasks.length
+    : 0;
+  
+  // Group tasks by client for chart data
+  const tasksByClient = tasks.reduce((acc: any, task) => {
+    const clientName = task.client || 'Unassigned';
+    if (!acc[clientName]) {
+      acc[clientName] = { total: 0, completed: 0 };
+    }
+    acc[clientName].total += 1;
+    if (task.status === 'completed') {
+      acc[clientName].completed += 1;
+    }
+    return acc;
+  }, {});
+  
+  const clientCompletionData = Object.entries(tasksByClient)
+    .map(([name, data]: [string, any]) => ({
+      name: name.length > 10 ? name.substring(0, 10) + '...' : name,
+      Completed: data.completed,
+      Total: data.total,
+    }));
+  
+  // Calculate total estimated vs actual hours
+  const totalEstimatedHours = tasks.reduce((sum, task) => sum + (task.estimated_time || 0), 0);
+  const totalActualHours = tasks.reduce((sum, task) => sum + (task.actual_time || 0), 0);
+  
+  // Efficiency rate (estimated vs actual)
+  const efficiencyRate = totalEstimatedHours > 0 
+    ? Math.round((totalEstimatedHours / (totalActualHours || 1)) * 100) 
+    : 100;
+  
+  // Hours by task type data 
+  const hoursByTaskType = tasks.reduce((acc: any, task) => {
+    const taskType = task.category || 'Other';
+    if (!acc[taskType]) {
+      acc[taskType] = 0;
+    }
+    acc[taskType] += task.actual_time || 0;
+    return acc;
+  }, {});
+  
+  const taskTypeHoursData = Object.entries(hoursByTaskType)
+    .map(([name, hours]: [string, any]) => ({
+      name,
+      Hours: hours,
+    }));
+  
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Task Progress Insights</CardTitle>
-        <CardDescription>Analysis of task completion and efficiency</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="details">Detailed Analysis</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Task Status Distribution */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-4">Task Status Distribution</h3>
-                <DonutChart 
-                  data={statusData} 
-                  colors={['#10b981', '#3b82f6', '#f97316', '#ef4444']}
-                  nameKey="name"
-                  dataKey="value"
-                />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Completion Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold">{completionRate}%</div>
+              <Progress value={completionRate} className="h-2" />
+              <div className="text-xs text-muted-foreground">
+                {completedTasks.length} of {tasks.length} tasks completed
               </div>
-              
-              {/* Completion Rate */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-4">Task Efficiency Metrics</h3>
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium">Completion Rate</span>
-                      <span className="text-sm font-medium">
-                        {stats.completion_rate.toFixed(1)}%
-                        <Badge className="ml-2" variant={stats.completion_rate > 75 ? "success" : stats.completion_rate > 50 ? "default" : "destructive"}>
-                          {stats.completion_rate > 75 ? "Good" : stats.completion_rate > 50 ? "Average" : "Needs Improvement"}
-                        </Badge>
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div className="bg-primary h-2.5 rounded-full" style={{ width: `${stats.completion_rate}%` }}></div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium">Average Completion Time</span>
-                      <span className="text-sm font-medium">{stats.avg_completion_time.toFixed(1)} hours</span>
-                    </div>
-                  </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              On-Time Delivery
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="text-2xl font-bold">{onTimeRate}%</div>
+              <Progress 
+                value={onTimeRate} 
+                className={cn("h-2", onTimeRate < 70 ? "bg-red-200" : "bg-green-200")}
+              />
+              <div className="text-xs text-muted-foreground">
+                {onTimeDeliveries} of {completedTasks.length} tasks delivered on time
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Average Completion Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              <div className="text-2xl font-bold">
+                {avgCompletionTime.toFixed(1)} days
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center">
+                <Clock className="mr-1 h-3 w-3" />
+                Average time from start to completion
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Time Efficiency
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              <div className="text-2xl font-bold">
+                {efficiencyRate}%
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>Estimated: {totalEstimatedHours}h</span>
+                <span>Actual: {totalActualHours}h</span>
+              </div>
+              <Progress 
+                value={efficiencyRate > 100 ? 100 : efficiencyRate} 
+                className={cn("h-2", efficiencyRate < 80 ? "bg-red-200" : "bg-green-200")}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Task Completion by Client</CardTitle>
+            <CardDescription>Breakdown of completed tasks across clients</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <BarChart 
+                data={clientCompletionData}
+                xAxisKey="name"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Hours by Task Type</CardTitle>
+            <CardDescription>Distribution of work hours by task category</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <BarChart 
+                data={taskTypeHoursData}
+                xAxisKey="name"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Task Status Overview</CardTitle>
+          <CardDescription>Current distribution of tasks by status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 border border-green-100 rounded-lg p-4 flex items-start space-x-4">
+              <div className="bg-green-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h4 className="font-medium">Completed</h4>
+                <div className="text-2xl font-bold">{completedTasks.length}</div>
+                <div className="text-xs text-muted-foreground">
+                  {completionRate}% of all tasks
                 </div>
               </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="details">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Monthly Completion Trend */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-4">Task Completion Trend</h3>
-                <BarChart 
-                  data={[
-                    { name: 'Week 1', Completed: 12 },
-                    { name: 'Week 2', Completed: 15 },
-                    { name: 'Week 3', Completed: 18 },
-                    { name: 'Week 4', Completed: 14 }
-                  ]} 
-                  xAxisKey="name"
-                  categories={['Completed']}
-                />
+            
+            <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 flex items-start space-x-4">
+              <div className="bg-amber-100 p-2 rounded-full">
+                <Clock className="h-5 w-5 text-amber-600" />
               </div>
-              
-              {/* Efficiency Over Time */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-4">Completion Time Trend</h3>
-                <BarChart 
-                  data={[
-                    { name: 'Week 1', Hours: 5.2 },
-                    { name: 'Week 2', Hours: 4.8 },
-                    { name: 'Week 3', Hours: 4.5 },
-                    { name: 'Week 4', Hours: 4.2 }
-                  ]} 
-                  xAxisKey="name"
-                  categories={['Hours']}
-                />
-              </div>
-              
-              {/* Task Type Distribution */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-lg font-medium mb-4">Task Priority Analysis</h3>
-                <DonutChart 
-                  data={[
-                    { name: 'High', value: 12 },
-                    { name: 'Medium', value: 18 },
-                    { name: 'Low', value: 8 }
-                  ]}
-                  nameKey="name"
-                  dataKey="value"
-                  colors={['#ef4444', '#f97316', '#10b981']}
-                />
+              <div>
+                <h4 className="font-medium">In Progress</h4>
+                <div className="text-2xl font-bold">{inProgressTasks.length}</div>
+                <div className="text-xs text-muted-foreground">
+                  {tasks.length > 0 ? Math.round((inProgressTasks.length / tasks.length) * 100) : 0}% of all tasks
+                </div>
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+            
+            <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start space-x-4">
+              <div className="bg-red-100 p-2 rounded-full">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-medium">Pending</h4>
+                <div className="text-2xl font-bold">{pendingTasks.length}</div>
+                <div className="text-xs text-muted-foreground">
+                  {tasks.length > 0 ? Math.round((pendingTasks.length / tasks.length) * 100) : 0}% of all tasks
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

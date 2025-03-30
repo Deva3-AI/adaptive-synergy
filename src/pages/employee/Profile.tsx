@@ -1,31 +1,23 @@
-
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { DateRange } from '@/components/ui/date-range-picker/date-range-picker-props';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { BarChart } from '@/components/ui/charts/BarChart';
-import { LineChart } from '@/components/ui/charts/LineChart';
-import { PieChart } from '@/components/ui/charts/PieChart';
-import { 
-  Award, 
-  Calendar, 
-  Clock, 
-  FileText, 
-  GraduationCap, 
-  Mail, 
-  MapPin, 
-  Phone, 
-  Star 
-} from 'lucide-react';
+import { Calendar, Heart, Award, GraduationCap, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/integrations/supabase/client';
+import BarChart from '@/components/ui/charts/BarChart';
+import LineChart from '@/components/ui/charts/LineChart';
+import PieChart from '@/components/ui/charts/PieChart';
+import AnalyticsChart from '@/components/dashboard/AnalyticsChart';
+import { cn } from '@/lib/utils';
 
 interface EmployeeProfile {
   user_id: number;

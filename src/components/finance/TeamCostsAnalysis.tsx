@@ -1,153 +1,123 @@
 
-import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useQuery } from '@tanstack/react-query';
-import { financeService } from '@/services/api';
-import { Skeleton } from '@/components/ui/skeleton';
-import { DonutChart } from '@/components/ui/charts';
-import { BarChart } from '@/components/ui/charts';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { DonutChart, BarChart } from "@/components/ui/charts";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { financeService } from "@/services/api";
+import { cn } from "@/lib/utils";
 
-const TeamCostsAnalysis = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-  
-  // Mock teamCosts query while we implement the actual service
-  const { data: teamCosts, isLoading, error } = useQuery({
-    queryKey: ['team-costs', selectedPeriod],
-    queryFn: () => {
-      // Temporary mock function until financeService.analyzeTeamCosts is implemented
-      const mockData = {
-        totalCost: 125000,
-        departmentBreakdown: [
-          { name: 'Design', value: 45000 },
-          { name: 'Development', value: 35000 },
-          { name: 'Marketing', value: 25000 },
-          { name: 'Management', value: 20000 }
-        ],
-        roleBreakdown: [
-          { name: 'Junior', value: 30000 },
-          { name: 'Mid-level', value: 45000 },
-          { name: 'Senior', value: 35000 },
-          { name: 'Lead', value: 15000 }
-        ],
-        monthlyTrend: [
-          { name: 'Jan', cost: 110000 },
-          { name: 'Feb', cost: 115000 },
-          { name: 'Mar', cost: 120000 },
-          { name: 'Apr', cost: 125000 },
-          { name: 'May', cost: 122000 },
-          { name: 'Jun', cost: 126000 }
-        ],
-        efficiencyMetrics: {
-          costPerTask: 450,
-          costPerTaskByDepartment: [
-            { name: 'Design', value: 500 },
-            { name: 'Development', value: 600 },
-            { name: 'Marketing', value: 350 },
-            { name: 'Management', value: 250 }
-          ]
-        }
-      };
-      
-      return Promise.resolve(mockData);
-    }
+interface TeamCostsAnalysisProps {
+  period: 'month' | 'quarter' | 'year';
+}
+
+const TeamCostsAnalysis = ({ period }: TeamCostsAnalysisProps) => {
+  // Fetch team costs analysis data
+  const { data: teamCosts, isLoading } = useQuery({
+    queryKey: ['team-costs', period],
+    queryFn: () => financeService.analyzeTeamCosts(period),
   });
+
+  // Format data for charts
+  const formatDataForDonutChart = (data: any) => {
+    if (!data || !data.breakdown) return [];
+    
+    return data.breakdown.map((item: any) => ({
+      name: item.department,
+      value: item.cost,
+    }));
+  };
   
+  const formatDataForBarChart = (data: any) => {
+    if (!data || !data.trends) return [];
+    
+    return data.trends.map((item: any) => ({
+      name: item.month,
+      cost: item.cost,
+    }));
+  };
+
+  // Handle loading state
   if (isLoading) {
     return (
-      <Card>
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle>Team Cost Analysis</CardTitle>
-          <CardDescription>Cost breakdown by department and role</CardDescription>
+          <CardTitle>Team Costs Analysis</CardTitle>
+          <CardDescription>Breakdown of team-related expenses</CardDescription>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <div className="h-80">
+            <Skeleton className="h-full w-full" />
+          </div>
         </CardContent>
       </Card>
     );
   }
-  
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Cost Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-destructive">Error loading team cost data.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-  
+
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Team Cost Analysis</CardTitle>
-        <CardDescription>Cost breakdown by department and role</CardDescription>
+        <CardTitle>Team Costs Analysis</CardTitle>
+        <CardDescription>
+          Breakdown of team-related expenses - {period === 'month' ? 'Monthly' : period === 'quarter' ? 'Quarterly' : 'Yearly'} View
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="department" className="space-y-6">
-          <TabsList className="mb-4">
-            <TabsTrigger value="department">By Department</TabsTrigger>
-            <TabsTrigger value="role">By Role</TabsTrigger>
-            <TabsTrigger value="trends">Monthly Trends</TabsTrigger>
-            <TabsTrigger value="efficiency">Cost Efficiency</TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Department Breakdown</TabsTrigger>
+            <TabsTrigger value="trends">Cost Trends</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="department" className="space-y-4">
-            <div className="flex items-center justify-center">
-              <DonutChart 
-                data={teamCosts?.departmentBreakdown || []} 
-                nameKey="name" 
-                dataKey="value" 
-                innerRadius={60} 
-                outerRadius={80} 
-              />
-            </div>
-            <div className="mt-4 grid gap-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-muted p-3">
-                  <div className="text-sm font-medium">Total Department Costs</div>
-                  <div className="text-2xl font-bold">${teamCosts?.totalCost.toLocaleString()}</div>
-                </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <div className="text-sm font-medium">Highest Department</div>
-                  <div className="text-2xl font-bold">
-                    {teamCosts?.departmentBreakdown.sort((a, b) => b.value - a.value)[0]?.name}
-                  </div>
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="h-[250px] flex items-center justify-center">
+                  <DonutChart 
+                    data={formatDataForDonutChart(teamCosts)} 
+                    nameKey="name"
+                    dataKey="value"
+                    innerRadius={60}
+                    outerRadius={100}
+                  />
                 </div>
               </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="role" className="space-y-4">
-            <div className="flex items-center justify-center">
-              <DonutChart 
-                data={teamCosts?.roleBreakdown || []} 
-                nameKey="name" 
-                dataKey="value" 
-                innerRadius={60} 
-                outerRadius={80} 
-              />
-            </div>
-            <div className="mt-4 grid gap-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-muted p-3">
-                  <div className="text-sm font-medium">Total Role Costs</div>
-                  <div className="text-2xl font-bold">${teamCosts?.totalCost.toLocaleString()}</div>
-                </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <div className="text-sm font-medium">Highest Cost Role</div>
-                  <div className="text-2xl font-bold">
-                    {teamCosts?.roleBreakdown.sort((a, b) => b.value - a.value)[0]?.name}
+              
+              <div className="space-y-4">
+                <div className="grid place-items-center h-16 bg-muted rounded-md">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold">
+                      ${teamCosts?.totalCost?.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Costs
+                    </div>
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  {teamCosts?.breakdown?.map((dept: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div 
+                          className={cn(
+                            "w-3 h-3 rounded-full mr-2",
+                            index === 0 ? "bg-blue-500" :
+                            index === 1 ? "bg-green-500" :
+                            index === 2 ? "bg-yellow-500" :
+                            index === 3 ? "bg-purple-500" :
+                            "bg-gray-500"
+                          )}
+                        />
+                        <span>{dept.department}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium">${dept.cost.toLocaleString()}</span>
+                        <span className="text-xs text-muted-foreground">({dept.percentage}%)</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -156,35 +126,17 @@ const TeamCostsAnalysis = () => {
           <TabsContent value="trends">
             <div className="h-[300px]">
               <BarChart 
-                data={teamCosts?.monthlyTrend || []}
-                index="name"
-                categories={["cost"]} 
-                yAxisWidth={60}
-                colors={["hsl(var(--primary))"]}
+                data={formatDataForBarChart(teamCosts)}
+                xAxisKey="name"
               />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="efficiency">
-            <div className="space-y-6">
-              <div className="rounded-lg bg-muted p-4">
-                <div className="text-sm font-medium">Average Cost per Task</div>
-                <div className="text-3xl font-bold mt-1">
-                  ${teamCosts?.efficiencyMetrics.costPerTask.toLocaleString()}
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium mb-3">Cost per Task by Department</h4>
-                <BarChart 
-                  data={teamCosts?.efficiencyMetrics.costPerTaskByDepartment || []}
-                  index="name"
-                  categories={["value"]}
-                  colors={["hsl(var(--primary))"]}
-                  yAxisWidth={60}
-                  height={200}
-                />
-              </div>
+            
+            <div className="mt-4">
+              <BarChart 
+                data={formatDataForBarChart(teamCosts)} 
+                xAxisKey="name"
+                height={250}
+              />
             </div>
           </TabsContent>
         </Tabs>

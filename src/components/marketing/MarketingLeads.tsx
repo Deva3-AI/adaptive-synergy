@@ -1,153 +1,204 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Search,
-  Plus,
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  Star,
-  ExternalLink
-} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Search, Plus, FileEdit, Mail, Phone, Calendar, ExternalLink, BarChart3, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
+import { marketingService } from "@/services/api";
+import { LeadProfile } from "@/interfaces/marketing";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from 'date-fns';
-import { marketingService } from '@/services/api';
-import { LeadProfile } from '@/interfaces/marketing';
 
 const MarketingLeads = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const { data: leads, isLoading, error } = useQuery({
-    queryKey: ['marketing', 'leads'],
-    queryFn: () => marketingService.getLeads(),
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+
+  // Fetch leads data
+  const { data: leads = [], isLoading, isError } = useQuery({
+    queryKey: ['marketing-leads'],
+    queryFn: () => marketingService.getLeads()
   });
-  
-  const filteredLeads = leads ? leads.filter((lead: LeadProfile) => 
-    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
-  
+
+  // Filter leads based on search term and filters
+  const filteredLeads = leads.filter((lead: LeadProfile) => {
+    // Text search
+    const matchesSearch = searchTerm === "" || 
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.position.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = !statusFilter || lead.status === statusFilter;
+    
+    // Source filter
+    const matchesSource = !sourceFilter || lead.source === sourceFilter;
+    
+    return matchesSearch && matchesStatus && matchesSource;
+  });
+
+  // Extract unique statuses and sources for filter options
+  const uniqueStatuses = Array.from(new Set(leads.map((lead: LeadProfile) => lead.status)));
+  const uniqueSources = Array.from(new Set(leads.map((lead: LeadProfile) => lead.source)));
+
+  // Get status badge color
   const getStatusBadge = (status: string) => {
-    switch(status) {
+    switch (status.toLowerCase()) {
       case 'new':
-        return <Badge className="bg-blue-50 text-blue-600">New</Badge>;
-      case 'contacted':
-        return <Badge className="bg-yellow-50 text-yellow-600">Contacted</Badge>;
-      case 'meeting_scheduled':
-        return <Badge className="bg-purple-50 text-purple-600">Meeting Scheduled</Badge>;
-      case 'meeting_completed':
-        return <Badge className="bg-indigo-50 text-indigo-600">Meeting Completed</Badge>;
-      case 'proposal_sent':
-        return <Badge className="bg-orange-50 text-orange-600">Proposal Sent</Badge>;
-      case 'converted':
-        return <Badge className="bg-green-50 text-green-600">Converted</Badge>;
+        return <Badge variant="default">New</Badge>;
+      case 'qualified':
+        return <Badge variant="success">Qualified</Badge>;
+      case 'negotiation':
+        return <Badge variant="warning">Negotiation</Badge>;
+      case 'won':
+        return <Badge variant="success">Won</Badge>;
       case 'lost':
-        return <Badge className="bg-gray-50 text-gray-600">Lost</Badge>;
+        return <Badge variant="destructive">Lost</Badge>;
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
-  
-  const getScoreIndicator = (score: number) => {
-    if (score >= 80) return <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />;
-    if (score >= 60) return <Star className="h-4 w-4 text-yellow-500" />;
-    if (score >= 40) return <Star className="h-4 w-4 text-gray-400" />;
-    return <Star className="h-4 w-4 text-gray-300" />;
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      return dateString;
+    }
   };
-  
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between">
+          <Skeleton className="h-10 w-[200px]" />
+          <Skeleton className="h-10 w-[100px]" />
+        </div>
+        <Skeleton className="h-[500px] w-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 bg-red-50 text-red-500 rounded-md flex items-center">
+        <AlertCircle className="h-5 w-5 mr-2" />
+        Failed to load leads data. Please try again later.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search leads..."
-            className="w-full pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="flex flex-col md:flex-row gap-2 md:items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search leads..."
+              className="pl-10 w-full md:w-[300px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Select value={statusFilter || ""} onValueChange={(value) => setStatusFilter(value || null)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                {uniqueStatuses.map(status => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter || ""} onValueChange={(value) => setSourceFilter(value || null)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Sources</SelectItem>
+                {uniqueSources.map(source => (
+                  <SelectItem key={source} value={source}>{source}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        
-        <Button>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Lead
         </Button>
       </div>
       
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead>Position</TableHead>
+              <TableHead>Lead</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Source</TableHead>
               <TableHead>Score</TableHead>
               <TableHead>Last Contact</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">Loading...</TableCell>
-              </TableRow>
-            ) : error ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-red-500">Error loading leads</TableCell>
-              </TableRow>
-            ) : filteredLeads.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center">No leads found</TableCell>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No leads found. Try adjusting your filters.
+                </TableCell>
               </TableRow>
             ) : (
               filteredLeads.map((lead: LeadProfile) => (
                 <TableRow key={lead.id}>
-                  <TableCell className="font-medium">{lead.name}</TableCell>
-                  <TableCell>{lead.company}</TableCell>
-                  <TableCell>{lead.position}</TableCell>
-                  <TableCell>{getStatusBadge(lead.status)}</TableCell>
-                  <TableCell>{lead.source}</TableCell>
-                  <TableCell className="flex items-center">
-                    {getScoreIndicator(lead.score || 0)}
-                    <span className="ml-1">{lead.score}</span>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="hidden md:block">
+                        <AvatarFallback>{lead.name.charAt(0)}{lead.company.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold">{lead.name}</div>
+                        <div className="text-sm text-muted-foreground">{lead.company}</div>
+                        <div className="text-xs text-muted-foreground">{lead.position}</div>
+                      </div>
+                    </div>
                   </TableCell>
+                  <TableCell>{getStatusBadge(lead.status)}</TableCell>
                   <TableCell>
-                    {lead.lastContactedAt 
-                      ? format(new Date(lead.lastContactedAt), 'MMM dd, yyyy')
-                      : 'Not contacted yet'
-                    }
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">{lead.score}/10</div>
+                      <Progress value={lead.score * 10} className="h-1" />
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatDate(lead.last_contact)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{lead.source}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <div className="flex justify-end space-x-1">
+                      <Button variant="ghost" size="icon">
                         <Mail className="h-4 w-4" />
                       </Button>
-                      {lead.phone && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Phone className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon">
+                        <Phone className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
                         <Calendar className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ExternalLink className="h-4 w-4" />
+                      <Button variant="ghost" size="icon">
+                        <FileEdit className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -157,6 +208,93 @@ const MarketingLeads = () => {
           </TableBody>
         </Table>
       </div>
+      
+      {/* Add Lead Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Add New Lead</DialogTitle>
+            <DialogDescription>
+              Enter the details of the new lead. All fields with * are required.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium">
+                  Name*
+                </label>
+                <Input id="name" placeholder="John Doe" />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="company" className="text-sm font-medium">
+                  Company*
+                </label>
+                <Input id="company" placeholder="Acme Inc" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email*
+                </label>
+                <Input id="email" type="email" placeholder="john@acme.com" />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium">
+                  Phone
+                </label>
+                <Input id="phone" placeholder="+1 (555) 123-4567" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="position" className="text-sm font-medium">
+                  Position*
+                </label>
+                <Input id="position" placeholder="Marketing Director" />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="source" className="text-sm font-medium">
+                  Source*
+                </label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="website">Website</SelectItem>
+                    <SelectItem value="referral">Referral</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                    <SelectItem value="email">Email Campaign</SelectItem>
+                    <SelectItem value="conference">Conference</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="notes" className="text-sm font-medium">
+                Notes
+              </label>
+              <textarea
+                id="notes"
+                rows={3}
+                className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Add any additional information about this lead..."
+              ></textarea>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => setIsCreateDialogOpen(false)}>
+              Add Lead
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

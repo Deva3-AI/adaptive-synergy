@@ -1,226 +1,337 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  TrendingUp,
-  Info,
-  Lightbulb,
-  RefreshCw,
-  Zap,
-  AlertCircle,
-  CheckCircle,
-  ExternalLink,
-  ChevronRight
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { marketingService } from '@/services/api';
-import { MarketingTrend, CompetitorInsight } from '@/interfaces/marketing';
+import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { Lightbulb, TrendingUp, AlertTriangle, ArrowUpRight, ExternalLink, MessageCircle, ThumbsUp, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { marketingService } from "@/services/api";
+import { MarketingTrend, CompetitorInsight } from "@/interfaces/marketing";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MarketingTrends = () => {
-  const { data: trends, isLoading: isLoadingTrends } = useQuery({
-    queryKey: ['marketing', 'trends'],
-    queryFn: () => marketingService.getMarketingTrends(),
+  const [selectedTrend, setSelectedTrend] = useState<MarketingTrend | null>(null);
+  const [selectedInsight, setSelectedInsight] = useState<CompetitorInsight | null>(null);
+  
+  // Fetch marketing trends data
+  const { data: marketingTrends = [], isLoading: trendsLoading } = useQuery({
+    queryKey: ['marketing-trends'],
+    queryFn: () => marketingService.getMarketingTrends()
   });
   
-  const { data: competitorInsights, isLoading: isLoadingInsights } = useQuery({
-    queryKey: ['marketing', 'competitor-insights'],
-    queryFn: () => marketingService.getCompetitorInsights(),
+  // Fetch competitor insights data
+  const { data: competitorInsights = [], isLoading: insightsLoading } = useQuery({
+    queryKey: ['competitor-insights'],
+    queryFn: () => marketingService.getCompetitorInsights()
   });
-  
-  const getCategoryBadge = (category: string) => {
-    const categories: Record<string, { color: string, icon: React.ReactNode }> = {
-      'industry': { color: 'bg-blue-50 text-blue-600', icon: <TrendingUp className="h-3 w-3 mr-1" /> },
-      'competitor': { color: 'bg-orange-50 text-orange-600', icon: <Zap className="h-3 w-3 mr-1" /> },
-      'technology': { color: 'bg-purple-50 text-purple-600', icon: <Lightbulb className="h-3 w-3 mr-1" /> },
-      'customer_behavior': { color: 'bg-green-50 text-green-600', icon: <CheckCircle className="h-3 w-3 mr-1" /> },
-      'other': { color: 'bg-gray-50 text-gray-600', icon: <Info className="h-3 w-3 mr-1" /> },
-    };
-    
-    const { color, icon } = categories[category] || categories.other;
-    return (
-      <Badge className={color} variant="outline">
-        {icon}
-        {category.replace('_', ' ')}
-      </Badge>
-    );
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }).format(date);
+  };
+
+  const getRelevanceColor = (score: number) => {
+    if (score >= 8) return "bg-green-500";
+    if (score >= 5) return "bg-amber-500";
+    return "bg-gray-400";
   };
   
-  const getImpactBadge = (impact: string) => {
-    switch(impact) {
+  const getImpactColor = (impact: string) => {
+    switch (impact.toLowerCase()) {
       case 'high':
-        return <Badge className="bg-red-50 text-red-600">High Impact</Badge>;
+        return "bg-red-500";
       case 'medium':
-        return <Badge className="bg-yellow-50 text-yellow-600">Medium Impact</Badge>;
+        return "bg-amber-500";
       case 'low':
-        return <Badge className="bg-blue-50 text-blue-600">Low Impact</Badge>;
+        return "bg-green-500";
       default:
-        return <Badge>{impact}</Badge>;
+        return "bg-gray-400";
     }
   };
-  
+
   return (
-    <Tabs defaultValue="trends">
-      <TabsList>
-        <TabsTrigger value="trends">Market Trends</TabsTrigger>
-        <TabsTrigger value="competitors">Competitor Insights</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="trends" className="space-y-4 mt-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Latest Market Trends</h3>
-          <Button variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" /> Refresh Analysis
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <Tabs defaultValue="trends">
+        <TabsList>
+          <TabsTrigger value="trends">
+            <Lightbulb className="h-4 w-4 mr-2" />
+            Industry Trends
+          </TabsTrigger>
+          <TabsTrigger value="competitors">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Competitor Insights
+          </TabsTrigger>
+        </TabsList>
         
-        <div className="grid gap-4 md:grid-cols-2">
-          {isLoadingTrends ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p>Loading trends...</p>
-              </CardContent>
-            </Card>
-          ) : !trends || trends.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p>No trends available.</p>
-              </CardContent>
-            </Card>
+        <TabsContent value="trends" className="space-y-4 pt-4">
+          {trendsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <Skeleton key={i} className="h-[180px] w-full" />
+              ))}
+            </div>
           ) : (
-            trends.map((trend: MarketingTrend) => (
-              <Card key={trend.id} className={trend.relevanceScore > 70 ? "border-green-200" : ""}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{trend.title}</CardTitle>
-                      <CardDescription>
-                        Discovered {format(new Date(trend.discoveredAt), 'MMM dd, yyyy')} • Source: {trend.source}
-                      </CardDescription>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {marketingTrends.map((trend: MarketingTrend) => {
+                // Get the relevance score, handling both property names
+                const relevanceScore = trend.relevance_score ?? (trend as any).relevanceScore ?? 0;
+                
+                return (
+                <Card 
+                  key={trend.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedTrend(trend)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between">
+                      <Badge className="mb-2">{trend.category}</Badge>
+                      <div className={`w-10 h-1 rounded-full ${getRelevanceColor(relevanceScore)}`}></div>
                     </div>
-                    <div>
-                      {getCategoryBadge(trend.category)}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-700 mb-4">{trend.description}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium mr-2">Relevance:</span>
-                      <div className="w-20 h-2 bg-gray-200 rounded-full">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            trend.relevanceScore > 80 ? 'bg-green-500' : 
-                            trend.relevanceScore > 60 ? 'bg-yellow-500' : 
-                            'bg-gray-400'
-                          }`}
-                          style={{ width: `${trend.relevanceScore}%` }}
-                        />
+                    <CardTitle className="text-lg">{trend.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">{trend.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="text-muted-foreground">
+                        <Clock className="h-3 w-3 inline mr-1" />
+                        {trend.discoveredAt ? formatDate(trend.discoveredAt) : "Recent"}
                       </div>
-                      <span className="text-sm ml-2">{trend.relevanceScore}%</span>
+                      <div className="flex items-center">
+                        <span className="text-muted-foreground mr-1">Relevance:</span>
+                        <span className="font-medium">{relevanceScore}/10</span>
+                      </div>
                     </div>
-                    
-                    {trend.actionable && (
-                      <Button size="sm">
-                        <Zap className="h-4 w-4 mr-1" />
-                        Actionable
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {trend.suggestedActions && trend.suggestedActions.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Suggested Actions:</h4>
-                      <ul className="text-sm space-y-1">
-                        {trend.suggestedActions.map((action, idx) => (
-                          <li key={idx} className="flex items-start">
-                            <ChevronRight className="h-4 w-4 mr-1 mt-0.5 text-blue-500" />
-                            {action}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              )})}
+            </div>
           )}
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="competitors" className="space-y-4 mt-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Competitor Insights</h3>
-          <Button variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" /> Refresh Analysis
-          </Button>
-        </div>
+        </TabsContent>
         
-        <div className="grid gap-4 md:grid-cols-2">
-          {isLoadingInsights ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p>Loading competitor insights...</p>
-              </CardContent>
-            </Card>
-          ) : !competitorInsights || competitorInsights.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p>No competitor insights available.</p>
-              </CardContent>
-            </Card>
+        <TabsContent value="competitors" className="space-y-4 pt-4">
+          {insightsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <Skeleton key={i} className="h-[180px] w-full" />
+              ))}
+            </div>
           ) : (
-            competitorInsights.map((insight: CompetitorInsight) => (
-              <Card key={insight.id} className={insight.impact === 'high' ? "border-red-200" : ""}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{insight.competitorName}</CardTitle>
-                      <CardDescription>
-                        Discovered {format(new Date(insight.discoveredAt), 'MMM dd, yyyy')} • Source: {insight.source}
-                      </CardDescription>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {competitorInsights.map((insight: CompetitorInsight) => {
+                // Get the competitor name, handling both property names
+                const competitor = insight.competitor_name ?? (insight as any).competitorName ?? "Unknown";
+                
+                return (
+                <Card 
+                  key={insight.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedInsight(insight)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between">
+                      <Badge variant="outline" className="mb-2">
+                        {competitor}
+                      </Badge>
+                      <div className={`w-10 h-1 rounded-full ${getImpactColor(insight.impact)}`}></div>
                     </div>
-                    <div>
-                      {getImpactBadge(insight.impact)}
+                    <CardTitle className="text-lg">{insight.type}</CardTitle>
+                    <CardDescription className="line-clamp-2">{insight.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="text-muted-foreground">
+                        {insight.discoveredAt && (
+                          <>
+                            <Clock className="h-3 w-3 inline mr-1" />
+                            {formatDate(insight.discoveredAt)}
+                          </>
+                        )}
+                        {insight.source && (
+                          <>
+                            <ExternalLink className="h-3 w-3 inline mx-1" />
+                            {insight.source}
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        <Badge 
+                          variant={
+                            insight.impact === 'high' ? "destructive" : 
+                            insight.impact === 'medium' ? "warning" : 
+                            "success"
+                          }
+                        >
+                          {insight.impact} impact
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-700 mb-4">{insight.description}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <Badge variant="outline" className="capitalize">
-                      {insight.type.replace('_', ' ')}
-                    </Badge>
-                    
-                    <Button size="sm" variant="outline">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                  </div>
-                  
-                  {insight.suggestedResponse && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                      <h4 className="text-sm font-medium flex items-center text-blue-700 mb-1">
-                        <Lightbulb className="h-4 w-4 mr-1" />
-                        Suggested Response:
-                      </h4>
-                      <p className="text-sm text-blue-700">{insight.suggestedResponse}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              )})}
+            </div>
           )}
-        </div>
-      </TabsContent>
-    </Tabs>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Trend Detail Dialog */}
+      {selectedTrend && (
+        <Dialog open={!!selectedTrend} onOpenChange={(open) => !open && setSelectedTrend(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <Badge>{selectedTrend.category}</Badge>
+                <div className="flex items-center">
+                  <span className="text-sm mr-2">Relevance:</span>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2 dark:bg-gray-700" style={{ width: '100px' }}>
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full" 
+                      style={{ 
+                        width: `${(selectedTrend.relevance_score ?? (selectedTrend as any).relevanceScore ?? 0) * 10}%` 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="text-sm font-medium">
+                    {selectedTrend.relevance_score ?? (selectedTrend as any).relevanceScore ?? 0}/10
+                  </span>
+                </div>
+              </div>
+              <DialogTitle className="mt-2">{selectedTrend.title}</DialogTitle>
+              <DialogDescription className="text-base font-normal">
+                {selectedTrend.description}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Source */}
+              {selectedTrend.source && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Source</h4>
+                  <p className="text-sm flex items-center">
+                    <ExternalLink className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {selectedTrend.source}
+                  </p>
+                </div>
+              )}
+              
+              {/* Actionable Status */}
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Status</h4>
+                <Badge variant={selectedTrend.actionable ? "success" : "outline"}>
+                  {selectedTrend.actionable ? "Actionable" : "For awareness"}
+                </Badge>
+              </div>
+              
+              {/* Suggested Actions */}
+              {selectedTrend.suggestedActions && selectedTrend.suggestedActions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Suggested Actions</h4>
+                  <ul className="space-y-2">
+                    {selectedTrend.suggestedActions.map((action, index) => (
+                      <li key={index} className="flex items-start">
+                        <ArrowUpRight className="h-4 w-4 mr-2 mt-0.5 text-green-500" />
+                        <span className="text-sm">{action}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setSelectedTrend(null)}>
+                Close
+              </Button>
+              <Button>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Share with Team
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Competitor Insight Detail Dialog */}
+      {selectedInsight && (
+        <Dialog open={!!selectedInsight} onOpenChange={(open) => !open && setSelectedInsight(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <Badge variant="outline">
+                  {selectedInsight.competitor_name ?? (selectedInsight as any).competitorName ?? "Unknown"}
+                </Badge>
+                <Badge 
+                  variant={
+                    selectedInsight.impact === 'high' ? "destructive" : 
+                    selectedInsight.impact === 'medium' ? "warning" : 
+                    "success"
+                  }
+                >
+                  {selectedInsight.impact} impact
+                </Badge>
+              </div>
+              <DialogTitle className="mt-2">{selectedInsight.type}</DialogTitle>
+              <DialogDescription className="text-base font-normal">
+                {selectedInsight.description}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Source and Discovery */}
+              <div className="flex justify-between text-sm">
+                {selectedInsight.discoveredAt && (
+                  <div>
+                    <h4 className="font-semibold mb-1">Discovered</h4>
+                    <p className="flex items-center text-muted-foreground">
+                      <Clock className="h-4 w-4 mr-1" />
+                      {formatDate(selectedInsight.discoveredAt)}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedInsight.source && (
+                  <div>
+                    <h4 className="font-semibold mb-1">Source</h4>
+                    <p className="flex items-center text-muted-foreground">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      {selectedInsight.source}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Suggested Response */}
+              {selectedInsight.suggestedResponse && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Suggested Response</h4>
+                  <div className="bg-muted p-3 rounded-md text-sm">
+                    {selectedInsight.suggestedResponse}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setSelectedInsight(null)}>
+                Close
+              </Button>
+              <Button>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Discuss Strategy
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 };
 

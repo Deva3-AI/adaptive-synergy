@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,10 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import TeamCostsAnalysis from '@/components/finance/TeamCostsAnalysis';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 const FinancialDashboard = () => {
-  const [period, setPeriod] = useState('monthly');
+  const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const startDate = format(startOfMonth(selectedDate), 'yyyy-MM-dd');
@@ -144,8 +146,8 @@ const FinancialDashboard = () => {
     return (
       <ul>
         {upsellOpportunities.map((opportunity) => (
-          <li key={opportunity.id}>
-            {opportunity.description} - {opportunity.potentialRevenue}
+          <li key={opportunity.clientId}>
+            {opportunity.clientName} - ${opportunity.potentialRevenue.toLocaleString()}
           </li>
         ))}
       </ul>

@@ -1,586 +1,583 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import axios from 'axios';
+import config from '@/config/config';
+import { 
+  Invoice, 
+  FinancialRecord, 
+  FinancialMetrics, 
+  SalesMetrics, 
+  SalesTarget,
+  GrowthForecast,
+  SalesTrend,
+  UpsellOpportunity,
+  FinancialOverview,
+  TeamCostAnalysis
+} from '@/interfaces/finance';
 
-export interface FinancialMetrics {
-  income: number;
-  expenses: number;
-  profit_margin: number;
-  outstanding_invoices: number;
-  monthly_revenue: {
-    month: string;
-    revenue: number;
-  }[];
-  revenue_by_client: {
-    client_id: number;
-    client_name: string;
-    revenue: number;
-  }[];
-}
+const api = axios.create({
+  baseURL: config.apiUrl,
+});
 
-export interface FinancialRecord {
-  record_id: number;
-  record_type: 'expense' | 'income';
-  amount: number;
-  description?: string;
-  record_date: string;
-  created_at: string;
-}
-
-export interface SalesMetrics {
-  monthly_revenue: number;
-  annual_target: number;
-  growth_rate: number;
-  client_acquisition: number;
-  conversion_rate: number;
-  avg_deal_size: number;
-  top_clients: {
-    client_id: number;
-    client_name: string;
-    revenue: number;
-    growth: number;
-  }[];
-  monthly_trend: {
-    month: string;
-    revenue: number;
-    target: number;
-  }[];
-  sales_by_service: {
-    service: string;
-    value: number;
-  }[];
-}
+// Mock data fallbacks for development
+const mockData = {
+  salesTrends: [
+    { date: '2023-01', sales: 12500 },
+    { date: '2023-02', sales: 14000 },
+    { date: '2023-03', sales: 13800 },
+    { date: '2023-04', sales: 15200 },
+    { date: '2023-05', sales: 16500 },
+    { date: '2023-06', sales: 18000 },
+  ],
+  
+  financialRecords: [
+    { record_id: 1, record_type: 'income', amount: 5000, description: 'Client payment', record_date: '2023-05-15', created_at: '2023-05-15', category: 'Sales' },
+    { record_id: 2, record_type: 'expense', amount: 1200, description: 'Office rent', record_date: '2023-05-01', created_at: '2023-05-01', category: 'Office' },
+    { record_id: 3, record_type: 'expense', amount: 500, description: 'Software subscriptions', record_date: '2023-05-05', created_at: '2023-05-05', category: 'Software' },
+  ]
+};
 
 const financeService = {
-  getInvoices: async (status?: string) => {
+  // Invoice management
+  getInvoices: async (status?: string): Promise<any> => {
     try {
-      let query = supabase.from('invoices').select(`
-        invoice_id,
-        client_id,
-        clients (client_name),
-        invoice_number,
-        amount,
-        due_date,
-        status,
-        created_at
-      `);
-      
-      if (status) {
-        query = query.eq('status', status);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data;
+      const response = await api.get(`/finance/invoices${status ? `?status=${status}` : ''}`);
+      return response.data;
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      throw error;
+      return [];
     }
   },
-  
-  getInvoiceDetails: async (invoiceId: number) => {
+
+  getInvoiceDetails: async (invoiceId: number): Promise<any> => {
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          invoice_id,
-          client_id,
-          clients (client_name),
-          invoice_number,
-          amount,
-          due_date,
-          status,
-          created_at
-        `)
-        .eq('invoice_id', invoiceId)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      const response = await api.get(`/finance/invoices/${invoiceId}`);
+      return response.data;
     } catch (error) {
       console.error(`Error fetching invoice ${invoiceId}:`, error);
-      throw error;
+      return null;
     }
   },
-  
-  createInvoice: async (invoiceData: any) => {
+
+  createInvoice: async (invoiceData: any): Promise<any> => {
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .insert(invoiceData)
-        .select();
-      
-      if (error) throw error;
-      return data;
+      const response = await api.post('/finance/invoices', invoiceData);
+      return response.data;
     } catch (error) {
       console.error('Error creating invoice:', error);
       throw error;
     }
   },
-  
-  updateInvoiceStatus: async (invoiceId: number, status: string) => {
+
+  updateInvoiceStatus: async (invoiceId: number, status: string): Promise<any> => {
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .update({ status })
-        .eq('invoice_id', invoiceId)
-        .select();
-      
-      if (error) throw error;
-      return data;
+      const response = await api.patch(`/finance/invoices/${invoiceId}`, { status });
+      return response.data;
     } catch (error) {
-      console.error(`Error updating invoice ${invoiceId} status:`, error);
+      console.error(`Error updating invoice ${invoiceId}:`, error);
       throw error;
     }
   },
-  
-  getRevenueReports: async (startDate?: string, endDate?: string) => {
-    // Mock implementation
-    return [];
-  },
-  
-  getExpenseReports: async (startDate?: string, endDate?: string) => {
-    // Mock implementation
-    return [];
-  },
-  
-  // Add missing methods
-  
-  getFinancialRecords: async () => {
+
+  sendInvoiceReminder: async (invoiceId: number): Promise<any> => {
     try {
-      const { data, error } = await supabase
-        .from('financial_records')
-        .select('*')
-        .order('record_date', { ascending: false });
+      const response = await api.post(`/finance/invoices/${invoiceId}/reminder`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error sending reminder for invoice ${invoiceId}:`, error);
+      throw error;
+    }
+  },
+
+  // Financial records
+  getFinancialRecords: async (type?: 'income' | 'expense', startDate?: string, endDate?: string): Promise<any> => {
+    try {
+      let url = '/finance/records';
+      const params = new URLSearchParams();
       
-      if (error) throw error;
-      return data as FinancialRecord[];
+      if (type) params.append('type', type);
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await api.get(url);
+      return response.data;
     } catch (error) {
       console.error('Error fetching financial records:', error);
-      throw error;
+      return mockData.financialRecords;
     }
   },
-  
-  createFinancialRecord: async (recordData: Omit<FinancialRecord, 'record_id' | 'created_at'>) => {
+
+  createFinancialRecord: async (recordData: Partial<FinancialRecord>): Promise<any> => {
     try {
-      const { data, error } = await supabase
-        .from('financial_records')
-        .insert(recordData)
-        .select();
-      
-      if (error) throw error;
-      return data;
+      const response = await api.post('/finance/records', recordData);
+      return response.data;
     } catch (error) {
       console.error('Error creating financial record:', error);
       throw error;
     }
   },
-  
-  sendInvoiceReminder: async (invoiceId: number) => {
-    // Mock implementation for sending reminders
-    console.log(`Reminder sent for invoice ${invoiceId}`);
-    return { success: true, message: 'Reminder sent successfully' };
-  },
-  
-  getFinancialOverview: async (startDate?: string, endDate?: string) => {
-    // Mock implementation
-    return {
-      totalRevenue: 257800,
-      totalExpenses: 189400,
-      netProfit: 68400,
-      profitMargin: 26.5,
-      outstandingInvoices: 48200,
-      cashFlow: {
-        inflow: 233000,
-        outflow: 176500,
-        net: 56500
+
+  // Reports
+  getRevenueReports: async (startDate?: string, endDate?: string): Promise<any> => {
+    try {
+      let url = '/finance/reports/revenue';
+      if (startDate && endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
       }
-    };
+      
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching revenue reports:', error);
+      return {};
+    }
   },
-  
-  getFinancialMetrics: async (): Promise<FinancialMetrics> => {
-    // Mock implementation
-    return {
-      income: 286000,
-      expenses: 189000,
-      profit_margin: 33.9,
-      outstanding_invoices: 52400,
-      monthly_revenue: [
-        { month: 'Jan', revenue: 42000 },
-        { month: 'Feb', revenue: 38000 },
-        { month: 'Mar', revenue: 44000 },
-        { month: 'Apr', revenue: 52000 },
-        { month: 'May', revenue: 47000 },
-        { month: 'Jun', revenue: 63000 }
-      ],
-      revenue_by_client: [
-        { client_id: 1, client_name: 'Acme Corp', revenue: 78000 },
-        { client_id: 2, client_name: 'Globex', revenue: 63000 },
-        { client_id: 3, client_name: 'Stark Industries', revenue: 52000 },
-        { client_id: 4, client_name: 'Wayne Enterprises', revenue: 48000 },
-        { client_id: 5, client_name: 'Cyberdyne Systems', revenue: 45000 }
-      ]
-    };
-  },
-  
-  getUpsellOpportunities: async () => {
-    // Mock implementation
-    return [
-      {
-        client_id: 1,
-        client_name: 'Acme Corp',
-        current_services: ['Web Design', 'SEO'],
-        recommended_services: ['Email Marketing', 'Social Media Management'],
-        potential_revenue: 18000,
-        confidence_score: 0.87,
-        reason: 'Client has shown interest in expanding their digital presence'
-      },
-      {
-        client_id: 3,
-        client_name: 'Stark Industries',
-        current_services: ['UI/UX Design', 'Web Development'],
-        recommended_services: ['Mobile App Development', 'Maintenance Package'],
-        potential_revenue: 25000,
-        confidence_score: 0.91,
-        reason: 'Client needs a mobile app based on their website success'
+
+  getExpenseReports: async (startDate?: string, endDate?: string): Promise<any> => {
+    try {
+      let url = '/finance/reports/expenses';
+      if (startDate && endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
       }
-    ];
+      
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching expense reports:', error);
+      return {};
+    }
   },
-  
-  getSalesMetrics: async (): Promise<SalesMetrics> => {
-    // Mock implementation
-    return {
-      monthly_revenue: 63000,
-      annual_target: 750000,
-      growth_rate: 18.5,
-      client_acquisition: 4,
-      conversion_rate: 24,
-      avg_deal_size: 15750,
-      top_clients: [
-        { client_id: 1, client_name: 'Acme Corp', revenue: 78000, growth: 12.5 },
-        { client_id: 2, client_name: 'Globex', revenue: 63000, growth: 8.2 },
-        { client_id: 3, client_name: 'Stark Industries', revenue: 52000, growth: 15.6 }
-      ],
-      monthly_trend: [
-        { month: 'Jan', revenue: 42000, target: 58000 },
-        { month: 'Feb', revenue: 38000, target: 58000 },
-        { month: 'Mar', revenue: 44000, target: 60000 },
-        { month: 'Apr', revenue: 52000, target: 60000 },
-        { month: 'May', revenue: 47000, target: 62000 },
-        { month: 'Jun', revenue: 63000, target: 62000 }
-      ],
-      sales_by_service: [
-        { service: 'Web Design', value: 128000 },
-        { service: 'Development', value: 95000 },
-        { service: 'Marketing', value: 86000 },
-        { service: 'Maintenance', value: 38000 },
-        { service: 'Consulting', value: 43000 }
-      ]
-    };
-  },
-  
-  analyzeTeamCosts: async (period: string = 'month') => {
-    // Mock implementation
-    return {
-      totalCost: 125000,
-      departmentBreakdown: [
-        { name: 'Design', value: 45000 },
-        { name: 'Development', value: 35000 },
-        { name: 'Marketing', value: 25000 },
-        { name: 'Management', value: 20000 }
-      ],
-      roleBreakdown: [
-        { name: 'Junior', value: 30000 },
-        { name: 'Mid-level', value: 45000 },
-        { name: 'Senior', value: 35000 },
-        { name: 'Lead', value: 15000 }
-      ],
-      monthlyTrend: [
-        { name: 'Jan', cost: 110000 },
-        { name: 'Feb', cost: 115000 },
-        { name: 'Mar', cost: 120000 },
-        { name: 'Apr', cost: 125000 },
-        { name: 'May', cost: 122000 },
-        { name: 'Jun', cost: 126000 }
-      ],
-      efficiencyMetrics: {
-        costPerTask: 450,
-        costPerTaskByDepartment: [
-          { name: 'Design', value: 500 },
-          { name: 'Development', value: 600 },
-          { name: 'Marketing', value: 350 },
-          { name: 'Management', value: 250 }
+
+  // Financial metrics and analytics
+  getFinancialMetrics: async (period: string = 'monthly'): Promise<FinancialMetrics> => {
+    try {
+      const response = await api.get(`/finance/metrics?period=${period}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching financial metrics:', error);
+      return {
+        totalRevenue: 85000,
+        totalExpenses: 45000,
+        netProfit: 40000,
+        profitMargin: 47,
+        monthlyGrowth: 5.2,
+        averageInvoiceValue: 2500,
+        outstandingInvoices: 15000,
+        cashFlow: [
+          { month: 'Jan', income: 12000, expense: 8000, net: 4000 },
+          { month: 'Feb', income: 15000, expense: 9000, net: 6000 },
+          { month: 'Mar', income: 18000, expense: 10000, net: 8000 },
+          { month: 'Apr', income: 20000, expense: 11000, net: 9000 },
+          { month: 'May', income: 22000, expense: 12000, net: 10000 },
+          { month: 'Jun', income: 25000, expense: 13000, net: 12000 },
         ]
-      }
-    };
+      };
+    }
   },
-  
-  // Sales-related methods
-  getSalesFollowUps: async () => {
-    // Mock implementation
-    return [
-      {
-        id: 1,
-        client_id: 1,
-        client_name: 'Acme Corp',
-        contact_name: 'John Doe',
-        contact_email: 'john@acme.com',
-        due_date: '2023-07-15',
-        status: 'pending',
-        notes: 'Follow up on proposal feedback'
-      },
-      {
-        id: 2,
-        client_id: 3,
-        client_name: 'Stark Industries',
-        contact_name: 'Tony Stark',
-        contact_email: 'tony@stark.com',
-        due_date: '2023-07-18',
-        status: 'pending',
-        notes: 'Send revised quote'
-      }
-    ];
+
+  getFinancialOverview: async (): Promise<FinancialOverview> => {
+    try {
+      const response = await api.get('/finance/overview');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching financial overview:', error);
+      return {
+        totalRevenue: 85000,
+        totalExpenses: 45000,
+        netProfit: 40000,
+        profitMargin: 47,
+        revenueGrowth: 5.2,
+        expenseGrowth: 3.1,
+        topExpenseCategories: [
+          { category: 'Salaries', amount: 25000, percentage: 55 },
+          { category: 'Office Space', amount: 10000, percentage: 22 },
+          { category: 'Software', amount: 5000, percentage: 11 },
+          { category: 'Marketing', amount: 3000, percentage: 7 },
+          { category: 'Other', amount: 2000, percentage: 5 },
+        ],
+        revenueByClient: [
+          { client: 'Acme Inc', amount: 25000, percentage: 29 },
+          { client: 'Globex Corp', amount: 20000, percentage: 24 },
+          { client: 'Initech', amount: 15000, percentage: 18 },
+          { client: 'Umbrella Corp', amount: 10000, percentage: 12 },
+          { client: 'Others', amount: 15000, percentage: 17 },
+        ],
+        cashflow: [
+          { month: 'Jan', income: 12000, expense: 8000, net: 4000 },
+          { month: 'Feb', income: 15000, expense: 9000, net: 6000 },
+          { month: 'Mar', income: 18000, expense: 10000, net: 8000 },
+          { month: 'Apr', income: 20000, expense: 11000, net: 9000 },
+          { month: 'May', income: 22000, expense: 12000, net: 10000 },
+          { month: 'Jun', income: 25000, expense: 13000, net: 12000 },
+        ]
+      };
+    }
   },
-  
-  getImprovementSuggestions: async () => {
-    // Mock implementation
-    return [
-      {
-        id: 1,
-        category: 'Process',
-        suggestion: 'Streamline the proposal approval process',
-        impact: 'high',
-        implementation_difficulty: 'medium',
-        expected_benefit: 'Reduce sales cycle by 20%'
-      },
-      {
-        id: 2,
-        category: 'Pricing',
-        suggestion: 'Introduce tiered pricing options',
-        impact: 'medium',
-        implementation_difficulty: 'low',
-        expected_benefit: 'Increase average deal size by 15%'
-      }
-    ];
+
+  // Team cost analysis
+  analyzeTeamCosts: async (period: string = 'monthly'): Promise<TeamCostAnalysis> => {
+    try {
+      const response = await api.get(`/finance/team-costs?period=${period}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error analyzing team costs:', error);
+      return {
+        totalCost: 45000,
+        breakdown: [
+          { department: 'Development', cost: 20000, percentage: 44 },
+          { department: 'Design', cost: 8000, percentage: 18 },
+          { department: 'Marketing', cost: 7000, percentage: 16 },
+          { department: 'Management', cost: 6000, percentage: 13 },
+          { department: 'Customer Support', cost: 4000, percentage: 9 },
+        ],
+        trends: [
+          { month: 'Jan', cost: 40000 },
+          { month: 'Feb', cost: 41000 },
+          { month: 'Mar', cost: 42000 },
+          { month: 'Apr', cost: 43000 },
+          { month: 'May', cost: 44000 },
+          { month: 'Jun', cost: 45000 },
+        ]
+      };
+    }
   },
-  
-  completeFollowUp: async (followUpId: number) => {
-    // Mock implementation
-    return { success: true, message: `Follow-up #${followUpId} marked as completed` };
-  },
-  
-  getSalesGrowthData: async () => {
-    // Mock implementation
-    return {
-      current_quarter: {
-        revenue: 235000,
-        growth: 18.5,
-        new_clients: 6
-      },
-      historical: [
-        { quarter: 'Q1 2023', revenue: 198000, growth: 12.1, new_clients: 4 },
-        { quarter: 'Q2 2023', revenue: 215000, growth: 8.5, new_clients: 3 },
-        { quarter: 'Q3 2023', revenue: 235000, growth: 9.3, new_clients: 5 }
-      ]
-    };
-  },
-  
-  getSalesTargets: async () => {
-    // Mock implementation
-    return {
-      annual: 950000,
-      quarterly: 250000,
-      monthly: 83333,
-      progress: {
-        annual: { target: 950000, actual: 648000, percent: 68.2 },
-        quarterly: { target: 250000, actual: 235000, percent: 94.0 },
-        monthly: { target: 83333, actual: 78000, percent: 93.6 }
-      }
-    };
-  },
-  
-  getGrowthForecast: async () => {
-    // Mock implementation
-    return {
-      next_quarter: {
-        predicted_revenue: 258000,
-        growth_rate: 9.8,
-        probability: 0.85,
-        factors: ['Seasonal increase', 'New product launches', 'Marketing campaign']
-      },
-      next_year: {
-        predicted_revenue: 1120000,
-        growth_rate: 17.9,
-        probability: 0.72,
-        scenarios: {
-          optimistic: { revenue: 1250000, growth: 31.6 },
-          realistic: { revenue: 1120000, growth: 17.9 },
-          conservative: { revenue: 1050000, growth: 10.5 }
+
+  // Upsell opportunities
+  getUpsellOpportunities: async (): Promise<UpsellOpportunity[]> => {
+    try {
+      const response = await api.get('/finance/upsell-opportunities');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching upsell opportunities:', error);
+      return [
+        {
+          clientId: 1,
+          clientName: 'Acme Inc',
+          currentServices: ['Web Development', 'Design'],
+          recommendedServices: ['SEO', 'Content Marketing'],
+          potentialRevenue: 5000,
+          probability: 75
+        },
+        {
+          clientId: 2,
+          clientName: 'Globex Corp',
+          currentServices: ['Mobile App Development'],
+          recommendedServices: ['Web Development', 'UI/UX Design'],
+          potentialRevenue: 8000,
+          probability: 60
+        },
+        {
+          clientId: 3,
+          clientName: 'Initech',
+          currentServices: ['SEO', 'PPC'],
+          recommendedServices: ['Social Media Marketing', 'Email Marketing'],
+          potentialRevenue: 3500,
+          probability: 80
         }
-      }
-    };
+      ];
+    }
   },
-  
-  getWeeklyReports: async () => {
-    // Mock implementation
-    return [
-      {
-        week: 'Jul 3-9, 2023',
-        new_leads: 18,
-        meetings_scheduled: 8,
-        proposals_sent: 5,
-        deals_closed: 3,
-        revenue: 42000,
-        highlights: [
-          'Closed major deal with XYZ Corp',
-          'Increased email campaign open rate by 15%'
-        ]
-      },
-      {
-        week: 'Jul 10-16, 2023',
-        new_leads: 14,
-        meetings_scheduled: 6,
-        proposals_sent: 4,
-        deals_closed: 2,
-        revenue: 35000,
-        highlights: [
-          'New partnership with ABC Marketing',
-          'Reduced proposal turnaround time by 30%'
-        ]
-      }
-    ];
-  },
-  
-  getMonthlyReports: async () => {
-    // Mock implementation
-    return [
-      {
-        month: 'June 2023',
-        new_leads: 64,
-        meetings_scheduled: 32,
-        proposals_sent: 18,
-        deals_closed: 12,
-        revenue: 175000,
-        highlights: [
-          'Exceeded monthly target by 5%',
-          'Successfully launched new service package'
+
+  // Sales metrics and analytics
+  getSalesMetrics: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<SalesMetrics> => {
+    try {
+      const response = await api.get(`/finance/sales/metrics?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales metrics:', error);
+      return {
+        totalSales: 75000,
+        salesGrowth: 12.5,
+        conversionRate: 15,
+        customerAcquisitionCost: 350,
+        averageSaleValue: 2500,
+        newCustomers: 12,
+        customerGrowth: 7.5,
+        conversionGrowth: 5,
+        averageSaleGrowth: 8.5,
+        salesByChannel: [
+          { channel: 'Direct', amount: 30000, percentage: 40 },
+          { channel: 'Referral', amount: 22500, percentage: 30 },
+          { channel: 'Online', amount: 15000, percentage: 20 },
+          { channel: 'Other', amount: 7500, percentage: 10 },
         ],
-        challenges: [
-          'Increasing competition in enterprise sector',
-          'Longer decision cycles with government clients'
+        topProducts: [
+          { name: 'Web Development', sales: 15, revenue: 25000 },
+          { name: 'Mobile Apps', sales: 8, revenue: 20000 },
+          { name: 'UI/UX Design', sales: 12, revenue: 15000 },
+          { name: 'SEO Services', sales: 10, revenue: 10000 },
+          { name: 'Content Creation', sales: 5, revenue: 5000 },
         ]
-      },
-      {
-        month: 'May 2023',
-        new_leads: 58,
-        meetings_scheduled: 28,
-        proposals_sent: 15,
-        deals_closed: 9,
-        revenue: 152000,
-        highlights: [
-          'Implemented new CRM automation',
-          'Highest client satisfaction score to date'
+      };
+    }
+  },
+
+  getSalesTrends: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<SalesTrend[]> => {
+    try {
+      const response = await api.get(`/finance/sales/trends?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales trends:', error);
+      return mockData.salesTrends;
+    }
+  },
+
+  getSalesByChannel: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<any> => {
+    try {
+      const response = await api.get(`/finance/sales/by-channel?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales by channel:', error);
+      return [
+        { name: 'Direct', value: 40 },
+        { name: 'Referral', value: 30 },
+        { name: 'Online', value: 20 },
+        { name: 'Other', value: 10 },
+      ];
+    }
+  },
+
+  getTopProducts: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<any> => {
+    try {
+      const response = await api.get(`/finance/sales/top-products?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching top products:', error);
+      return [
+        { name: 'Web Development', value: 35 },
+        { name: 'Mobile Apps', value: 25 },
+        { name: 'UI/UX Design', value: 20 },
+        { name: 'SEO Services', value: 15 },
+        { name: 'Content Creation', value: 5 },
+      ];
+    }
+  },
+
+  getSalesGrowthData: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<any> => {
+    try {
+      const response = await api.get(`/finance/sales/growth?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales growth data:', error);
+      return {
+        trends: [
+          { date: '2023-01', actual: 12000, target: 13000 },
+          { date: '2023-02', actual: 14000, target: 14000 },
+          { date: '2023-03', actual: 15500, target: 15000 },
+          { date: '2023-04', actual: 16000, target: 16000 },
+          { date: '2023-05', actual: 17500, target: 17000 },
+          { date: '2023-06', actual: 19000, target: 18000 },
         ],
-        challenges: [
-          'Team capacity constraints',
-          'Delayed product feature release'
+        currentPeriod: {
+          revenueGrowth: 8.5,
+          customerGrowth: 5.2
+        },
+        growthDrivers: [
+          { factor: 'New Clients', impact: 35, performance: 'positive' },
+          { factor: 'Upselling', impact: 25, performance: 'positive' },
+          { factor: 'Pricing Strategy', impact: 20, performance: 'neutral' },
+          { factor: 'Market Expansion', impact: 15, performance: 'positive' },
+          { factor: 'Retention Rate', impact: 5, performance: 'negative' },
         ]
-      }
-    ];
+      };
+    }
   },
-  
-  getSalesTrends: async () => {
-    // Mock implementation
-    return {
-      conversion_rates: [
-        { stage: 'Lead to Meeting', rate: 42, change: 3.5 },
-        { stage: 'Meeting to Proposal', rate: 65, change: -2.1 },
-        { stage: 'Proposal to Deal', rate: 38, change: 4.8 }
-      ],
-      sales_cycle: {
-        average_days: 48,
-        by_size: [
-          { deal_size: 'Small (<$10k)', days: 32 },
-          { deal_size: 'Medium ($10k-$50k)', days: 46 },
-          { deal_size: 'Large (>$50k)', days: 78 }
+
+  getSalesTargets: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<SalesTarget[]> => {
+    try {
+      const response = await api.get(`/finance/sales/targets?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales targets:', error);
+      return [
+        { id: 1, category: 'Total Revenue', current: 85000, target: 100000, percentage: 85 },
+        { id: 2, category: 'New Clients', current: 12, target: 15, percentage: 80 },
+        { id: 3, category: 'Client Retention', current: 95, target: 95, percentage: 100 },
+        { id: 4, category: 'Average Deal Size', current: 2500, target: 3000, percentage: 83 },
+      ];
+    }
+  },
+
+  getGrowthForecast: async (dateRange: 'week' | 'month' | 'quarter' | 'year'): Promise<GrowthForecast> => {
+    try {
+      const response = await api.get(`/finance/sales/forecast?range=${dateRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching growth forecast:', error);
+      return {
+        chart: [
+          { month: 'Jul', projected: 20000, target: 19000 },
+          { month: 'Aug', projected: 22000, target: 20000 },
+          { month: 'Sep', projected: 24000, target: 21000 },
+          { month: 'Oct', projected: 25000, target: 22000 },
+          { month: 'Nov', projected: 27000, target: 23000 },
+          { month: 'Dec', projected: 30000, target: 24000 },
+        ],
+        insights: [
+          { type: 'trend', text: 'Projected 15% growth in Q3 based on current client acquisition rate.' },
+          { type: 'trend', text: 'Upselling opportunities could increase revenue by additional 8% in Q4.' },
+          { type: 'warning', text: 'Market volatility may impact projections if economic conditions change.' },
+          { type: 'trend', text: 'Seasonal boost expected in November-December period.' },
         ]
-      },
-      seasonal_patterns: [
-        { quarter: 'Q1', strength: 'moderate', trending: 'stable' },
-        { quarter: 'Q2', strength: 'strong', trending: 'up' },
-        { quarter: 'Q3', strength: 'weak', trending: 'down' },
-        { quarter: 'Q4', strength: 'very strong', trending: 'up' }
-      ]
-    };
+      };
+    }
   },
-  
-  getSalesByChannel: async () => {
-    // Mock implementation
-    return {
-      channels: [
-        { name: 'Direct Sales', revenue: 420000, deals: 28, avg_deal: 15000 },
-        { name: 'Partner Referrals', revenue: 285000, deals: 15, avg_deal: 19000 },
-        { name: 'Inbound Marketing', revenue: 195000, deals: 22, avg_deal: 8864 },
-        { name: 'Events', revenue: 120000, deals: 8, avg_deal: 15000 }
-      ],
-      growth_by_channel: [
-        { name: 'Direct Sales', growth: 12.5 },
-        { name: 'Partner Referrals', growth: 24.8 },
-        { name: 'Inbound Marketing', growth: 18.3 },
-        { name: 'Events', growth: 6.2 }
-      ]
-    };
+
+  // Sales follow-ups
+  getSalesFollowUps: async (): Promise<any> => {
+    try {
+      const response = await api.get('/finance/sales/follow-ups');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales follow-ups:', error);
+      return [
+        { id: 1, clientName: 'Acme Inc', contactPerson: 'John Smith', email: 'john@acme.com', phone: '123-456-7890', type: 'call', dueDate: '2023-06-15', notes: 'Discuss new project proposal', status: 'pending' },
+        { id: 2, clientName: 'Globex Corp', contactPerson: 'Jane Doe', email: 'jane@globex.com', phone: '123-456-7891', type: 'email', dueDate: '2023-06-14', notes: 'Send updated quote for website redesign', status: 'pending' },
+        { id: 3, clientName: 'Initech', contactPerson: 'Mike Johnson', email: 'mike@initech.com', phone: '123-456-7892', type: 'meeting', dueDate: '2023-06-18', notes: 'Present marketing proposal', status: 'pending' },
+        { id: 4, clientName: 'Umbrella Corp', contactPerson: 'Sarah Williams', email: 'sarah@umbrella.com', phone: '123-456-7893', type: 'call', dueDate: '2023-06-12', notes: 'Follow up on previous discussion', status: 'pending' },
+      ];
+    }
   },
-  
-  getTopProducts: async () => {
-    // Mock implementation
-    return {
-      services: [
-        { name: 'Web App Development', revenue: 320000, deals: 18, growth: 15.2 },
-        { name: 'UX/UI Design', revenue: 280000, deals: 24, growth: 12.8 },
-        { name: 'Digital Marketing', revenue: 220000, deals: 19, growth: 18.5 },
-        { name: 'Maintenance Plans', revenue: 150000, deals: 25, growth: 5.3 }
-      ],
-      bundles: [
-        { name: 'Complete Digital Presence', revenue: 180000, deals: 6, growth: 28.5 },
-        { name: 'E-commerce Starter', revenue: 135000, deals: 9, growth: 22.7 },
-        { name: 'Enterprise Solution', revenue: 210000, deals: 3, growth: 15.0 }
-      ]
-    };
+
+  completeFollowUp: async (followUpId: number, feedback: string): Promise<any> => {
+    try {
+      const response = await api.patch(`/finance/sales/follow-ups/${followUpId}/complete`, { feedback });
+      return response.data;
+    } catch (error) {
+      console.error(`Error completing follow-up ${followUpId}:`, error);
+      throw error;
+    }
   },
-  
-  getFinancialPlans: async () => {
-    // Mock implementation
-    return [
-      {
-        id: 1,
-        title: 'Q3 2023 Cost Optimization',
-        description: 'Strategic plan to reduce operational costs while maintaining service quality',
-        goals: [
-          'Reduce non-essential expenditure by 15%',
-          'Optimize resource allocation across departments',
-          'Improve cash flow management'
-        ],
-        status: 'active',
-        progress: 45,
-        owner: 'Jane Smith',
-        due_date: '2023-09-30'
-      },
-      {
-        id: 2,
-        title: 'Revenue Growth Strategy 2023-2024',
-        description: 'Comprehensive plan to increase revenue through multiple channels',
-        goals: [
-          'Increase monthly recurring revenue by 25%',
-          'Expand client base in enterprise sector',
-          'Launch 2 new service offerings'
-        ],
-        status: 'planning',
-        progress: 15,
-        owner: 'Michael Johnson',
-        due_date: '2024-06-30'
-      }
-    ];
+
+  getImprovementSuggestions: async (): Promise<any> => {
+    try {
+      const response = await api.get('/finance/sales/improvement-suggestions');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching improvement suggestions:', error);
+      return [
+        { id: 1, title: 'Optimize Follow-up Timing', description: 'Data shows 30% higher conversion when follow-ups occur within 48 hours of initial contact.', priority: 'high' },
+        { id: 2, title: 'Segment Client Communications', description: 'Tailoring messages by industry has increased engagement by 25% for similar businesses.', priority: 'medium' },
+        { id: 3, title: 'Implement Case Study Sharing', description: 'Sharing relevant case studies during pitches has shown 40% improvement in closing rates.', priority: 'medium' },
+        { id: 4, title: 'Develop Value-Based Pricing', description: 'Shifting from hourly to value-based pricing could increase average deal size by 20%.', priority: 'high' },
+      ];
+    }
+  },
+
+  // Sales reports
+  getWeeklyReports: async (): Promise<any> => {
+    try {
+      const response = await api.get('/finance/sales/reports/weekly');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching weekly sales reports:', error);
+      return [
+        { 
+          id: 1, 
+          title: 'Weekly Performance Report', 
+          period: 'June 5-11, 2023', 
+          sales: 18500, 
+          target: 20000, 
+          progress: 93,
+          performanceData: [
+            { day: 'Mon', sales: 3200 },
+            { day: 'Tue', sales: 3800 },
+            { day: 'Wed', sales: 3500 },
+            { day: 'Thu', sales: 2900 },
+            { day: 'Fri', sales: 5100 },
+          ],
+          metrics: {
+            conversionRate: 18,
+            prevConversionRate: 15,
+            avgSaleValue: 2300,
+            prevAvgSaleValue: 2100,
+            newLeads: 25,
+            prevNewLeads: 22,
+            closedDeals: 8,
+            prevClosedDeals: 7
+          }
+        },
+        { 
+          id: 2, 
+          title: 'Previous Week', 
+          period: 'May 29-June 4, 2023', 
+          sales: 17200, 
+          target: 19000, 
+          progress: 91 
+        },
+        { 
+          id: 3, 
+          title: '2 Weeks Ago', 
+          period: 'May 22-28, 2023', 
+          sales: 16800, 
+          target: 18000, 
+          progress: 93 
+        },
+      ];
+    }
+  },
+
+  getMonthlyReports: async (): Promise<any> => {
+    try {
+      const response = await api.get('/finance/sales/reports/monthly');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching monthly sales reports:', error);
+      return [
+        { 
+          id: 1, 
+          title: 'June 2023 Performance', 
+          period: 'June 2023', 
+          sales: 85000, 
+          target: 90000, 
+          progress: 94,
+          yearlyTrend: [
+            { month: 'Jul 22', sales: 65000 },
+            { month: 'Aug 22', sales: 68000 },
+            { month: 'Sep 22', sales: 70000 },
+            { month: 'Oct 22', sales: 72000 },
+            { month: 'Nov 22', sales: 75000 },
+            { month: 'Dec 22', sales: 78000 },
+            { month: 'Jan 23', sales: 72000 },
+            { month: 'Feb 23', sales: 75000 },
+            { month: 'Mar 23', sales: 78000 },
+            { month: 'Apr 23', sales: 80000 },
+            { month: 'May 23', sales: 82000 },
+            { month: 'Jun 23', sales: 85000 },
+          ]
+        },
+        { 
+          id: 2, 
+          title: 'May 2023 Performance', 
+          period: 'May 2023', 
+          sales: 82000, 
+          target: 85000, 
+          progress: 96 
+        },
+        { 
+          id: 3, 
+          title: 'April 2023 Performance', 
+          period: 'April 2023', 
+          sales: 80000, 
+          target: 82000, 
+          progress: 98 
+        },
+      ];
+    }
+  },
+
+  // Financial plans & projections
+  getFinancialPlans: async (): Promise<any> => {
+    try {
+      const response = await api.get('/finance/plans');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching financial plans:', error);
+      return [];
+    }
   }
 };
 

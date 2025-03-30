@@ -156,6 +156,27 @@ const marketingService = {
       console.error('Error analyzing meeting transcript:', error);
       throw error;
     }
+  },
+  
+  // Campaigns
+  getCampaigns: async () => {
+    try {
+      const response = await api.get('/marketing/campaigns');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      return [];
+    }
+  },
+
+  createCampaign: async (campaignData: any) => {
+    try {
+      const response = await api.post('/marketing/campaigns', campaignData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      throw error;
+    }
   }
 };
 
