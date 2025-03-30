@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ interface DashboardCardProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   badgeText?: string;
-  badgeVariant?: "default" | "secondary" | "outline" | "accent" | "success" | "warning" | "danger";
+  badgeVariant?: "default" | "secondary" | "destructive" | "outline" | "success" | "accent" | "warning" | "danger";
   className?: string;
   isGlass?: boolean;
 }

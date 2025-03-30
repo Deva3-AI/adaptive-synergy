@@ -10,6 +10,7 @@ export interface Attendance {
   work_date: string;
   total_hours?: number;
   status?: string;
+  employee_name?: string;
 }
 
 export interface Payslip {
@@ -47,6 +48,7 @@ export interface JobPosting {
   status: 'active' | 'filled' | 'closed' | 'open';
   applications_count?: number;
   platform?: string;
+  created_at?: string;
 }
 
 export interface JobCandidate {
@@ -82,6 +84,7 @@ export interface HRTask {
   created_at?: string;
   updated_at?: string;
   category?: string;
+  due_date?: string;
 }
 
 export const hrService = {
