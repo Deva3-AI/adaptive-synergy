@@ -1,11 +1,11 @@
-
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UploadCloud, File, Download, FileText, Image, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useDropzone } from 'react-dropzone';
-import { taskService, TaskAttachment } from '@/services/api';
+import { TaskAttachment } from '@/services/api';
+import taskService from '@/services/api/taskService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
 import { formatFileSize, formatDate } from '@/utils/formatters';
@@ -21,19 +21,16 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
   
   const queryClient = useQueryClient();
   
-  // Fetch task attachments
   const { data: attachments, isLoading } = useQuery({
     queryKey: ['task-attachments', taskId],
     queryFn: () => taskService.getTaskAttachments(taskId)
   });
   
-  // Upload attachment mutation
   const uploadMutation = useMutation({
     mutationFn: (file: File) => {
       setIsUploading(true);
       setUploadProgress(0);
       
-      // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 95) {
@@ -63,7 +60,6 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
     }
   });
   
-  // Handle file drop
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       uploadMutation.mutate(acceptedFiles[0]);
@@ -76,7 +72,6 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
     maxSize: 10485760 // 10MB
   });
   
-  // Get file icon based on file type
   const getFileIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
       return <Image className="h-6 w-6" />;
@@ -94,7 +89,6 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
         <CardDescription>Upload and manage files related to this task</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* File Upload Area */}
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -119,7 +113,6 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
           )}
         </div>
         
-        {/* Attachments List */}
         {isLoading ? (
           <div className="text-center py-4">
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
@@ -154,7 +147,6 @@ const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, use
                   size="icon"
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => {
-                    // In a real app, this would download the file
                     window.open(attachment.url, '_blank');
                   }}
                 >

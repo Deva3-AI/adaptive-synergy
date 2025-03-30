@@ -8,7 +8,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { BarChart, LineChart, PieChart, DonutChart } from "@/components/ui/charts";
 import { BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { taskService, TaskStatistics } from '@/services/api';
+import taskService from '@/services/api/taskService';
+import { TaskStatistics } from '@/services/api/taskService';
 import { formatPercentage, formatDuration } from '@/utils/formatters';
 
 interface TaskProgressInsightsProps {
@@ -131,7 +132,11 @@ export const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ user
           
           <TabsContent value="distribution" className="mt-0">
             <div className="h-80">
-              <PieChart data={taskDistributionData} />
+              <PieChart 
+                data={taskDistributionData}
+                nameKey="name"
+                dataKey="value"
+              />
             </div>
           </TabsContent>
           
@@ -146,10 +151,9 @@ export const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ user
               <LineChart 
                 data={monthlyTrendsForChart} 
                 xAxisKey="name"
-                series={[
-                  { key: "Completed", color: "hsl(var(--primary))" },
-                  { key: "Assigned", color: "hsl(var(--muted-foreground))" }
-                ]}
+                yAxisKey="Completed"
+                categories={["Completed", "Assigned"]}
+                colors={["hsl(var(--primary))", "hsl(var(--muted-foreground))"]}
               />
             </div>
           </TabsContent>

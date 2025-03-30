@@ -2,124 +2,112 @@
 import { supabase } from '@/integrations/supabase/client';
 import { apiRequest } from '@/utils/apiUtils';
 
+// Define types
 export interface Brand {
   id: number;
   name: string;
+  description?: string;
+  logo?: string;
   client_id: number;
-  logo: string;
-  description: string;
-  website: string;
-  industry: string;
-  created_at: string;
+  website?: string;
+  industry?: string;
+  created_at?: string;
 }
 
 export interface ClientPreferences {
-  id: number;
-  client_id: number;
-  communication_frequency: string;
-  preferred_contact_method: string;
-  design_preferences: Record<string, any>;
-  industry_specific_requirements: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  id?: number;
+  client_id?: number;
+  preferred_contact_method?: string;
+  communication_frequency?: string;
+  design_preferences?: Record<string, any>;
+  industry_specific_requirements?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+  // Additional properties used in components
+  communication_channel?: string;
+  feedback_frequency?: string;
+  dos?: string[];
+  donts?: string[];
 }
 
-// Mock data for brands
-const mockBrands: Brand[] = [
+// Sample client data
+const sampleClients = [
   {
-    id: 1,
-    name: "Social Land Digital",
     client_id: 1,
-    logo: "/logos/social-land.png",
-    description: "Primary brand for Social Land client",
-    website: "https://socialland.com",
-    industry: "Digital Marketing",
-    created_at: "2023-01-15T00:00:00Z"
+    client_name: "Social Land",
+    description: "Digital marketing agency",
+    contact_info: "contact@socialland.com"
   },
   {
-    id: 2,
-    name: "Social Land Events",
-    client_id: 1,
-    logo: "/logos/social-events.png",
-    description: "Events division of Social Land",
-    website: "https://socialland.com/events",
-    industry: "Event Management",
-    created_at: "2023-02-10T00:00:00Z"
-  },
-  {
-    id: 3,
-    name: "Koala Web",
     client_id: 2,
-    logo: "/logos/koala-digital.png",
-    description: "Web development division",
-    website: "https://koala-digital.com",
-    industry: "Web Development",
-    created_at: "2023-03-05T00:00:00Z"
-  },
-  {
-    id: 4,
-    name: "Koala Apps",
-    client_id: 2,
-    logo: "/logos/koala-apps.png",
-    description: "Mobile app development division",
-    website: "https://koala-digital.com/apps",
-    industry: "Mobile Development",
-    created_at: "2023-03-15T00:00:00Z"
+    client_name: "Koala Digital",
+    description: "Web development company",
+    contact_info: "info@koala-digital.com"
   }
 ];
 
-// Mock data for client preferences
-const mockClientPreferences: ClientPreferences[] = [
+// Sample brands data
+const sampleBrands = [
   {
     id: 1,
+    name: "SocialLand Main",
+    description: "Main brand for SocialLand",
+    logo: "/brands/socialland.png",
     client_id: 1,
-    communication_frequency: "weekly",
-    preferred_contact_method: "email",
-    design_preferences: {
-      color_scheme: "blue",
-      style: "modern",
-      font_preference: "sans-serif"
-    },
-    industry_specific_requirements: {
-      compliance: ["GDPR", "CCPA"],
-      certifications: ["ISO 27001"]
-    },
-    created_at: "2023-01-15T00:00:00Z",
-    updated_at: "2023-06-10T00:00:00Z"
+    website: "https://socialland.com",
+    industry: "Marketing"
   },
   {
     id: 2,
-    client_id: 2,
-    communication_frequency: "daily",
-    preferred_contact_method: "slack",
-    design_preferences: {
-      color_scheme: "dark",
-      style: "minimalist",
-      font_preference: "monospace"
-    },
-    industry_specific_requirements: {
-      compliance: ["HIPAA"],
-      certifications: ["SOC 2"]
-    },
-    created_at: "2023-02-20T00:00:00Z",
-    updated_at: "2023-05-15T00:00:00Z"
+    name: "SocialLand Pro",
+    description: "Professional solutions by SocialLand",
+    logo: "/brands/socialland-pro.png",
+    client_id: 1,
+    website: "https://pro.socialland.com",
+    industry: "B2B Services"
   }
 ];
+
+// Sample preferences
+const samplePreferences = {
+  id: 1,
+  client_id: 1,
+  preferred_contact_method: "email",
+  communication_frequency: "weekly",
+  communication_channel: "Slack",
+  feedback_frequency: "Weekly",
+  design_preferences: {
+    colors: ["#3498db", "#2ecc71", "#e74c3c"],
+    style: "Minimalist",
+    fonts: ["Roboto", "Open Sans"]
+  },
+  industry_specific_requirements: {
+    target_audience: "Young professionals",
+    key_competitors: ["Competitor A", "Competitor B"]
+  },
+  dos: [
+    "Include brand colors in all designs",
+    "Use high-quality images",
+    "Send weekly progress reports"
+  ],
+  donts: [
+    "Don't miss deadlines",
+    "Don't use Comic Sans font",
+    "Don't share project details publicly"
+  ]
+};
 
 const clientService = {
   // Get all clients
   getClients: async () => {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('client_name');
+      const { data, error } = await supabase.from('clients').select('*');
       
       if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error fetching clients:', error);
-      return apiRequest('/clients', 'get', undefined, []);
+      return apiRequest('/clients', 'get', undefined, sampleClients);
     }
   },
   
@@ -136,7 +124,7 @@ const clientService = {
       return data;
     } catch (error) {
       console.error('Error fetching client details:', error);
-      return apiRequest(`/clients/${clientId}`, 'get', undefined, {});
+      return sampleClients.find(client => client.client_id === clientId) || null;
     }
   },
   
@@ -152,11 +140,11 @@ const clientService = {
       return data[0];
     } catch (error) {
       console.error('Error creating client:', error);
-      return apiRequest('/clients', 'post', clientData, {});
+      return apiRequest('/clients', 'post', clientData, { ...clientData, client_id: Date.now() });
     }
   },
   
-  // Update an existing client
+  // Update client details
   updateClient: async (clientId: number, clientData: any) => {
     try {
       const { data, error } = await supabase
@@ -169,7 +157,7 @@ const clientService = {
       return data[0];
     } catch (error) {
       console.error('Error updating client:', error);
-      return apiRequest(`/clients/${clientId}`, 'put', clientData, {});
+      return apiRequest(`/clients/${clientId}`, 'put', clientData, { ...clientData, client_id: clientId });
     }
   },
   
@@ -180,19 +168,16 @@ const clientService = {
         .from('tasks')
         .select(`
           *,
-          clients (client_name),
           users (name)
         `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+        .eq('client_id', clientId);
       
       if (error) throw error;
       
       // Format the data
       const formattedData = data.map(task => ({
         ...task,
-        client_name: task.clients?.client_name,
-        assignee_name: task.users?.name
+        assignee_name: task.users?.name || 'Unassigned'
       }));
       
       return formattedData;
@@ -202,7 +187,7 @@ const clientService = {
     }
   },
   
-  // Create a new task for a client
+  // Create a new task for client
   createTask: async (taskData: any) => {
     try {
       const { data, error } = await supabase
@@ -214,52 +199,62 @@ const clientService = {
       return data[0];
     } catch (error) {
       console.error('Error creating task:', error);
-      return apiRequest(`/clients/${taskData.client_id}/tasks`, 'post', taskData, {});
+      return apiRequest('/tasks', 'post', taskData, { ...taskData, task_id: Date.now() });
+    }
+  },
+  
+  // Get client preferences
+  getClientPreferences: async (clientId: number): Promise<ClientPreferences> => {
+    try {
+      const { data, error } = await supabase
+        .from('client_preferences')
+        .select('*')
+        .eq('client_id', clientId)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Convert stored JSON into the expected format with dos and donts arrays
+      const preferences: ClientPreferences = {
+        ...data,
+        communication_channel: data.preferred_contact_method || 'Email',
+        feedback_frequency: data.communication_frequency || 'As needed',
+        dos: (data.design_preferences as any)?.dos as string[] || [],
+        donts: (data.design_preferences as any)?.donts as string[] || []
+      };
+      
+      return preferences;
+    } catch (error) {
+      console.error('Error fetching client preferences:', error);
+      // Return mock data if Supabase query fails
+      return samplePreferences;
     }
   },
   
   // Get client brands
-  getClientBrands: async (clientId: number) => {
+  getClientBrands: async (clientId: number): Promise<Brand[]> => {
     try {
-      // Query the brands table from Supabase
       const { data, error } = await supabase
         .from('brands')
         .select('*')
         .eq('client_id', clientId);
       
       if (error) throw error;
-      
-      if (data && data.length > 0) {
-        return data;
-      }
-      
-      // Fallback to mock data
-      return mockBrands.filter(brand => brand.client_id === clientId);
+      return data;
     } catch (error) {
       console.error('Error fetching client brands:', error);
-      // Fallback to mock data
-      return mockBrands.filter(brand => brand.client_id === clientId);
+      return sampleBrands.filter(brand => brand.client_id === clientId);
     }
   },
   
   // Get brand tasks
   getBrandTasks: async (brandId: number) => {
     try {
-      // This is a mock implementation since we don't have a direct relationship between brands and tasks
-      // In a real implementation, we would query tasks with brand_id or use a junction table
-      const brand = mockBrands.find(b => b.id === brandId);
-      
-      if (!brand) {
-        throw new Error('Brand not found');
-      }
-      
-      // Get client tasks and filter/mark them as related to this brand
-      // This is just a mock implementation
-      const clientTasks = await clientService.getClientTasks(brand.client_id);
-      
-      // In a real app, we would filter tasks specifically for this brand
-      // Here we're just returning all client tasks as if they were brand tasks
-      return clientTasks;
+      // In a real application, this would query tasks associated with specific brands
+      // For now, we'll return mock data
+      return [];
     } catch (error) {
       console.error('Error fetching brand tasks:', error);
       return [];
@@ -278,140 +273,7 @@ const clientService = {
       return data[0];
     } catch (error) {
       console.error('Error creating brand:', error);
-      
-      // Mock creation
-      const newBrand: Brand = {
-        id: Math.max(...mockBrands.map(b => b.id)) + 1,
-        ...brandData,
-        created_at: new Date().toISOString()
-      };
-      
-      mockBrands.push(newBrand);
-      return newBrand;
-    }
-  },
-  
-  // Get client preferences
-  getClientPreferences: async (clientId: number) => {
-    try {
-      // Query the client_preferences table from Supabase
-      const { data, error } = await supabase
-        .from('client_preferences')
-        .select('*')
-        .eq('client_id', clientId)
-        .single();
-      
-      if (error) {
-        // If no preferences found, return a default
-        if (error.code === 'PGRST116') {
-          // Fallback to mock data for this client
-          const mockPref = mockClientPreferences.find(p => p.client_id === clientId);
-          if (mockPref) return mockPref;
-          
-          // Generate default preferences
-          return {
-            id: 0,
-            client_id: clientId,
-            communication_frequency: 'weekly',
-            preferred_contact_method: 'email',
-            design_preferences: {},
-            industry_specific_requirements: {},
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-        }
-        throw error;
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error fetching client preferences:', error);
-      
-      // Fallback to mock data
-      const mockPref = mockClientPreferences.find(p => p.client_id === clientId);
-      if (mockPref) return mockPref;
-      
-      // Generate default preferences
-      return {
-        id: 0,
-        client_id: clientId,
-        communication_frequency: 'weekly',
-        preferred_contact_method: 'email',
-        design_preferences: {},
-        industry_specific_requirements: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-    }
-  },
-  
-  // Update client preferences
-  updateClientPreferences: async (clientId: number, preferencesData: Partial<ClientPreferences>) => {
-    try {
-      // Check if preferences exist
-      const { data: existingData, error: checkError } = await supabase
-        .from('client_preferences')
-        .select('id')
-        .eq('client_id', clientId)
-        .maybeSingle();
-      
-      if (checkError && checkError.code !== 'PGRST116') throw checkError;
-      
-      if (existingData) {
-        // Update existing preferences
-        const { data, error } = await supabase
-          .from('client_preferences')
-          .update({
-            ...preferencesData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingData.id)
-          .select();
-        
-        if (error) throw error;
-        return data[0];
-      } else {
-        // Create new preferences
-        const { data, error } = await supabase
-          .from('client_preferences')
-          .insert({
-            client_id: clientId,
-            ...preferencesData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select();
-        
-        if (error) throw error;
-        return data[0];
-      }
-    } catch (error) {
-      console.error('Error updating client preferences:', error);
-      
-      // Mock update
-      const prefIndex = mockClientPreferences.findIndex(p => p.client_id === clientId);
-      
-      if (prefIndex >= 0) {
-        mockClientPreferences[prefIndex] = {
-          ...mockClientPreferences[prefIndex],
-          ...preferencesData,
-          updated_at: new Date().toISOString()
-        };
-        return mockClientPreferences[prefIndex];
-      } else {
-        const newPref: ClientPreferences = {
-          id: Math.max(...mockClientPreferences.map(p => p.id)) + 1,
-          client_id: clientId,
-          communication_frequency: preferencesData.communication_frequency || 'weekly',
-          preferred_contact_method: preferencesData.preferred_contact_method || 'email',
-          design_preferences: preferencesData.design_preferences || {},
-          industry_specific_requirements: preferencesData.industry_specific_requirements || {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        mockClientPreferences.push(newPref);
-        return newPref;
-      }
+      return { ...brandData, id: Date.now(), created_at: new Date().toISOString() };
     }
   }
 };

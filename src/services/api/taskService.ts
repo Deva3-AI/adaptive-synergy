@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { apiRequest } from '@/utils/apiUtils';
 
@@ -11,6 +10,7 @@ export interface TaskAttachment {
   url: string;
   uploaded_at: string;
   uploaded_by: string;
+  description?: string;
 }
 
 export interface TaskComment {
@@ -67,6 +67,12 @@ export interface TaskWithDetails {
   comments?: TaskComment[];
 }
 
+interface TaskFilter {
+  assignedTo?: number;
+  status?: string;
+  clientId?: number;
+}
+
 // Mock data for task statistics
 const mockTaskStatistics: TaskStatistics = {
   completed_tasks: 87,
@@ -102,7 +108,7 @@ const mockTaskStatistics: TaskStatistics = {
 
 const taskService = {
   // Get all tasks or filter by status
-  getTasks: async (status?: string) => {
+  getTasks: async (filter?: TaskFilter) => {
     try {
       let query = supabase.from('tasks').select(`
         *,
@@ -110,8 +116,16 @@ const taskService = {
         users (name)
       `);
       
-      if (status) {
-        query = query.eq('status', status);
+      if (filter) {
+        if (filter.status) {
+          query = query.eq('status', filter.status);
+        }
+        if (filter.assignedTo) {
+          query = query.eq('assigned_to', filter.assignedTo);
+        }
+        if (filter.clientId) {
+          query = query.eq('client_id', filter.clientId);
+        }
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });

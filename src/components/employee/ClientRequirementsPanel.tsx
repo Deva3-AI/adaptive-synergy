@@ -63,7 +63,11 @@ const ClientRequirementsPanel = ({ clientId }: { clientId: number }) => {
           
           <div>
             <h3 className="text-sm font-medium mb-1">Design Preferences</h3>
-            <p className="text-sm">{preferences.design_preferences || 'No specific preferences recorded'}</p>
+            <p className="text-sm">{preferences.design_preferences ? 
+              (typeof preferences.design_preferences === 'string' ?
+                preferences.design_preferences :
+                JSON.stringify(preferences.design_preferences)) :
+              'No specific preferences recorded'}</p>
           </div>
           
           <div>
