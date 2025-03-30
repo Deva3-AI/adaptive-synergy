@@ -1,6 +1,5 @@
 
 import { apiRequest } from "@/utils/apiUtils";
-import { mockClientBrands, mockBrandTasks, mockClientPreferences } from "@/utils/mockData";
 import { supabase } from '@/integrations/supabase/client';
 
 // Brand type definition
@@ -22,6 +21,134 @@ export interface ClientPreferences {
   dos: string[];
   donts: string[];
 }
+
+// Mock data for client brands
+const mockClientBrands = [
+  {
+    id: 1,
+    client_id: 1,
+    name: "Acme Main Brand",
+    description: "Primary brand identity for Acme Corporation",
+    logo_url: "/assets/logos/acme-main.png",
+    created_at: "2022-05-15T10:30:00Z"
+  },
+  {
+    id: 2,
+    client_id: 1,
+    name: "Acme Premium",
+    description: "Premium product line branding",
+    logo_url: "/assets/logos/acme-premium.png",
+    created_at: "2022-07-22T14:15:00Z"
+  },
+  {
+    id: 3,
+    client_id: 2,
+    name: "TechStart",
+    description: "Main brand for TechStart Inc",
+    logo_url: "/assets/logos/techstart.png",
+    created_at: "2022-03-10T09:45:00Z"
+  },
+  {
+    id: 4,
+    client_id: 3,
+    name: "Global Logistics",
+    description: "Corporate brand identity",
+    logo_url: "/assets/logos/global-logistics.png",
+    created_at: "2022-06-05T11:20:00Z"
+  }
+];
+
+// Mock data for brand tasks
+const mockBrandTasks = [
+  {
+    id: 101,
+    brand_id: 1,
+    title: "Website Homepage Redesign",
+    status: "in_progress",
+    due_date: "2023-12-15",
+    assigned_to: "Jane Cooper",
+    priority: "high"
+  },
+  {
+    id: 102,
+    brand_id: 1,
+    title: "Social Media Graphics Package",
+    status: "pending",
+    due_date: "2023-12-20",
+    assigned_to: "Alex Johnson",
+    priority: "medium"
+  },
+  {
+    id: 103,
+    brand_id: 2,
+    title: "Premium Catalog Design",
+    status: "completed",
+    due_date: "2023-11-28",
+    assigned_to: "Sarah Williams",
+    priority: "high"
+  },
+  {
+    id: 104,
+    brand_id: 3,
+    title: "Brand Style Guide Update",
+    status: "in_progress",
+    due_date: "2023-12-10",
+    assigned_to: "Michael Brown",
+    priority: "medium"
+  }
+];
+
+// Mock data for client preferences
+const mockClientPreferences = [
+  {
+    client_id: 1,
+    communication_channel: "Email",
+    feedback_frequency: "Weekly",
+    design_preferences: "Modern, minimalist design with blue and grey color scheme. Prefers clean layouts with ample white space.",
+    dos: [
+      "Include stakeholders in all milestone reviews",
+      "Provide detailed weekly progress reports",
+      "Schedule calls during morning hours (9-11 AM EST)"
+    ],
+    donts: [
+      "Don't use bright red or orange in designs",
+      "Avoid highly technical language in client-facing documents",
+      "Don't schedule meetings on Fridays"
+    ]
+  },
+  {
+    client_id: 2,
+    communication_channel: "Slack",
+    feedback_frequency: "Bi-weekly",
+    design_preferences: "Bold, innovative designs with emphasis on illustrations and animations. Prefers vibrant colors.",
+    dos: [
+      "Share creative references and inspiration",
+      "Present multiple design options",
+      "Include interactive elements where possible"
+    ],
+    donts: [
+      "Don't use stock photography if avoidable",
+      "Avoid formal business language",
+      "Don't overuse gradients"
+    ]
+  },
+  {
+    client_id: 3,
+    communication_channel: "Microsoft Teams",
+    feedback_frequency: "As needed",
+    design_preferences: "Professional, corporate aesthetic with navy blue and gold accents. Emphasizes data visualization and clarity.",
+    dos: [
+      "Include data sources for all metrics",
+      "Maintain consistent branding across all materials",
+      "Provide print-ready files for all deliverables"
+    ],
+    donts: [
+      "Don't miss deadlines",
+      "Avoid experimental layouts for corporate materials",
+      "Don't change approved design elements without consultation"
+    ]
+  }
+];
 
 const clientService = {
   // Get all clients

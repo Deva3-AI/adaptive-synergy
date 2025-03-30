@@ -1,167 +1,202 @@
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, PieChart, LineChart } from '@/components/ui/charts';
-import { Progress } from '@/components/ui/progress';
-import taskService from '@/services/api/taskService';
-import type { TaskStatistics } from '@/services/api/taskService';
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { taskService, type TaskStatistics } from "@/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { BarChart, LineChart, PieChart } from "@/components/ui/charts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Clock, CheckCircle, AlertTriangle, BarChart as BarChartIcon } from "lucide-react";
 
-interface TaskProgressInsightsProps {
-  userId?: number;
-  timeRange?: string;
-  className?: string;
-}
-
-const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ 
-  userId, 
-  timeRange,
-  className
-}) => {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['taskStatistics', userId, timeRange],
-    queryFn: () => taskService.getTaskStatistics(userId, timeRange),
+const TaskProgressInsights = ({ userId }: { userId?: number }) => {
+  const { data: statistics, isLoading } = useQuery({
+    queryKey: ["task-statistics", userId],
+    queryFn: () => taskService.getTaskStatistics(userId),
   });
 
   if (isLoading) {
     return (
-      <Card className={className}>
+      <Card className="col-span-3">
         <CardHeader>
-          <CardTitle>Task Progress Insights</CardTitle>
+          <CardTitle>Task Progress & Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">Loading task insights...</p>
-          </div>
+          <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
     );
   }
 
+  // Cast the data to the TaskStatistics type
+  const stats = statistics as TaskStatistics;
+
+  // Handle case where stats is undefined
   if (!stats) {
     return (
-      <Card className={className}>
+      <Card className="col-span-3">
         <CardHeader>
-          <CardTitle>Task Progress Insights</CardTitle>
+          <CardTitle>Task Progress & Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-muted-foreground">No task data available</p>
+          <div className="text-center py-8 text-muted-foreground">
+            No task statistics available
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Calculate on-time completion rate if not provided
-  const onTimeCompletionRate = stats.on_time_completion || 
-    Math.round((stats.completed_tasks - stats.overdue_tasks) / Math.max(stats.completed_tasks, 1) * 100);
+  // Format the monthly trends data for the charts
+  const monthlyTrendsData = stats.monthly_trends.map(item => ({
+    name: item.month,
+    Completed: item.completed,
+    Assigned: item.assigned
+  }));
 
-  // Calculate average duration if not provided
-  const averageDuration = stats.average_task_duration || stats.avg_completion_time || 0;
+  // Calculate percentage of on-time completions
+  const onTimePercentage = Math.round(stats.on_time_completion);
+  
+  // Calculate average task duration in days
+  const avgDuration = Math.round(stats.average_task_duration * 10) / 10;
 
-  // Get recent completions or create empty array if not available
+  // Format recent completions for display
   const recentCompletions = stats.recent_completions || [];
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>Task Progress Insights</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Task Status Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-700">Completed</h3>
-            <p className="text-2xl font-bold text-blue-800">{stats.completed_tasks}</p>
-          </div>
-          <div className="bg-amber-50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-amber-700">In Progress</h3>
-            <p className="text-2xl font-bold text-amber-800">{stats.in_progress_tasks}</p>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-purple-700">Pending</h3>
-            <p className="text-2xl font-bold text-purple-800">{stats.pending_tasks}</p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-red-700">Overdue</h3>
-            <p className="text-2xl font-bold text-red-800">{stats.overdue_tasks}</p>
-          </div>
-        </div>
-        
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">On-Time Completion Rate</h3>
-            <Progress value={onTimeCompletionRate} className="h-2" />
-            <p className="text-sm text-muted-foreground">{onTimeCompletionRate}% of tasks completed on time</p>
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Average Task Duration</h3>
-            <Progress value={(averageDuration / 24) * 100} className="h-2" />
-            <p className="text-sm text-muted-foreground">{averageDuration.toFixed(1)} hours per task</p>
-          </div>
-        </div>
-        
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-sm font-medium mb-4">Monthly Trends</h3>
-            <div className="h-64">
-              <LineChart 
-                data={stats.monthly_trends.map(item => ({
-                  name: item.month,
-                  Completed: item.completed,
-                  Assigned: item.assigned
-                }))}
-                xAxisKey="name"
-                series={[
-                  { key: 'Completed', color: '#3b82f6' },
-                  { key: 'Assigned', color: '#8b5cf6' }
-                ]}
-              />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">Completion Rate</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold mb-2">{stats.completion_rate}%</div>
+          <Progress value={stats.completion_rate} className="h-2 mb-4" />
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="text-muted-foreground mb-1">Completed</div>
+              <div className="font-medium">{stats.completed_tasks}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground mb-1">In Progress</div>
+              <div className="font-medium">{stats.in_progress_tasks}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground mb-1">Pending</div>
+              <div className="font-medium">{stats.pending_tasks}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground mb-1">Overdue</div>
+              <div className="font-medium text-red-500">{stats.overdue_tasks}</div>
             </div>
           </div>
-          
-          <div>
-            <h3 className="text-sm font-medium mb-4">Task Distribution</h3>
-            <div className="h-64">
-              <PieChart 
-                data={stats.task_distribution.map(item => ({
-                  name: item.category,
-                  value: item.count
-                }))}
-                nameKey="name"
-                dataKey="value"
-              />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">On-Time Completion</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold">{onTimePercentage}%</div>
+            <div className="p-2 bg-green-500/10 rounded-full">
+              <CheckCircle className="text-green-500 h-5 w-5" />
             </div>
           </div>
-        </div>
-        
-        {/* Recent Completions */}
-        {recentCompletions.length > 0 && (
-          <div>
-            <h3 className="text-sm font-medium mb-4">Recently Completed Tasks</h3>
-            <div className="space-y-2">
+          <Progress value={onTimePercentage} className="h-2 mt-2 mb-4" />
+          <div className="text-sm text-muted-foreground">
+            {onTimePercentage >= 80 ? (
+              <span>Great job keeping tasks on schedule!</span>
+            ) : onTimePercentage >= 50 ? (
+              <span>Make sure to prioritize timely deliveries.</span>
+            ) : (
+              <span className="text-red-500">Task timeliness needs improvement.</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">Avg. Completion Time</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="text-3xl font-bold">{avgDuration} days</div>
+            <div className="p-2 bg-blue-500/10 rounded-full">
+              <Clock className="text-blue-500 h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-4 text-sm">
+            <div className="mb-2">Average time to complete tasks</div>
+            <div className="flex items-center">
+              <div className="text-muted-foreground">Compared to target: </div>
+              <div className={`ml-2 ${avgDuration <= 5 ? 'text-green-500' : 'text-amber-500'}`}>
+                {avgDuration <= 5 ? 'On target' : 'Above target'}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Task Completion Trends</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LineChart 
+            data={monthlyTrendsData}
+            categories={["Completed", "Assigned"]}
+            colors={["green", "blue"]}
+            height={240}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Task Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PieChart 
+            data={stats.task_distribution.map(item => ({
+              name: item.category,
+              value: item.count
+            }))}
+            height={240}
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="md:col-span-3">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Recently Completed Tasks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentCompletions.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              No recently completed tasks
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentCompletions.map((task) => (
-                <div key={task.task_id} className="flex items-center justify-between border-b pb-2">
-                  <div>
-                    <p className="font-medium">{task.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Completed on {new Date(task.completed_on).toLocaleDateString()}
-                    </p>
+                <div key={task.task_id} className="border rounded-lg p-3 space-y-2">
+                  <div className="font-medium">{task.title}</div>
+                  <div className="flex justify-between text-sm">
+                    <div className="text-muted-foreground">Completed on: </div>
+                    <div>{new Date(task.completed_on).toLocaleDateString()}</div>
                   </div>
-                  <div className="text-sm">
-                    {task.duration}h
+                  <div className="flex justify-between text-sm">
+                    <div className="text-muted-foreground">Duration: </div>
+                    <div>{task.duration} days</div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

@@ -1,6 +1,51 @@
 
 import { apiRequest } from "@/utils/apiUtils";
-import { EmailOutreach, LeadProfile, MarketingMeeting } from "@/interfaces/marketing";
+
+// Define interfaces for the data types
+export interface EmailOutreach {
+  id: number;
+  subject: string;
+  recipient: string;
+  sentDate: string;
+  status: string;
+  openRate?: number;
+  clickRate?: number;
+  responseRate?: number;
+  meetingsBooked?: number;
+}
+
+export interface MarketingMeeting {
+  id: number;
+  leadName: string;
+  leadCompany: string;
+  scheduledDate: string;
+  status: "scheduled" | "completed" | "cancelled";
+  meetingType: "intro" | "demo" | "proposal" | "follow_up";
+  attendees?: string[];
+  duration?: number;
+  notes?: string;
+  outcome?: string;
+}
+
+export interface LeadProfile {
+  id: number;
+  name: string;
+  position: string;
+  company: string;
+  email: string;
+  phone?: string;
+  source: string;
+  status: "new" | "contacted" | "meeting_scheduled" | "meeting_completed" | "proposal_sent" | "converted" | "lost";
+  score: number;
+  lastContactedAt?: string;
+  notes?: string;
+  createdAt: string;
+  interactions: {
+    date: string;
+    type: string;
+    notes: string;
+  }[];
+}
 
 const marketingService = {
   // Get all marketing campaigns
@@ -62,451 +107,629 @@ const marketingService = {
         id: 1,
         leadName: "John Smith",
         leadCompany: "ABC Corp",
-        scheduledTime: "2023-06-28T10:00:00Z",
-        duration: 60,
-        platform: "google_meet",
-        meetingLink: "https://meet.google.com/abc-defg-hij",
+        scheduledDate: "2023-12-15T10:00:00Z",
         status: "scheduled",
-        notes: "Initial discovery call",
-        agenda: ["Introduction", "Needs assessment", "Service overview", "Next steps"]
+        meetingType: "intro",
+        attendees: ["John Smith", "Sarah Johnson"],
+        duration: 30,
+        notes: "Initial meeting to discuss potential website redesign"
       },
       {
         id: 2,
-        leadName: "Sarah Johnson",
-        leadCompany: "XYZ Inc",
-        scheduledTime: "2023-06-25T14:30:00Z",
+        leadName: "Emma Davis",
+        leadCompany: "Tech Innovations",
+        scheduledDate: "2023-12-12T14:30:00Z",
+        status: "scheduled",
+        meetingType: "demo",
+        attendees: ["Emma Davis", "Michael Brown", "David Wilson"],
         duration: 45,
-        platform: "zoom",
-        meetingLink: "https://zoom.us/j/123456789",
-        status: "completed",
-        notes: "Follow-up to discuss proposal",
-        agenda: ["Review proposal", "Address questions", "Discuss timeline", "Next steps"]
+        notes: "Product demo focusing on CMS features"
       },
       {
         id: 3,
-        leadName: "Michael Brown",
-        leadCompany: "Acme Solutions",
-        scheduledTime: "2023-07-03T11:00:00Z",
-        duration: 30,
-        platform: "teams",
-        meetingLink: "https://teams.microsoft.com/l/meetup-join/...",
-        status: "scheduled",
-        notes: "Product demo",
-        agenda: ["Demo preparation", "Feature showcase", "Q&A", "Pricing discussion"]
+        leadName: "Robert Johnson",
+        leadCompany: "Global Marketing",
+        scheduledDate: "2023-12-08T09:15:00Z",
+        status: "completed",
+        meetingType: "proposal",
+        attendees: ["Robert Johnson", "Jennifer Lee"],
+        duration: 60,
+        notes: "Proposal presentation for comprehensive marketing package",
+        outcome: "Requested additional information on pricing"
       }
     ];
+    
     return mockMeetings;
   },
 
   // Create a meeting
   createMeeting: async (meetingData: any) => {
     // In a real implementation, this would insert into a meetings table
-    // For now, we'll return mock data
-    return {
+    // For now, we'll return mock data with the provided data
+    const newMeeting: MarketingMeeting = {
       id: Math.floor(Math.random() * 1000),
-      ...meetingData,
-      status: "scheduled"
+      leadName: meetingData.leadName,
+      leadCompany: meetingData.leadCompany,
+      scheduledDate: meetingData.scheduledDate,
+      status: meetingData.status || "scheduled",
+      meetingType: meetingData.meetingType,
+      attendees: meetingData.attendees,
+      duration: meetingData.duration,
+      notes: meetingData.notes
     };
-  },
-
-  // Get analytics data
-  getAnalytics: async (startDate?: string, endDate?: string) => {
-    // In a real implementation, this would be aggregated analytics data
-    // For now, we'll return mock data
-    return {
-      total_campaigns: 12,
-      active_campaigns: 3,
-      total_leads: 145,
-      lead_conversion_rate: 18,
-      campaign_performance: [
-        {
-          id: 1,
-          name: "Summer Email Campaign",
-          metrics: {
-            impressions: 5000,
-            clicks: 750,
-            conversions: 120,
-            ctr: 15,
-            cvr: 16
-          }
-        },
-        {
-          id: 2,
-          name: "Product Launch",
-          metrics: {
-            impressions: 12000,
-            clicks: 2200,
-            conversions: 350,
-            ctr: 18.3,
-            cvr: 15.9
-          }
-        }
-      ],
-      channel_performance: [
-        { channel: "Email", leads: 85, conversions: 15 },
-        { channel: "Social", leads: 35, conversions: 8 },
-        { channel: "Referral", leads: 25, conversions: 10 }
-      ]
-    };
-  },
-
-  // Get marketing email outreach data
-  getEmailOutreach: async () => {
-    // In a real implementation, this would fetch from an email_outreach table
-    // For now, we'll return mock data
-    const mockEmails: EmailOutreach[] = [
-      {
-        id: 1,
-        recipient: "john.doe@example.com",
-        recipientCompany: "ABC Corp",
-        subject: "Introduction to Our Services",
-        status: "opened",
-        sentAt: "2023-06-20T08:30:00Z",
-        openedAt: "2023-06-20T10:15:00Z",
-        source: "lead_generation",
-        followUpScheduled: true,
-        followUpDate: "2023-06-27T09:00:00Z"
-      },
-      {
-        id: 2,
-        recipient: "jane.smith@example.com",
-        recipientCompany: "XYZ Inc",
-        subject: "Proposal for Marketing Services",
-        status: "replied",
-        sentAt: "2023-06-18T14:00:00Z",
-        openedAt: "2023-06-18T15:30:00Z",
-        repliedAt: "2023-06-19T09:20:00Z",
-        source: "referral",
-        followUpScheduled: false
-      },
-      {
-        id: 3,
-        recipient: "michael.johnson@example.com",
-        recipientCompany: "Acme Solutions",
-        subject: "Follow-up from Our Meeting",
-        status: "sent",
-        sentAt: "2023-06-22T11:45:00Z",
-        source: "meeting_follow_up",
-        followUpScheduled: false
-      },
-      {
-        id: 4,
-        recipient: "sarah.williams@example.com",
-        recipientCompany: "Global Tech",
-        subject: "Special Offer for You",
-        status: "bounced",
-        sentAt: "2023-06-21T09:00:00Z",
-        source: "campaign",
-        followUpScheduled: false
-      }
-    ];
-    return mockEmails;
-  },
-
-  // Get lead profiles
-  getLeads: async () => {
-    // In a real implementation, this would fetch from a leads table
-    // For now, we'll return mock data
-    const mockLeads: LeadProfile[] = [
-      {
-        id: 1,
-        name: "John Smith",
-        position: "Marketing Director",
-        company: "ABC Corp",
-        email: "john.smith@abccorp.com",
-        phone: "+1-555-123-4567",
-        source: "Website",
-        status: "contacted",
-        score: 85,
-        lastContactedAt: "2023-06-15T14:30:00Z",
-        notes: "Interested in our content marketing services."
-      },
-      {
-        id: 2,
-        name: "Sarah Johnson",
-        position: "CEO",
-        company: "XYZ Inc",
-        email: "sarah.johnson@xyzinc.com",
-        source: "Referral",
-        status: "meeting_scheduled",
-        score: 90,
-        lastContactedAt: "2023-06-18T09:45:00Z",
-        notes: "Referred by Michael Brown. Looking for comprehensive marketing strategy."
-      },
-      {
-        id: 3,
-        name: "David Wilson",
-        position: "CMO",
-        company: "Acme Solutions",
-        email: "david.wilson@acmesolutions.com",
-        phone: "+1-555-987-6543",
-        source: "LinkedIn",
-        status: "new",
-        score: 65,
-        notes: "Connected on LinkedIn. Needs to expand social media presence."
-      },
-      {
-        id: 4,
-        name: "Emily Davis",
-        position: "Director of Operations",
-        company: "Global Tech",
-        email: "emily.davis@globaltech.com",
-        phone: "+1-555-456-7890",
-        source: "Conference",
-        status: "meeting_completed",
-        score: 75,
-        lastContactedAt: "2023-06-10T13:00:00Z",
-        notes: "Met at Tech Conference 2023. Interested in our analytics services."
-      },
-      {
-        id: 5,
-        name: "Michael Rodriguez",
-        position: "Marketing Manager",
-        company: "Innovative Startups",
-        email: "michael.rodriguez@innovativestartups.com",
-        source: "Email Campaign",
-        status: "proposal_sent",
-        score: 80,
-        lastContactedAt: "2023-06-20T10:30:00Z",
-        notes: "Responded to our Q2 email campaign. Proposal sent for content and social services."
-      }
-    ];
-    return mockLeads;
-  },
-
-  // Get marketing plans
-  getMarketingPlans: async () => {
-    // In a real implementation, this would fetch from a marketing_plans table
-    // For now, we'll return mock data
-    return [
-      {
-        id: 1,
-        title: "Q3 Marketing Strategy",
-        description: "Comprehensive marketing strategy for Q3 2023",
-        created_at: "2023-06-01",
-        status: "active",
-        progress: 25,
-        content: "This strategy focuses on increasing brand awareness through content marketing and social media engagement."
-      },
-      {
-        id: 2,
-        title: "Product Launch Campaign",
-        description: "Marketing campaign for the new product launch",
-        created_at: "2023-05-15",
-        status: "active",
-        progress: 60,
-        content: "Multi-channel campaign including email, social media, and PR for the upcoming product launch in August."
-      },
-      {
-        id: 3,
-        title: "Content Calendar Q3",
-        description: "Content planning for Q3 2023",
-        created_at: "2023-06-10",
-        status: "draft",
-        progress: 80,
-        content: "Detailed content calendar with blog posts, social media updates, and newsletter content for July-September."
-      }
-    ];
-  },
-
-  // Get marketing plan by ID
-  getMarketingPlanById: async (planId: number) => {
-    // In a real implementation, this would fetch a specific plan
-    // For now, we'll return mock data based on the provided ID
-    const mockPlans = [
-      {
-        id: 1,
-        title: "Q3 Marketing Strategy",
-        description: "Comprehensive marketing strategy for Q3 2023",
-        created_at: "2023-06-01",
-        status: "active",
-        progress: 25,
-        content: "This strategy focuses on increasing brand awareness through content marketing and social media engagement. The key objectives include:\n\n1. Increase website traffic by 20%\n2. Generate 50 new leads\n3. Improve social media engagement by 25%\n4. Publish 12 blog posts\n5. Send 6 email newsletters"
-      },
-      {
-        id: 2,
-        title: "Product Launch Campaign",
-        description: "Marketing campaign for the new product launch",
-        created_at: "2023-05-15",
-        status: "active",
-        progress: 60,
-        content: "Multi-channel campaign including email, social media, and PR for the upcoming product launch in August. The campaign will be executed in three phases:\n\n1. Pre-launch (July): Build anticipation\n2. Launch (August): Maximize visibility and initial sales\n3. Post-launch (September): Gather feedback and maintain momentum"
-      },
-      {
-        id: 3,
-        title: "Content Calendar Q3",
-        description: "Content planning for Q3 2023",
-        created_at: "2023-06-10",
-        status: "draft",
-        progress: 80,
-        content: "Detailed content calendar with blog posts, social media updates, and newsletter content for July-September. The content themes include:\n\n1. Industry trends and insights\n2. Customer success stories\n3. Product features and benefits\n4. How-to guides and tutorials\n5. Company news and updates"
-      }
-    ];
     
-    return mockPlans.find(plan => plan.id === planId) || null;
+    return newMeeting;
   },
 
-  // Get marketing trends
-  getMarketingTrends: async () => {
-    // In a real implementation, this would be from an analysis or external API
+  // Get marketing analytics
+  getAnalytics: async (startDate?: string, endDate?: string) => {
+    // In a real implementation, this would aggregate data based on the date range
     // For now, we'll return mock data
     return {
-      trending_topics: [
-        { topic: "AI in Marketing", growth: 35, relevance: "high" },
-        { topic: "Video Content", growth: 28, relevance: "high" },
-        { topic: "Social Commerce", growth: 42, relevance: "medium" },
-        { topic: "Voice Search", growth: 15, relevance: "medium" },
-        { topic: "Augmented Reality", growth: 22, relevance: "low" }
-      ],
-      channel_trends: [
-        { channel: "TikTok", growth: 45, audience_fit: "medium" },
-        { channel: "LinkedIn", growth: 18, audience_fit: "high" },
-        { channel: "Instagram", growth: 12, audience_fit: "high" },
-        { channel: "Email", growth: 5, audience_fit: "high" },
-        { channel: "YouTube", growth: 25, audience_fit: "medium" }
-      ],
-      content_performance: {
-        top_performing: "how-to guides",
-        engagement_rate: 18.5,
-        conversion_rate: 3.2,
-        recommended_focus: "video tutorials"
-      }
-    };
-  },
-
-  // Get competitor insights
-  getCompetitorInsights: async () => {
-    // In a real implementation, this would be from an analysis or external API
-    // For now, we'll return mock data
-    return {
-      main_competitors: [
-        {
-          name: "Competitor A",
-          strengths: ["Strong social media presence", "High-quality blog content"],
-          weaknesses: ["Limited service offerings", "Poor mobile experience"],
-          market_share: 22
-        },
-        {
-          name: "Competitor B",
-          strengths: ["Comprehensive service range", "Strong industry partnerships"],
-          weaknesses: ["Outdated website", "Inconsistent content quality"],
-          market_share: 18
-        },
-        {
-          name: "Competitor C",
-          strengths: ["Innovative technology", "Strong customer testimonials"],
-          weaknesses: ["Higher pricing", "Limited geographical presence"],
-          market_share: 15
-        }
-      ],
-      content_gap_analysis: {
-        underserved_topics: ["Industry-specific case studies", "Technical tutorials", "ROI calculators"],
-        content_opportunities: ["Create interactive tools", "Develop industry benchmarks", "Produce video case studies"]
+      emailMetrics: {
+        sent: 5420,
+        opened: 2356,
+        openRate: 43.5,
+        clicked: 876,
+        clickRate: 16.2,
+        responded: 412,
+        responseRate: 7.6
       },
-      keyword_opportunities: [
-        { keyword: "industry solutions", difficulty: "medium", search_volume: 1200, relevance: "high" },
-        { keyword: "service comparison guide", difficulty: "low", search_volume: 800, relevance: "high" },
-        { keyword: "implementation best practices", difficulty: "medium", search_volume: 950, relevance: "medium" }
-      ]
-    };
-  },
-
-  // Analyze meeting transcript
-  analyzeMeetingTranscript: async (transcriptData: string) => {
-    // In a real implementation, this would pass the transcript to an AI service
-    // For now, we'll return mock analysis
-    return {
-      key_topics: ["Service pricing", "Timeline", "Integration requirements", "Support options"],
-      sentiment: "positive",
-      client_needs: ["Cost-effective solution", "Quick implementation", "Ongoing training"],
-      follow_up_items: [
-        { item: "Send detailed pricing breakdown", priority: "high" },
-        { item: "Schedule technical assessment", priority: "medium" },
-        { item: "Share case studies", priority: "medium" }
+      leadMetrics: {
+        total: 532,
+        newThisPeriod: 87,
+        converted: 48,
+        conversionRate: 9.0,
+        averageTimeToConversion: 32
+      },
+      channelPerformance: [
+        { channel: "Email Outreach", leads: 215, conversion: 8.4 },
+        { channel: "Website Contact", leads: 142, conversion: 12.6 },
+        { channel: "Referrals", leads: 95, conversion: 15.8 },
+        { channel: "Social Media", leads: 80, conversion: 6.2 }
       ],
-      recommendations: [
-        "Focus on ROI in the proposal",
-        "Highlight implementation timeline",
-        "Address integration concerns early"
+      campaignPerformance: [
+        { name: "Summer Email Campaign", roi: 320, conversions: 75 },
+        { name: "Product Launch", roi: 450, conversions: 120 },
+        { name: "Referral Program", roi: 280, conversions: 35 }
       ]
     };
   },
 
   // Get email templates
   getEmailTemplates: async () => {
-    // In a real implementation, this would fetch from an email_templates table
-    // For now, we'll return mock data
     return [
       {
         id: 1,
-        name: "Initial Outreach",
-        subject: "Introduction: How we can help [Company]",
-        body: "Dear [Name],\n\nI hope this email finds you well. I recently came across [Company] and was impressed by [specific observation].\n\nAt [Our Company], we specialize in [services] that help businesses like yours [benefit].\n\nWould you be open to a brief conversation to explore how we might be able to help [Company] [specific goal]?\n\nBest regards,\n[Your Name]",
-        category: "lead_generation",
-        performance: {
-          open_rate: 28,
-          reply_rate: 12
+        name: "Introduction Email",
+        subject: "Introducing our services to [Company]",
+        body: "Dear [Name],\n\nI hope this email finds you well. I'm reaching out because I came across [Company] and was impressed by your [specific detail about the company].\n\nAt [Our Company], we specialize in...",
+        variables: ["Name", "Company", "specific detail about the company", "Our Company"],
+        category: "Outreach",
+        performanceStats: {
+          openRate: 48.2,
+          responseRate: 12.5,
+          averageTimeToResponse: "1.5 days"
         }
       },
       {
         id: 2,
-        name: "Meeting Follow-up",
-        subject: "Thank you for our conversation today",
-        body: "Hi [Name],\n\nThank you for taking the time to meet with me today. I enjoyed our conversation about [topic] and learning more about your goals for [Company].\n\nAs discussed, I'll [next step] by [date]. In the meantime, here's [resource] that you might find helpful.\n\nPlease don't hesitate to reach out if you have any questions.\n\nBest regards,\n[Your Name]",
-        category: "follow_up",
-        performance: {
-          open_rate: 65,
-          reply_rate: 35
+        name: "Follow-up After Meeting",
+        subject: "Follow-up: Our conversation about [Topic]",
+        body: "Hi [Name],\n\nThank you for taking the time to speak with me yesterday about [Topic]. I really appreciated your insights on [specific point from conversation].\n\nAs promised, I'm sending...",
+        variables: ["Name", "Topic", "specific point from conversation"],
+        category: "Follow-up",
+        performanceStats: {
+          openRate: 62.8,
+          responseRate: 28.5,
+          averageTimeToResponse: "12 hours"
         }
       },
       {
         id: 3,
-        name: "Proposal Delivery",
-        subject: "Your Custom Proposal from [Our Company]",
-        body: "Dear [Name],\n\nI'm pleased to present our proposal for [services] for [Company].\n\nBased on our discussions, we've tailored our approach to address your specific needs of [needs]. The attached proposal outlines our recommended strategy, timeline, and investment.\n\nI'd be happy to schedule a call to walk through the details and answer any questions you might have.\n\nBest regards,\n[Your Name]",
-        category: "proposal",
-        performance: {
-          open_rate: 72,
-          reply_rate: 45
+        name: "Proposal Email",
+        subject: "[Company] - Our Proposal for [Service]",
+        body: "Dear [Name],\n\nBased on our recent discussions about your needs for [Service], I'm pleased to attach our detailed proposal.\n\nThe proposal includes...",
+        variables: ["Name", "Company", "Service"],
+        category: "Proposal",
+        performanceStats: {
+          openRate: 72.5,
+          responseRate: 32.0,
+          averageTimeToResponse: "2 days"
         }
       }
     ];
   },
 
+  // Get email outreach data
+  getEmailOutreach: async () => {
+    const mockOutreachData: EmailOutreach[] = [
+      {
+        id: 1,
+        subject: "Introduction to Our Services",
+        recipient: "john.smith@acmecorp.com",
+        sentDate: "2023-11-28T09:45:00Z",
+        status: "opened",
+        openRate: 2,
+        clickRate: 1,
+        responseRate: 1,
+        meetingsBooked: 1
+      },
+      {
+        id: 2,
+        subject: "Follow-up: Website Redesign Discussion",
+        recipient: "sarah.johnson@techstart.io",
+        sentDate: "2023-11-25T14:30:00Z",
+        status: "replied",
+        openRate: 3,
+        clickRate: 2,
+        responseRate: 1,
+        meetingsBooked: 1
+      },
+      {
+        id: 3,
+        subject: "Proposal for Digital Marketing Services",
+        recipient: "michael.wong@globallogistics.com",
+        sentDate: "2023-11-22T11:15:00Z",
+        status: "clicked",
+        openRate: 2,
+        clickRate: 1,
+        responseRate: 0,
+        meetingsBooked: 0
+      },
+      {
+        id: 4,
+        subject: "New Feature Announcement: AI-Powered Analytics",
+        recipient: "emma@creativedesign.co",
+        sentDate: "2023-11-18T10:00:00Z",
+        status: "opened",
+        openRate: 1,
+        clickRate: 0,
+        responseRate: 0,
+        meetingsBooked: 0
+      },
+      {
+        id: 5,
+        subject: "Invitation: Exclusive Webinar on Market Trends",
+        recipient: "david.miller@innovativetech.com",
+        sentDate: "2023-11-15T15:45:00Z",
+        status: "not_opened",
+        openRate: 0,
+        clickRate: 0,
+        responseRate: 0,
+        meetingsBooked: 0
+      }
+    ];
+    
+    return mockOutreachData;
+  },
+
+  // Get lead profiles
+  getLeads: async () => {
+    const mockLeads: LeadProfile[] = [
+      {
+        id: 1,
+        name: "John Smith",
+        position: "Marketing Director",
+        company: "Acme Corporation",
+        email: "john.smith@acmecorp.com",
+        phone: "(555) 123-4567",
+        source: "other",
+        status: "contacted",
+        score: 85,
+        lastContactedAt: "2023-11-28T09:45:00Z",
+        notes: "Showed interest in website redesign services",
+        createdAt: "2023-10-15T14:30:00Z",
+        interactions: [
+          {
+            date: "2023-11-28T09:45:00Z",
+            type: "email",
+            notes: "Sent introduction email"
+          },
+          {
+            date: "2023-11-29T11:20:00Z",
+            type: "email",
+            notes: "Received reply, expressing interest"
+          }
+        ]
+      },
+      {
+        id: 2,
+        name: "Sarah Johnson",
+        position: "CEO",
+        company: "TechStart Inc.",
+        email: "sarah.johnson@techstart.io",
+        source: "other",
+        status: "meeting_scheduled",
+        score: 92,
+        lastContactedAt: "2023-11-25T14:30:00Z",
+        notes: "Meeting scheduled to discuss comprehensive digital marketing",
+        createdAt: "2023-09-20T10:15:00Z",
+        interactions: [
+          {
+            date: "2023-11-20T14:30:00Z",
+            type: "email",
+            notes: "Sent follow-up email after LinkedIn connection"
+          },
+          {
+            date: "2023-11-22T11:45:00Z",
+            type: "call",
+            notes: "Brief introductory call, very positive"
+          },
+          {
+            date: "2023-11-25T14:30:00Z",
+            type: "email",
+            notes: "Scheduled meeting for Dec 5th"
+          }
+        ]
+      },
+      {
+        id: 3,
+        name: "Michael Wong",
+        position: "Operations Manager",
+        company: "Global Logistics Ltd.",
+        email: "michael.wong@globallogistics.com",
+        phone: "(555) 321-7890",
+        source: "other",
+        status: "new",
+        score: 65,
+        notes: "Found through LinkedIn research, logistics industry",
+        createdAt: "2023-11-10T09:30:00Z",
+        interactions: []
+      },
+      {
+        id: 4,
+        name: "Emma Lewis",
+        position: "Creative Director",
+        company: "Creative Design Co.",
+        email: "emma@creativedesign.co",
+        phone: "(555) 456-7890",
+        source: "other",
+        status: "meeting_completed",
+        score: 78,
+        lastContactedAt: "2023-11-18T10:00:00Z",
+        notes: "Meeting focused on potential partnership for client projects",
+        createdAt: "2023-10-05T13:45:00Z",
+        interactions: [
+          {
+            date: "2023-10-15T11:30:00Z",
+            type: "email",
+            notes: "Initial contact through referral"
+          },
+          {
+            date: "2023-11-02T14:00:00Z",
+            type: "meeting",
+            notes: "Introductory meeting, showed interest in collaboration"
+          },
+          {
+            date: "2023-11-18T10:00:00Z",
+            type: "email",
+            notes: "Sent meeting summary and next steps"
+          }
+        ]
+      },
+      {
+        id: 5,
+        name: "David Miller",
+        position: "CTO",
+        company: "Innovative Tech Solutions",
+        email: "david.miller@innovativetech.com",
+        source: "other",
+        status: "proposal_sent",
+        score: 88,
+        lastContactedAt: "2023-11-15T15:45:00Z",
+        notes: "Very interested in our enterprise solutions",
+        createdAt: "2023-09-01T11:20:00Z",
+        interactions: [
+          {
+            date: "2023-09-15T10:30:00Z",
+            type: "meeting",
+            notes: "Initial consultation about needs"
+          },
+          {
+            date: "2023-10-20T14:15:00Z",
+            type: "demo",
+            notes: "Product demonstration for their team"
+          },
+          {
+            date: "2023-11-15T15:45:00Z",
+            type: "email",
+            notes: "Sent detailed proposal for services"
+          }
+        ]
+      }
+    ];
+    
+    return mockLeads;
+  },
+
+  // Get marketing plans
+  getMarketingPlans: async () => {
+    return [
+      {
+        id: 1,
+        title: "Q1 2024 Growth Strategy",
+        status: "draft",
+        createdAt: "2023-11-20T15:30:00Z",
+        targetAudience: "SMB Technology Companies",
+        objectives: [
+          "Increase lead generation by 25%",
+          "Improve email conversion rates to 12%",
+          "Launch 2 new service packages"
+        ],
+        channels: ["Email", "LinkedIn", "Industry Events", "Content Marketing"],
+        budget: 15000,
+        metrics: {
+          leadTarget: 150,
+          conversionTarget: 12,
+          revenueTarget: 120000
+        }
+      },
+      {
+        id: 2,
+        title: "Website Relaunch Campaign",
+        status: "approved",
+        createdAt: "2023-11-15T11:45:00Z",
+        targetAudience: "Existing Clients and Active Prospects",
+        objectives: [
+          "Showcase new service offerings",
+          "Generate 50 qualified leads",
+          "Increase website traffic by 40%"
+        ],
+        channels: ["Email", "Social Media", "Paid Search", "PR"],
+        budget: 8500,
+        metrics: {
+          trafficTarget: 10000,
+          leadTarget: 50,
+          conversionTarget: 15
+        }
+      },
+      {
+        id: 3,
+        title: "Enterprise Client Acquisition",
+        status: "in_progress",
+        createdAt: "2023-10-28T09:15:00Z",
+        targetAudience: "Enterprise Companies ($50M+ Revenue)",
+        objectives: [
+          "Secure 3 new enterprise clients",
+          "Establish presence at key industry events",
+          "Develop targeted content for enterprise needs"
+        ],
+        channels: ["Direct Outreach", "Executive Events", "Industry Publications", "Targeted Advertising"],
+        budget: 25000,
+        metrics: {
+          leadTarget: 30,
+          meetingTarget: 15,
+          newClientTarget: 3
+        }
+      }
+    ];
+  },
+
+  // Get marketing plan by ID
+  getMarketingPlanById: async (planId: number) => {
+    const plans = await marketingService.getMarketingPlans();
+    return plans.find(plan => plan.id === planId) || null;
+  },
+
+  // Get marketing trends
+  getMarketingTrends: async () => {
+    return {
+      industryTrends: [
+        {
+          id: 1,
+          title: "AI-Powered Content Creation",
+          description: "Growing adoption of AI tools for content generation and optimization, leading to increased efficiency and personalization.",
+          impact: "high",
+          actionItems: [
+            "Evaluate top AI content platforms for our workflow",
+            "Test AI-generated content against traditional methods",
+            "Develop framework for human-AI collaboration"
+          ]
+        },
+        {
+          id: 2,
+          title: "Video-First Marketing",
+          description: "Short-form video continuing to dominate engagement metrics across platforms, with increased preference for authentic over polished content.",
+          impact: "medium",
+          actionItems: [
+            "Increase video content production by 30%",
+            "Develop short-form video strategy for social channels",
+            "Test video vs. static content in email campaigns"
+          ]
+        },
+        {
+          id: 3,
+          title: "Privacy-Focused Marketing",
+          description: "Continued evolution of privacy regulations and cookie deprecation requiring new approaches to targeting and measurement.",
+          impact: "high",
+          actionItems: [
+            "Audit current tracking and data collection practices",
+            "Develop first-party data strategy",
+            "Test contextual targeting approaches"
+          ]
+        }
+      ],
+      keyMetricsShift: [
+        { metric: "Email Open Rate", past: "18.5%", current: "22.3%", trend: "increasing" },
+        { metric: "Social Engagement", past: "3.8%", current: "4.2%", trend: "stable" },
+        { metric: "Video Completion Rate", past: "55%", current: "68%", trend: "increasing" },
+        { metric: "Cost Per Lead", past: "$45", current: "$38", trend: "decreasing" },
+        { metric: "Organic Traffic", past: "18,500", current: "22,300", trend: "increasing" }
+      ],
+      recommendedActions: [
+        "Increase investment in video content production and distribution",
+        "Develop comprehensive first-party data strategy",
+        "Test AI-powered content creation for specific marketing channels",
+        "Enhance email personalization to leverage improved open rates",
+        "Develop thought leadership content around emerging trends"
+      ]
+    };
+  },
+
+  // Get competitor insights
+  getCompetitorInsights: async () => {
+    return {
+      topCompetitors: [
+        {
+          name: "Digital Dynamics",
+          strengths: ["Comprehensive service offerings", "Strong enterprise client base", "Advanced analytics capabilities"],
+          weaknesses: ["Higher pricing", "Longer delivery timelines", "Less personalized service"],
+          marketShare: 18,
+          trendsDirection: "stable"
+        },
+        {
+          name: "CreativeForce Agency",
+          strengths: ["Award-winning creative", "Strong brand recognition", "Innovative campaigns"],
+          weaknesses: ["Limited technical capabilities", "Focus on larger clients only", "Less data-driven approach"],
+          marketShare: 15,
+          trendsDirection: "decreasing"
+        },
+        {
+          name: "TechMarketing Solutions",
+          strengths: ["Cutting-edge technology integration", "Specialized in B2B tech", "Competitive pricing"],
+          weaknesses: ["Limited creative capabilities", "Newer to the market", "Smaller team size"],
+          marketShare: 12,
+          trendsDirection: "increasing"
+        }
+      ],
+      competitiveAdvantages: [
+        {
+          category: "Service Delivery",
+          ourPosition: "faster",
+          description: "Our average project turnaround is 15 days faster than the industry average",
+          leverageStrategy: "Emphasize quick turnaround times in marketing materials and client conversations"
+        },
+        {
+          category: "Client Support",
+          ourPosition: "stronger",
+          description: "Our dedicated account management model provides more personalized service than competitors' team-based approach",
+          leverageStrategy: "Highlight client testimonials that emphasize our responsive support"
+        },
+        {
+          category: "Pricing",
+          ourPosition: "competitive",
+          description: "Our service packages are priced within industry averages, with better included features",
+          leverageStrategy: "Create clear comparison charts showing value advantage"
+        }
+      ],
+      marketGaps: [
+        {
+          opportunity: "AI-Enhanced Services",
+          competitorCoverage: "low",
+          potentialImpact: "high",
+          timeToImplement: "medium",
+          description: "Few competitors are effectively incorporating AI into service offerings"
+        },
+        {
+          opportunity: "SMB-Focused Packages",
+          competitorCoverage: "medium",
+          potentialImpact: "medium",
+          timeToImplement: "short",
+          description: "Gap for affordable, scaled-down versions of enterprise services for smaller businesses"
+        },
+        {
+          opportunity: "Sustainability Marketing",
+          competitorCoverage: "low",
+          potentialImpact: "increasing",
+          timeToImplement: "medium",
+          description: "Growing demand for sustainable marketing practices not being met by current offerings"
+        }
+      ]
+    };
+  },
+
+  // Analyze meeting transcript
+  analyzeMeetingTranscript: async (transcript: string) => {
+    // In a real implementation, this would use NLP to analyze the transcript
+    // For now, we'll return mock analysis
+    return {
+      summary: "The meeting focused on the client's need for a website redesign with improved user experience and integrated e-commerce capabilities. The client emphasized mobile responsiveness and modern design aesthetic.",
+      keyPoints: [
+        "Current website is 3+ years old and not mobile-friendly",
+        "Target launch date is Q1 2024",
+        "Budget range is $15,000-$20,000",
+        "E-commerce functionality is critical requirement",
+        "Client wants to maintain their existing brand colors and logo"
+      ],
+      sentimentAnalysis: {
+        overall: "positive",
+        specificConcerns: ["timeline concerns", "previous negative experience with other agency"],
+        enthusiasticAbout: ["our portfolio examples", "proposed UX process"]
+      },
+      actionItems: [
+        {
+          task: "Send detailed proposal with timeline",
+          assignedTo: "Account Manager",
+          dueDate: "Within 5 business days"
+        },
+        {
+          task: "Schedule UX workshop",
+          assignedTo: "UX Designer",
+          dueDate: "After proposal approval"
+        },
+        {
+          task: "Create project plan with milestones",
+          assignedTo: "Project Manager",
+          dueDate: "After proposal approval"
+        }
+      ],
+      followUpRecommendations: [
+        "Share case studies of similar e-commerce projects",
+        "Provide detailed explanation of our QA process to address previous negative experience",
+        "Include mobile-specific designs in the proposal"
+      ]
+    };
+  },
+
   // Get marketing metrics
   getMarketingMetrics: async () => {
-    // In a real implementation, this would be aggregated metrics
-    // For now, we'll return mock data
     return {
-      lead_generation: {
-        total_leads: 145,
-        qualified_leads: 68,
-        lead_conversion_rate: 12.5,
-        cost_per_lead: 35,
-        lead_sources: [
-          { source: "Website", count: 65, percentage: 45 },
-          { source: "Email", count: 32, percentage: 22 },
-          { source: "Social", count: 28, percentage: 19 },
-          { source: "Events", count: 12, percentage: 8 },
-          { source: "Referral", count: 8, percentage: 6 }
-        ]
+      topline: {
+        leadGeneration: {
+          current: 145,
+          target: 150,
+          previousPeriod: 128,
+          percentChange: 13.3
+        },
+        conversionRate: {
+          current: 18.5,
+          target: 20,
+          previousPeriod: 16.8,
+          percentChange: 10.1
+        },
+        customerAcquisitionCost: {
+          current: 850,
+          target: 800,
+          previousPeriod: 925,
+          percentChange: -8.1
+        },
+        returnOnMarketingInvestment: {
+          current: 4.2,
+          target: 4.5,
+          previousPeriod: 3.8,
+          percentChange: 10.5
+        }
       },
-      content_performance: {
-        total_views: 25000,
-        average_engagement_rate: 3.2,
-        top_performing_content: [
-          { title: "Industry Guide 2023", views: 3500, conversions: 45 },
-          { title: "Case Study: Client Success", views: 2800, conversions: 38 },
-          { title: "How-to Tutorial", views: 2200, conversions: 25 }
-        ]
-      },
-      campaign_metrics: {
-        active_campaigns: 3,
-        average_open_rate: 25.8,
-        average_click_rate: 3.2,
-        average_conversion_rate: 1.5,
-        roi: 320
-      }
+      channelPerformance: [
+        { channel: "Email Marketing", leads: 42, conversion: 22.5, cac: 105, roi: 6.2 },
+        { channel: "Content Marketing", leads: 38, conversion: 15.8, cac: 220, roi: 3.8 },
+        { channel: "Social Media", leads: 25, conversion: 12.5, cac: 185, roi: 2.9 },
+        { channel: "Paid Search", leads: 22, conversion: 18.2, cac: 280, roi: 2.5 },
+        { channel: "Direct Outreach", leads: 18, conversion: 33.3, cac: 350, roi: 5.1 }
+      ],
+      campaignPerformance: [
+        { campaign: "Fall Email Sequence", status: "active", budget: 2500, spent: 1800, leads: 35, conversion: 22.9, roi: 3.8 },
+        { campaign: "Industry Whitepaper", status: "completed", budget: 3500, spent: 3500, leads: 42, conversion: 16.7, roi: 3.2 },
+        { campaign: "LinkedIn Advertising", status: "active", budget: 4000, spent: 2200, leads: 28, conversion: 14.3, roi: 2.1 },
+        { campaign: "Webinar Series", status: "upcoming", budget: 5000, spent: 1200, leads: 15, conversion: 0, roi: 0 }
+      ],
+      contentEffectiveness: [
+        { title: "10 Trends in Digital Marketing", type: "blog", views: 3500, engagement: 4.5, leads: 15, conversion: 20.0 },
+        { title: "Complete Guide to SEO", type: "whitepaper", views: 850, engagement: 8.2, leads: 28, conversion: 17.9 },
+        { title: "Marketing Automation Demo", type: "video", views: 1250, engagement: 6.8, leads: 18, conversion: 22.2 },
+        { title: "Industry Benchmark Report", type: "report", views: 950, engagement: 9.5, leads: 22, conversion: 27.3 }
+      ]
     };
   }
 };

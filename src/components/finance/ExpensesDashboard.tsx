@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { financeService } from '@/services/api';
+import { financeService, type FinancialRecord } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FinancialRecord } from '@/services/api/financeService';
 import { Calendar, Plus, Search, FileText, TrendingDown, TrendingUp } from 'lucide-react';
 import {
   PieChart,
@@ -28,7 +27,7 @@ import {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-const ExpenseChart = ({ data }: { data: any[] }) => {
+const ExpenseChart = ({ data }: { data: FinancialRecord[] }) => {
   const categories = data.reduce((acc: Record<string, number>, record) => {
     const category = record.description.split(':')[0] || 'Other';
     acc[category] = (acc[category] || 0) + record.amount;
@@ -66,11 +65,11 @@ const ExpenseChart = ({ data }: { data: any[] }) => {
   );
 };
 
-const ExpensesTrendChart = ({ data }: { data: any[] }) => {
+const ExpensesTrendChart = ({ data }: { data: FinancialRecord[] }) => {
   // Group expenses by month
   const expensesByMonth: Record<string, number> = {};
   data.forEach(record => {
-    const date = new Date(record.date);
+    const date = new Date(record.record_date);
     const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     expensesByMonth[monthYear] = (expensesByMonth[monthYear] || 0) + record.amount;
   });
@@ -239,13 +238,13 @@ const ExpensesDashboard = () => {
                 </div>
               ) : (
                 filteredRecords?.map((record: FinancialRecord) => (
-                  <Card key={record.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                  <Card key={record.record_id} className="overflow-hidden hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                           <h3 className="font-medium">{record.description}</h3>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(record.date).toLocaleDateString()}
+                            {new Date(record.record_date).toLocaleDateString()}
                           </div>
                         </div>
                         

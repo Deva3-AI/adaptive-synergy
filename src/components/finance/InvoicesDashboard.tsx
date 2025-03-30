@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { financeService } from '@/services/api';
-import { type Invoice } from '@/services/api/financeService';
+import { financeService, type Invoice } from '@/services/api';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +25,7 @@ const InvoicesDashboard = () => {
 
   // Mutation for updating invoice status
   const updateStatusMutation = useMutation({
-    mutationFn: ({ invoiceId, status }: { invoiceId: number; status: string }) => 
+    mutationFn: ({ invoiceId, status }: { invoiceId: number; status: "pending" | "paid" | "overdue" }) => 
       financeService.updateInvoiceStatus(invoiceId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -49,7 +48,7 @@ const InvoicesDashboard = () => {
   });
 
   // Handle status update
-  const handleStatusUpdate = (invoiceId: number, status: string) => {
+  const handleStatusUpdate = (invoiceId: number, status: "pending" | "paid" | "overdue") => {
     updateStatusMutation.mutate({ invoiceId, status });
   };
 
@@ -61,7 +60,7 @@ const InvoicesDashboard = () => {
   // Filter invoices based on search term
   const filteredInvoices = invoices?.filter((invoice: Invoice) => 
     invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.client_name.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Format currency
@@ -148,7 +147,7 @@ const InvoicesDashboard = () => {
               </TableHeader>
               <TableBody>
                 {filteredInvoices.map((invoice: Invoice) => (
-                  <TableRow key={invoice.id}>
+                  <TableRow key={invoice.invoice_id}>
                     <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                     <TableCell>{invoice.client_name}</TableCell>
                     <TableCell>{formatCurrency(invoice.amount)}</TableCell>
@@ -165,14 +164,14 @@ const InvoicesDashboard = () => {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => handleSendReminder(invoice.id)}
+                              onClick={() => handleSendReminder(invoice.invoice_id)}
                             >
                               <Mail className="h-4 w-4" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => handleStatusUpdate(invoice.id, 'paid')}
+                              onClick={() => handleStatusUpdate(invoice.invoice_id, 'paid')}
                             >
                               <Check className="h-4 w-4" />
                             </Button>

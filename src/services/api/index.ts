@@ -10,9 +10,10 @@ import authService from './authService';
 import reportService from './reportService';
 
 // Re-export types
-import type { Brand } from './clientService';
+import type { Brand, ClientPreferences } from './clientService';
 import type { Invoice, FinancialRecord } from './financeService';
 import type { TaskAttachment, TaskStatistics } from './taskService';
+import type { EmailOutreach, MarketingMeeting, LeadProfile } from './marketingService';
 
 export {
   employeeService,
@@ -26,8 +27,12 @@ export {
   reportService,
   // Types
   type Brand,
+  type ClientPreferences,
   type Invoice,
   type FinancialRecord,
   type TaskAttachment,
-  type TaskStatistics
+  type TaskStatistics,
+  type EmailOutreach,
+  type MarketingMeeting,
+  type LeadProfile
 };
