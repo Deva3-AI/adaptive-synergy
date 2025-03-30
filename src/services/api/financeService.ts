@@ -3,29 +3,30 @@ import apiClient from '@/utils/apiUtils';
 
 export interface Invoice {
   id: number;
-  invoice_number: string;
   client_id: number;
   client_name: string;
+  invoice_number: string;
   amount: number;
-  issue_date: string;
   due_date: string;
-  status: 'draft' | 'paid' | 'sent' | 'overdue' | 'pending';
+  status: 'draft' | 'sent' | 'paid' | 'overdue';
+  created_at: string;
 }
 
 export interface FinancialRecord {
   id: number;
-  record_type: 'income' | 'expense';
+  type: 'income' | 'expense';
   amount: number;
   description: string;
   category: string;
-  date: string;
+  recordDate: string;
+  created_at: string;
 }
 
-export const financeService = {
+const financeService = {
   getInvoices: async (status?: string) => {
     try {
-      const params = status ? { status } : {};
-      const response = await apiClient.get('/invoices', { params });
+      const url = status ? `/invoices?status=${status}` : '/invoices';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching invoices:', error);
@@ -38,7 +39,7 @@ export const financeService = {
       const response = await apiClient.get(`/invoices/${invoiceId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching invoice details for ${invoiceId}:`, error);
+      console.error(`Error fetching invoice ${invoiceId}:`, error);
       return null;
     }
   },
@@ -55,11 +56,39 @@ export const financeService = {
 
   updateInvoiceStatus: async (invoiceId: number, status: string) => {
     try {
-      const response = await apiClient.patch(`/invoices/${invoiceId}/status`, { status });
+      const response = await apiClient.put(`/invoices/${invoiceId}/status`, { status });
       return response.data;
     } catch (error) {
-      console.error(`Error updating invoice status for ${invoiceId}:`, error);
+      console.error(`Error updating invoice ${invoiceId} status:`, error);
       throw error;
+    }
+  },
+
+  getRevenueReports: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/finance/revenue';
+      if (startDate && endDate) {
+        url += `?startDate=${startDate}&endDate=${endDate}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching revenue reports:', error);
+      return null;
+    }
+  },
+
+  getExpenseReports: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/finance/expenses';
+      if (startDate && endDate) {
+        url += `?startDate=${startDate}&endDate=${endDate}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching expense reports:', error);
+      return null;
     }
   },
 
@@ -68,37 +97,22 @@ export const financeService = {
       const response = await apiClient.post(`/invoices/${invoiceId}/reminder`);
       return response.data;
     } catch (error) {
-      console.error(`Error sending invoice reminder for ${invoiceId}:`, error);
+      console.error(`Error sending reminder for invoice ${invoiceId}:`, error);
       throw error;
     }
   },
 
-  getRevenueReports: async (startDate?: string, endDate?: string) => {
+  getFinancialRecords: async (type?: string, startDate?: string, endDate?: string) => {
     try {
-      const params = { start_date: startDate, end_date: endDate };
-      const response = await apiClient.get('/reports/revenue', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching revenue reports:', error);
-      return {};
-    }
-  },
-
-  getExpenseReports: async (startDate?: string, endDate?: string) => {
-    try {
-      const params = { start_date: startDate, end_date: endDate };
-      const response = await apiClient.get('/reports/expenses', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching expense reports:', error);
-      return {};
-    }
-  },
-
-  getFinancialRecords: async (type?: 'income' | 'expense', startDate?: string, endDate?: string) => {
-    try {
-      const params = { type, start_date: startDate, end_date: endDate };
-      const response = await apiClient.get('/financial-records', { params });
+      let url = '/finance/records';
+      const params = [];
+      if (type) params.push(`type=${type}`);
+      if (startDate) params.push(`startDate=${startDate}`);
+      if (endDate) params.push(`endDate=${endDate}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching financial records:', error);
@@ -108,38 +122,21 @@ export const financeService = {
 
   analyzeTeamCosts: async (startDate?: string, endDate?: string) => {
     try {
-      const params = { start_date: startDate, end_date: endDate };
-      const response = await apiClient.get('/reports/team-costs', { params });
+      let url = '/finance/team-costs';
+      if (startDate && endDate) {
+        url += `?startDate=${startDate}&endDate=${endDate}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching team costs analysis:', error);
-      return {
-        total_cost: 75000,
-        departments: [
-          { name: "Design", cost: 25000, headcount: 5 },
-          { name: "Development", cost: 35000, headcount: 7 },
-          { name: "Marketing", cost: 15000, headcount: 3 }
-        ],
-        monthly_trend: [
-          { month: "Jan", cost: 68000 },
-          { month: "Feb", cost: 70000 },
-          { month: "Mar", cost: 72000 },
-          { month: "Apr", cost: 73500 },
-          { month: "May", cost: 75000 }
-        ],
-        cost_per_project: [
-          { project: "Website Redesign", cost: 28000 },
-          { project: "Mobile App", cost: 32000 },
-          { project: "Brand Campaign", cost: 15000 }
-        ]
-      };
+      console.error('Error analyzing team costs:', error);
+      return null;
     }
   },
 
-  // Sales-related finance methods
   getSalesFollowUps: async () => {
     try {
-      const response = await apiClient.get('/sales/follow-ups');
+      const response = await apiClient.get('/finance/sales/follow-ups');
       return response.data;
     } catch (error) {
       console.error('Error fetching sales follow-ups:', error);
@@ -149,7 +146,7 @@ export const financeService = {
 
   getImprovementSuggestions: async () => {
     try {
-      const response = await apiClient.get('/sales/improvement-suggestions');
+      const response = await apiClient.get('/finance/improvement-suggestions');
       return response.data;
     } catch (error) {
       console.error('Error fetching improvement suggestions:', error);
@@ -157,10 +154,9 @@ export const financeService = {
     }
   },
 
-  completeFollowUp: async (followUpId: number, feedback?: string) => {
+  completeFollowUp: async (followUpId: number) => {
     try {
-      const data = feedback ? { feedback } : {};
-      const response = await apiClient.post(`/sales/follow-ups/${followUpId}/complete`, data);
+      const response = await apiClient.put(`/finance/sales/follow-ups/${followUpId}/complete`);
       return response.data;
     } catch (error) {
       console.error(`Error completing follow-up ${followUpId}:`, error);
@@ -170,136 +166,113 @@ export const financeService = {
 
   getSalesGrowthData: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/growth', { params });
+      const url = period ? `/finance/sales/growth?period=${period}` : '/finance/sales/growth';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching sales growth data:', error);
-      return {};
+      return null;
     }
   },
 
   getSalesTargets: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/targets', { params });
+      const url = period ? `/finance/sales/targets?period=${period}` : '/finance/sales/targets';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching sales targets:', error);
-      return [];
+      return null;
     }
   },
 
   getGrowthForecast: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/forecast', { params });
+      const url = period ? `/finance/sales/forecast?period=${period}` : '/finance/sales/forecast';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching growth forecast:', error);
-      return {};
+      return null;
     }
   },
 
-  getWeeklyReports: async () => {
+  getWeeklyReports: async (startDate?: string, endDate?: string) => {
     try {
-      const response = await apiClient.get('/sales/reports/weekly');
+      let url = '/finance/sales/weekly';
+      if (startDate && endDate) {
+        url += `?startDate=${startDate}&endDate=${endDate}`;
+      }
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching weekly sales reports:', error);
-      return [];
+      console.error('Error fetching weekly reports:', error);
+      return null;
     }
   },
 
-  getMonthlyReports: async () => {
+  getMonthlyReports: async (year?: number) => {
     try {
-      const response = await apiClient.get('/sales/reports/monthly');
+      const url = year ? `/finance/sales/monthly?year=${year}` : '/finance/sales/monthly';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching monthly sales reports:', error);
-      return [];
+      console.error('Error fetching monthly reports:', error);
+      return null;
     }
   },
 
   getSalesTrends: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/trends', { params });
+      const url = period ? `/finance/sales/trends?period=${period}` : '/finance/sales/trends';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching sales trends:', error);
-      return {};
+      return null;
     }
   },
 
   getSalesByChannel: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/by-channel', { params });
+      const url = period ? `/finance/sales/by-channel?period=${period}` : '/finance/sales/by-channel';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching sales by channel:', error);
-      return [];
+      return null;
     }
   },
 
   getTopProducts: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/top-products', { params });
+      const url = period ? `/finance/sales/top-products?period=${period}` : '/finance/sales/top-products';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching top products:', error);
-      return [];
+      return null;
     }
   },
 
-  // Financial dashboard methods
   getFinancialOverview: async () => {
     try {
       const response = await apiClient.get('/finance/overview');
       return response.data;
     } catch (error) {
       console.error('Error fetching financial overview:', error);
-      return {
-        total_revenue: 850000,
-        total_expenses: 650000,
-        profit: 200000,
-        profit_margin: 23.5,
-        cash_flow: 175000
-      };
+      return null;
     }
   },
 
   getFinancialMetrics: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/finance/metrics', { params });
+      const url = period ? `/finance/metrics?period=${period}` : '/finance/metrics';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching financial metrics:', error);
-      return {
-        monthly_revenue: [
-          { month: "Jan", value: 65000 },
-          { month: "Feb", value: 68000 },
-          { month: "Mar", value: 72000 },
-          { month: "Apr", value: 78000 },
-          { month: "May", value: 80000 }
-        ],
-        expense_breakdown: [
-          { category: "Salaries", percentage: 65 },
-          { category: "Office", percentage: 15 },
-          { category: "Marketing", percentage: 10 },
-          { category: "Software", percentage: 7 },
-          { category: "Other", percentage: 3 }
-        ],
-        key_indicators: {
-          burn_rate: 65000,
-          runway_months: 18,
-          client_acquisition_cost: 3500,
-          lifetime_value: 28000
-        }
-      };
+      return null;
     }
   },
 
@@ -319,27 +292,18 @@ export const financeService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching financial plans:', error);
-      return [];
+      return null;
     }
   },
 
   getSalesMetrics: async (period?: string) => {
     try {
-      const params = period ? { period } : {};
-      const response = await apiClient.get('/sales/metrics', { params });
+      const url = period ? `/finance/sales/metrics?period=${period}` : '/finance/sales/metrics';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching sales metrics:', error);
-      return {
-        totalSales: 150000,
-        salesGrowth: 12.5,
-        newCustomers: 24,
-        customerGrowth: 8.3,
-        conversionRate: 3.8,
-        conversionGrowth: 0.6,
-        averageSale: 6250,
-        averageSaleGrowth: 4.2
-      };
+      return null;
     }
   }
 };

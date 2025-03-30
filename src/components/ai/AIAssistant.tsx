@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -40,12 +39,10 @@ export const AIAssistant = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Fetch data that will be helpful for the assistant
   const { data: clients } = useClients();
   const { data: tasks } = useTasks();
   const { data: employees } = useEmployees();
 
-  // Define suggestion categories
   const suggestionCategories: SuggestionCategory[] = [
     {
       id: 'general',
@@ -76,7 +73,6 @@ export const AIAssistant = () => {
     }
   ];
 
-  // Welcome message when chatbot opens
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([
@@ -90,14 +86,12 @@ export const AIAssistant = () => {
     }
   }, [isOpen, user]);
 
-  // Scroll to bottom when new messages are added
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // Focus the input when the chatbot opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
@@ -119,7 +113,6 @@ export const AIAssistant = () => {
     setIsLoading(true);
     
     try {
-      // Call AI service to get response
       const context = {
         clients: clients || [],
         tasks: tasks || [],
@@ -127,7 +120,7 @@ export const AIAssistant = () => {
         user: user || { name: 'Guest' }
       };
       
-      const response = await aiService.getAssistantResponse(inputValue, context);
+      const response = await aiService.getResponse(inputValue);
       
       const assistantMessage: Message = {
         id: generateId(),
@@ -178,7 +171,6 @@ export const AIAssistant = () => {
 
   return (
     <>
-      {/* Chat button */}
       <Button
         variant="default"
         size="icon"
@@ -188,7 +180,6 @@ export const AIAssistant = () => {
         {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
       </Button>
 
-      {/* Chat window */}
       <Card
         className={cn(
           "fixed bottom-24 right-6 w-80 shadow-lg z-40 flex flex-col transition-all duration-300 ease-in-out",
@@ -196,7 +187,6 @@ export const AIAssistant = () => {
           isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
         )}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-3 border-b">
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
@@ -218,7 +208,6 @@ export const AIAssistant = () => {
           </div>
         </div>
 
-        {/* Messages */}
         <ScrollArea className="flex-1 p-3">
           <div className="flex flex-col gap-3">
             {messages.map((message) => (
@@ -253,7 +242,6 @@ export const AIAssistant = () => {
           </div>
         </ScrollArea>
 
-        {/* Suggestions */}
         {messages.length <= 2 && (
           <div className="px-3 py-2 border-t">
             <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
@@ -275,7 +263,6 @@ export const AIAssistant = () => {
           </div>
         )}
 
-        {/* Input */}
         <div className="p-3 border-t flex gap-2">
           <Textarea
             ref={inputRef}

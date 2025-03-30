@@ -2,92 +2,52 @@
 import apiClient from '@/utils/apiUtils';
 
 const userService = {
-  login: async (email: string, password: string) => {
+  getCurrentUser: async () => {
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      const response = await apiClient.get('/users/me');
       return response.data;
     } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
-  },
-
-  register: async (userData: any) => {
-    try {
-      const response = await apiClient.post('/auth/register', userData);
-      return response.data;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
-    }
-  },
-
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  },
-
-  getCurrentUser: () => {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  },
-
-  updateProfile: async (userId: number, profileData: any) => {
-    try {
-      const response = await apiClient.put(`/users/${userId}/profile`, profileData);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    }
-  },
-
-  getUserProfile: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/users/${userId}/profile`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching profile for user ${userId}:`, error);
+      console.error('Error fetching current user:', error);
       return null;
     }
   },
-
-  resetPassword: async (email: string) => {
+  
+  getUserProfile: async (userId: number) => {
     try {
-      const response = await apiClient.post('/auth/reset-password', { email });
+      const response = await apiClient.get(`/users/${userId}`);
       return response.data;
     } catch (error) {
-      console.error('Error resetting password:', error);
+      console.error(`Error fetching user ${userId}:`, error);
+      return null;
+    }
+  },
+  
+  updateUserProfile: async (userId: number, profileData: any) => {
+    try {
+      const response = await apiClient.put(`/users/${userId}`, profileData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating user ${userId}:`, error);
       throw error;
     }
   },
-
-  confirmPasswordReset: async (token: string, newPassword: string) => {
+  
+  getUserSettings: async (userId: number) => {
     try {
-      const response = await apiClient.post('/auth/confirm-reset', { token, newPassword });
+      const response = await apiClient.get(`/users/${userId}/settings`);
       return response.data;
     } catch (error) {
-      console.error('Error confirming password reset:', error);
-      throw error;
+      console.error(`Error fetching settings for user ${userId}:`, error);
+      return {};
     }
   },
-
-  verifyEmail: async (token: string) => {
+  
+  updateUserSettings: async (userId: number, settings: any) => {
     try {
-      const response = await apiClient.post('/auth/verify-email', { token });
+      const response = await apiClient.put(`/users/${userId}/settings`, settings);
       return response.data;
     } catch (error) {
-      console.error('Error verifying email:', error);
-      throw error;
-    }
-  },
-
-  updateNotificationPreferences: async (userId: number, preferences: any) => {
-    try {
-      const response = await apiClient.put(`/users/${userId}/notifications`, preferences);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating notification preferences:', error);
+      console.error(`Error updating settings for user ${userId}:`, error);
       throw error;
     }
   }
