@@ -1,6 +1,6 @@
 
 import axios from 'axios';
-import { EmailOutreach, CompetitorInsight, MarketingMeeting } from '@/interfaces/marketing';
+import { EmailOutreach, CompetitorInsight, MarketingMeeting, EmailTemplate, MarketingMetrics, MarketingPlan, MarketingTrends, MarketingLead } from '@/interfaces/marketing';
 
 // Create mock marketingService
 const marketingService = {
@@ -55,8 +55,8 @@ const marketingService = {
     }
   },
 
-  // New methods to resolve errors
-  getEmailTemplates: async () => {
+  // New methods for EmailTemplates component
+  getEmailTemplates: async (): Promise<EmailTemplate[]> => {
     try {
       // For now, return mock data
       return getMockEmailTemplates();
@@ -76,7 +76,7 @@ const marketingService = {
     }
   },
 
-  getLeads: async () => {
+  getLeads: async (): Promise<MarketingLead[]> => {
     try {
       // For now, return mock data
       return getMockLeads();
@@ -86,7 +86,7 @@ const marketingService = {
     }
   },
 
-  getMarketingPlans: async () => {
+  getMarketingPlans: async (): Promise<MarketingPlan[]> => {
     try {
       // For now, return mock data
       return getMockMarketingPlans();
@@ -96,7 +96,7 @@ const marketingService = {
     }
   },
 
-  getMarketingPlanById: async (planId: number) => {
+  getMarketingPlanById: async (planId: number): Promise<MarketingPlan> => {
     try {
       const plans = getMockMarketingPlans();
       const plan = plans.find(p => p.id === planId);
@@ -108,7 +108,7 @@ const marketingService = {
     }
   },
 
-  getMarketingTrends: async () => {
+  getMarketingTrends: async (): Promise<MarketingTrends> => {
     try {
       // For now, return mock data
       return getMockMarketingTrends();
@@ -138,7 +138,7 @@ const marketingService = {
     }
   },
 
-  getMarketingMetrics: async () => {
+  getMarketingMetrics: async (): Promise<MarketingMetrics> => {
     try {
       // For now, return mock data
       return getMockMarketingMetrics();
@@ -242,7 +242,7 @@ const getMockAnalytics = (startDate?: string, endDate?: string) => {
   };
 };
 
-const getMockEmailTemplates = () => {
+const getMockEmailTemplates = (): EmailTemplate[] => {
   return [
     {
       id: 1,
@@ -306,7 +306,7 @@ const getMockEmailOutreach = (): EmailOutreach[] => {
   ];
 };
 
-const getMockLeads = () => {
+const getMockLeads = (): MarketingLead[] => {
   return [
     {
       id: 1,
@@ -345,7 +345,7 @@ const getMockLeads = () => {
   ];
 };
 
-const getMockMarketingPlans = () => {
+const getMockMarketingPlans = (): MarketingPlan[] => {
   return [
     {
       id: 1,
@@ -378,7 +378,7 @@ const getMockMarketingPlans = () => {
   ];
 };
 
-const getMockMarketingTrends = () => {
+const getMockMarketingTrends = (): MarketingTrends => {
   return {
     industry_trends: [
       {
@@ -495,7 +495,7 @@ const getMockMeetingTranscriptAnalysis = (transcriptId: number) => {
   };
 };
 
-const getMockMarketingMetrics = () => {
+const getMockMarketingMetrics = (): MarketingMetrics => {
   return {
     lead_generation: {
       total_leads: 210,

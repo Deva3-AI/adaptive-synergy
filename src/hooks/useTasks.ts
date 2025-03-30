@@ -1,47 +1,70 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import taskService from '@/services/api/taskService';
-import { Task } from '@/interfaces/tasks';
+import { Task, DetailedTask } from '@/interfaces/tasks';
+import { taskService } from '@/services/api';
 
-export const useTasks = (filters?: { status?: string; assigned_to?: number; client_id?: number }) => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+export const useTasks = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
-  const { data, isLoading: queryLoading, error: queryError } = useQuery({
-    queryKey: ['tasks', filters],
-    queryFn: () => taskService.getTasks(filters),
+  const [tasks, setTasks] = useState<Task[]>([]);
+  
+  const { data: taskData, isLoading: queryLoading, error: queryError } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      try {
+        const response = await taskService.getTasks();
+        return response;
+      } catch (err) {
+        throw new Error('Failed to fetch tasks');
+      }
+    },
   });
-
+  
   useEffect(() => {
-    if (data) {
-      setTasks(data);
+    if (queryLoading) {
+      setIsLoading(true);
+    } else {
       setIsLoading(false);
+      if (taskData) {
+        setTasks(taskData);
+      }
+      if (queryError) {
+        setError(queryError as Error);
+      }
     }
-  }, [data]);
-
-  useEffect(() => {
-    if (queryError) {
-      setError(queryError as Error);
-      setIsLoading(false);
-    }
-  }, [queryError]);
-
-  const refetch = async () => {
-    setIsLoading(true);
+  }, [taskData, queryLoading, queryError]);
+  
+  const getTaskById = async (taskId: number): Promise<DetailedTask | null> => {
     try {
-      const newTasks = await taskService.getTasks(filters);
-      setTasks(newTasks);
-      setError(null);
+      const task = await taskService.getTaskDetails(taskId);
+      return task;
     } catch (err) {
-      setError(err as Error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error fetching task details:', err);
+      return null;
     }
   };
-
-  return { tasks, isLoading: isLoading || queryLoading, error: error || queryError, refetch };
+  
+  const updateTaskStatus = async (taskId: number, status: string): Promise<boolean> => {
+    try {
+      await taskService.updateTaskStatus(taskId, status);
+      // Refresh tasks after update
+      const updatedTasks = await taskService.getTasks();
+      setTasks(updatedTasks);
+      return true;
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      return false;
+    }
+  };
+  
+  return {
+    tasks,
+    isLoading,
+    error,
+    getTaskById,
+    updateTaskStatus
+  };
 };
 
 export default useTasks;

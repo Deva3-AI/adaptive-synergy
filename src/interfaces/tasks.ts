@@ -19,7 +19,7 @@ export interface DetailedTask {
   title: string;
   description: string;
   client: string;
-  priority: string;
+  priority: 'high' | 'medium' | 'low';
   status: string;
   dueDate: Date;
   estimatedHours: number;
