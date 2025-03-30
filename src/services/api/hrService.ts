@@ -32,7 +32,7 @@ const hrService = {
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching payroll data:', error);
+      console.error('Error fetching payroll:', error);
       return null;
     }
   },
@@ -49,7 +49,7 @@ const hrService = {
 
   createJobPosting: async (jobData: any) => {
     try {
-      const response = await apiClient.post('/hr/jobs', jobData);
+      const response = await apiClient.post('/hr/job-postings', jobData);
       return response.data;
     } catch (error) {
       console.error('Error creating job posting:', error);
@@ -79,7 +79,7 @@ const hrService = {
       const response = await apiClient.post('/hr/payslips/generate', { employeeId, month });
       return response.data;
     } catch (error) {
-      console.error('Error generating payslip:', error);
+      console.error(`Error generating payslip for employee ${employeeId}:`, error);
       throw error;
     }
   },

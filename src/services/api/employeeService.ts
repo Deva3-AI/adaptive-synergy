@@ -115,6 +115,47 @@ const employeeService = {
       console.error(`Error fetching performance for employee ${employeeId}:`, error);
       return null;
     }
+  },
+
+  // Additional methods for Dashboard.tsx
+  getTodayAttendance: async (employeeId: number) => {
+    try {
+      const response = await apiClient.get(`/employees/${employeeId}/attendance/today`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching today's attendance for employee ${employeeId}:`, error);
+      return null;
+    }
+  },
+
+  getTodayWorkHours: async (employeeId: number) => {
+    try {
+      const response = await apiClient.get(`/employees/${employeeId}/work-hours/today`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching today's work hours for employee ${employeeId}:`, error);
+      return null;
+    }
+  },
+
+  startWork: async (employeeId: number) => {
+    try {
+      const response = await apiClient.post(`/employees/${employeeId}/attendance/start`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error starting work for employee ${employeeId}:`, error);
+      throw error;
+    }
+  },
+
+  stopWork: async (employeeId: number) => {
+    try {
+      const response = await apiClient.post(`/employees/${employeeId}/attendance/stop`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error stopping work for employee ${employeeId}:`, error);
+      throw error;
+    }
   }
 };
 
