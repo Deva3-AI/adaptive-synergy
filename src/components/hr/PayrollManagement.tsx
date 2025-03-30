@@ -3,34 +3,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input, InputWithIcon, Label } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Download, Filter, FileText, Mail, Clock, DollarSign, ArrowUpRight, Check, AlertCircle, Search } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { hrService, Payslip } from '@/services/api/hrService';
+import { hrService } from '@/services/api';
 import { format, parseISO, isAfter, isBefore, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
 
 const PayrollManagement = () => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(startOfMonth(new Date()));
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const { toast } = useToast();
   
   const periodStart = format(selectedMonth, 'yyyy-MM-dd');
   const periodEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
   
-  const { data: payslips, isLoading } = useQuery({
+  const { data: payslips, isLoading, refetch } = useQuery({
     queryKey: ['hr-payslips', periodStart, periodEnd],
     queryFn: () => hrService.getPayslips(periodStart, periodEnd),
   });
   
-  const filteredPayslips = payslips ? payslips.filter((payslip: Payslip) => {
+  const filteredPayslips = payslips ? payslips.filter((payslip: any) => {
     if (statusFilter !== 'all' && payslip.status !== statusFilter) {
       return false;
     }
     
-    if (searchTerm && !payslip.employee_name.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (searchTerm && !payslip.employeeName.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
@@ -54,7 +58,7 @@ const PayrollManagement = () => {
   
   const getTotalPayrollAmount = () => {
     if (!payslips) return 0;
-    return payslips.reduce((total, payslip) => total + payslip.net_salary, 0);
+    return payslips.reduce((total: number, payslip: any) => total + payslip.netSalary, 0);
   };
   
   const handleMonthChange = (offset: number) => {
@@ -65,10 +69,17 @@ const PayrollManagement = () => {
     try {
       await hrService.generatePayslip(employeeId, month);
       refetch();
-      toast.success("Payslip generated successfully");
+      toast({
+        title: "Success",
+        description: "Payslip generated successfully",
+      });
     } catch (error) {
       console.error("Failed to generate payslip:", error);
-      toast.error("Failed to generate payslip");
+      toast({
+        title: "Error",
+        description: "Failed to generate payslip",
+        variant: "destructive",
+      });
     }
   };
   
@@ -212,28 +223,28 @@ const PayrollManagement = () => {
                         <td colSpan={8} className="px-4 py-3 text-center">Loading...</td>
                       </tr>
                     ) : filteredPayslips && filteredPayslips.length > 0 ? (
-                      filteredPayslips.map((payslip: Payslip) => (
+                      filteredPayslips.map((payslip: any) => (
                         <tr key={payslip.payslip_id} className="border-b hover:bg-muted/50">
                           <td className="px-4 py-3">
                             <div className="flex items-center">
                               <Avatar className="h-8 w-8 mr-2">
-                                <AvatarFallback>{payslip.employee_name.charAt(0)}</AvatarFallback>
+                                <AvatarFallback>{payslip.employeeName.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <div>
-                                <div className="font-medium">{payslip.employee_name}</div>
+                                <div className="font-medium">{payslip.employeeName}</div>
                                 <div className="text-xs text-muted-foreground">ID: {payslip.user_id}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="text-sm">
-                              {format(new Date(payslip.period_start), 'MMM d')} - {format(new Date(payslip.period_end), 'MMM d, yyyy')}
+                              {format(new Date(payslip.periodStart), 'MMM d')} - {format(new Date(payslip.periodEnd), 'MMM d, yyyy')}
                             </div>
                           </td>
-                          <td className="px-4 py-3">${payslip.basic_salary.toFixed(2)}</td>
+                          <td className="px-4 py-3">${payslip.basicSalary.toFixed(2)}</td>
                           <td className="px-4 py-3 text-green-600">+${payslip.allowances.toFixed(2)}</td>
                           <td className="px-4 py-3 text-red-600">-${payslip.deductions.toFixed(2)}</td>
-                          <td className="px-4 py-3 font-medium">${payslip.net_salary.toFixed(2)}</td>
+                          <td className="px-4 py-3 font-medium">${payslip.netSalary.toFixed(2)}</td>
                           <td className="px-4 py-3">{getStatusBadge(payslip.status)}</td>
                           <td className="px-4 py-3">
                             <div className="flex gap-2">
