@@ -10,6 +10,7 @@ import EmployeeAttendance from '@/components/hr/EmployeeAttendance';
 import { Button } from '@/components/ui/button';
 import { CalendarClock, Users, DollarSign, GraduationCap } from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from "@/integrations/supabase/client";
 
 const HRDashboard = () => {
   const [activeTab, setActiveTab] = useState<string>("attendance");
@@ -23,7 +24,22 @@ const HRDashboard = () => {
   // Fetch employees from Supabase
   const { data: employeesData, isLoading: employeesLoading } = useQuery({
     queryKey: ['employees-supabase'],
-    queryFn: () => hrServiceSupabase.getEmployees(),
+    queryFn: async () => {
+      // Using supabase client directly for this specific query
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          user_id,
+          name,
+          email,
+          role_id,
+          roles(role_name),
+          employee_details(joining_date, employee_id, date_of_birth)
+        `);
+      
+      if (error) throw error;
+      return data;
+    }
   });
   
   return (

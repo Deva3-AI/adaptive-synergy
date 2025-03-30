@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import hrServiceSupabase, { Attendance } from '@/services/api/hrServiceSupabase';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/lib/react-query';
+import { supabase } from "@/integrations/supabase/client";
 
 interface AttendanceTrackerProps {
   userId: number;

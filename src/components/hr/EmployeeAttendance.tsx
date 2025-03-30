@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, UserCheck, UserX, Users, Clock } from "lucide-react";
 import { toast } from 'sonner';
 import { HRDashboardStats } from '@/services/api/hrServiceSupabase';
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from '@tanstack/react-query';
 
 interface EmployeeAttendanceProps {
   attendanceData: HRDashboardStats | undefined;
@@ -25,6 +27,20 @@ const EmployeeAttendance: React.FC<EmployeeAttendanceProps> = ({
 }) => {
   const [department, setDepartment] = useState<string>("all");
   const [view, setView] = useState<string>("daily");
+  
+  // Fetch all available roles/departments
+  const { data: roles } = useQuery({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .order('role_name');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
   
   // Handle export attendance
   const handleExportAttendance = () => {
@@ -106,11 +122,11 @@ const EmployeeAttendance: React.FC<EmployeeAttendanceProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Departments</SelectItem>
-              <SelectItem value="CEO">CEO</SelectItem>
-              <SelectItem value="Sr.Graphic Designer">Graphics</SelectItem>
-              <SelectItem value="Sr.Video Editior">Video</SelectItem>
-              <SelectItem value="Sr.Wordpress Developer">WordPress</SelectItem>
-              <SelectItem value="SEO expert">SEO</SelectItem>
+              {roles?.map(role => (
+                <SelectItem key={role.role_id} value={role.role_name}>
+                  {role.role_name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           
@@ -206,7 +222,7 @@ const EmployeeAttendance: React.FC<EmployeeAttendanceProps> = ({
                 </TableRow>
               ) : (
                 filteredRecords.map((record, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={record.attendance_id || index}>
                     <TableCell className="font-medium">{record.employee_name}</TableCell>
                     <TableCell>{record.department}</TableCell>
                     <TableCell>{format(parseISO(record.work_date), "MMM d, yyyy")}</TableCell>
