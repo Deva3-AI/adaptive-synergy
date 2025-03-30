@@ -5,11 +5,13 @@ export interface TaskAttachment {
   id: number;
   task_id: number;
   filename: string;
-  file_path: string;
+  file_url: string; // Added to match usage in TaskAttachmentsPanel
+  file_name: string; // Added to match usage in TaskAttachmentsPanel
   file_type: string;
   file_size: number;
   uploaded_by: number;
-  uploaded_at: string;
+  upload_date: string;
+  description?: string;
 }
 
 const taskService = {
@@ -55,21 +57,11 @@ const taskService = {
 
   deleteTask: async (taskId: number) => {
     try {
-      const response = await apiClient.delete(`/tasks/${taskId}`);
-      return response.data;
+      await apiClient.delete(`/tasks/${taskId}`);
+      return true;
     } catch (error) {
       console.error(`Error deleting task ${taskId}:`, error);
       throw error;
-    }
-  },
-
-  getUserTasks: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/tasks/user/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching tasks for user ${userId}:`, error);
-      return [];
     }
   },
 
@@ -83,11 +75,8 @@ const taskService = {
     }
   },
 
-  uploadTaskAttachment: async (taskId: number, file: File) => {
+  uploadTaskAttachment: async (taskId: number, formData: FormData) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
       const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -102,29 +91,26 @@ const taskService = {
 
   deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
     try {
-      const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
-      return response.data;
+      await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
+      return true;
     } catch (error) {
-      console.error(`Error deleting attachment ${attachmentId} from task ${taskId}:`, error);
+      console.error(`Error deleting attachment ${attachmentId}:`, error);
       throw error;
     }
   },
-  
-  getTaskStatistics: async (userId?: number) => {
+
+  // Add missing method
+  getTaskStatistics: async (timeframe?: string) => {
     try {
-      const url = userId ? `/tasks/statistics?userId=${userId}` : '/tasks/statistics';
+      let url = '/tasks/statistics';
+      if (timeframe) {
+        url += `?timeframe=${timeframe}`;
+      }
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching task statistics:', error);
-      return {
-        completed: 0,
-        inProgress: 0,
-        pending: 0,
-        overdue: 0,
-        completionRate: 0,
-        avgCompletionTime: 0
-      };
+      return null;
     }
   }
 };

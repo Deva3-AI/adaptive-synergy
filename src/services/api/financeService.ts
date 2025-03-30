@@ -16,9 +16,11 @@ export interface FinancialRecord {
   id: number;
   record_type: 'expense' | 'income';
   amount: number;
-  description?: string;
+  description: string;
   record_date: string;
+  date: string; // Added this property which is used in ExpensesDashboard
   created_at: string;
+  category?: string;
 }
 
 const financeService = {
@@ -94,158 +96,7 @@ const financeService = {
     }
   },
 
-  getFinancialRecords: async (startDate?: string, endDate?: string, type?: string) => {
-    try {
-      let url = '/finance/records';
-      const params = [];
-      if (startDate) params.push(`startDate=${startDate}`);
-      if (endDate) params.push(`endDate=${endDate}`);
-      if (type) params.push(`type=${type}`);
-      if (params.length > 0) {
-        url += `?${params.join('&')}`;
-      }
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching financial records:', error);
-      return [];
-    }
-  },
-
-  sendInvoiceReminder: async (invoiceId: number) => {
-    try {
-      const response = await apiClient.post(`/finance/invoices/${invoiceId}/remind`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error sending reminder for invoice ${invoiceId}:`, error);
-      throw error;
-    }
-  },
-
-  analyzeTeamCosts: async (startDate?: string, endDate?: string) => {
-    try {
-      let url = '/finance/team-costs';
-      if (startDate && endDate) {
-        url += `?startDate=${startDate}&endDate=${endDate}`;
-      }
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Error analyzing team costs:', error);
-      return null;
-    }
-  },
-
-  getSalesFollowUps: async () => {
-    try {
-      const response = await apiClient.get('/finance/sales/follow-ups');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching sales follow-ups:', error);
-      return [];
-    }
-  },
-
-  getImprovementSuggestions: async () => {
-    try {
-      const response = await apiClient.get('/finance/sales/improvement-suggestions');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching improvement suggestions:', error);
-      return [];
-    }
-  },
-
-  completeFollowUp: async (followUpId: number, feedback: string) => {
-    try {
-      const response = await apiClient.put(`/finance/sales/follow-ups/${followUpId}/complete`, { feedback });
-      return response.data;
-    } catch (error) {
-      console.error(`Error completing follow-up ${followUpId}:`, error);
-      throw error;
-    }
-  },
-
-  getSalesGrowthData: async (dateRange: string) => {
-    try {
-      const response = await apiClient.get(`/finance/sales/growth?range=${dateRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching sales growth data:', error);
-      return null;
-    }
-  },
-
-  getSalesTargets: async (dateRange: string) => {
-    try {
-      const response = await apiClient.get(`/finance/sales/targets?range=${dateRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching sales targets:', error);
-      return [];
-    }
-  },
-
-  getGrowthForecast: async (dateRange: string) => {
-    try {
-      const response = await apiClient.get(`/finance/sales/forecast?range=${dateRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching growth forecast:', error);
-      return null;
-    }
-  },
-
-  getWeeklyReports: async () => {
-    try {
-      const response = await apiClient.get('/finance/sales/reports/weekly');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching weekly reports:', error);
-      return [];
-    }
-  },
-
-  getMonthlyReports: async () => {
-    try {
-      const response = await apiClient.get('/finance/sales/reports/monthly');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching monthly reports:', error);
-      return [];
-    }
-  },
-
-  getSalesTrends: async (dateRange: string) => {
-    try {
-      const response = await apiClient.get(`/finance/sales/trends?range=${dateRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching sales trends:', error);
-      return null;
-    }
-  },
-
-  getSalesByChannel: async (dateRange: string) => {
-    try {
-      const response = await apiClient.get(`/finance/sales/by-channel?range=${dateRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching sales by channel:', error);
-      return [];
-    }
-  },
-
-  getTopProducts: async (dateRange: string) => {
-    try {
-      const response = await apiClient.get(`/finance/sales/top-products?range=${dateRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching top products:', error);
-      return [];
-    }
-  },
-
+  // Add missing methods
   getFinancialOverview: async () => {
     try {
       const response = await apiClient.get('/finance/overview');
@@ -256,17 +107,31 @@ const financeService = {
     }
   },
 
-  getFinancialMetrics: async (period?: string) => {
+  getFinancialMetrics: async () => {
     try {
-      let url = '/finance/metrics';
-      if (period) {
-        url += `?period=${period}`;
-      }
-      const response = await apiClient.get(url);
+      const response = await apiClient.get('/finance/metrics');
       return response.data;
     } catch (error) {
       console.error('Error fetching financial metrics:', error);
       return null;
+    }
+  },
+
+  getFinancialRecords: async (recordType?: string, startDate?: string, endDate?: string) => {
+    try {
+      let url = '/finance/records';
+      const params = [];
+      if (recordType) params.push(`type=${recordType}`);
+      if (startDate) params.push(`startDate=${startDate}`);
+      if (endDate) params.push(`endDate=${endDate}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching financial records:', error);
+      return [];
     }
   },
 
@@ -290,6 +155,34 @@ const financeService = {
     }
   },
 
+  sendInvoiceReminder: async (invoiceId: number) => {
+    try {
+      const response = await apiClient.post(`/finance/invoices/${invoiceId}/reminder`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error sending reminder for invoice ${invoiceId}:`, error);
+      throw error;
+    }
+  },
+
+  analyzeTeamCosts: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/finance/analyze/team-costs';
+      const params = [];
+      if (startDate) params.push(`startDate=${startDate}`);
+      if (endDate) params.push(`endDate=${endDate}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error analyzing team costs:', error);
+      return null;
+    }
+  },
+
+  // Sales-related methods
   getSalesMetrics: async () => {
     try {
       const response = await apiClient.get('/finance/sales/metrics');
@@ -297,6 +190,120 @@ const financeService = {
     } catch (error) {
       console.error('Error fetching sales metrics:', error);
       return null;
+    }
+  },
+
+  getSalesFollowUps: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/follow-ups');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales follow-ups:', error);
+      return [];
+    }
+  },
+
+  getImprovementSuggestions: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/suggestions');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching improvement suggestions:', error);
+      return [];
+    }
+  },
+
+  completeFollowUp: async (followUpId: number) => {
+    try {
+      const response = await apiClient.post(`/finance/sales/follow-ups/${followUpId}/complete`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error completing follow-up ${followUpId}:`, error);
+      throw error;
+    }
+  },
+
+  getSalesGrowthData: async (period?: string) => {
+    try {
+      let url = '/finance/sales/growth';
+      if (period) {
+        url += `?period=${period}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales growth data:', error);
+      return null;
+    }
+  },
+
+  getSalesTargets: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/targets');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales targets:', error);
+      return null;
+    }
+  },
+
+  getGrowthForecast: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/forecast');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching growth forecast:', error);
+      return null;
+    }
+  },
+
+  getSalesTrends: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/trends');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales trends:', error);
+      return null;
+    }
+  },
+
+  getSalesByChannel: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/by-channel');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales by channel:', error);
+      return [];
+    }
+  },
+
+  getTopProducts: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/top-products');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching top products:', error);
+      return [];
+    }
+  },
+
+  getWeeklyReports: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/reports/weekly');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching weekly sales reports:', error);
+      return [];
+    }
+  },
+
+  getMonthlyReports: async () => {
+    try {
+      const response = await apiClient.get('/finance/sales/reports/monthly');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching monthly sales reports:', error);
+      return [];
     }
   }
 };
