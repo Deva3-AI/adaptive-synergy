@@ -108,7 +108,7 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
             <div>
               <h4 className="font-medium truncate">{attachment.filename}</h4>
               <p className="text-xs text-muted-foreground mt-1">
-                Uploaded {formatDistanceToNow(new Date(attachment.upload_date), { addSuffix: true })}
+                Uploaded {formatDistanceToNow(new Date(attachment.uploaded_at), { addSuffix: true })}
               </p>
             </div>
             <div className="flex">
@@ -138,7 +138,7 @@ const TaskAttachmentsPanel = ({ taskId }: TaskAttachmentsPanelProps) => {
             <p className="text-sm mt-1 text-muted-foreground">{attachment.description}</p>
           )}
           <Badge variant="outline" className="mt-2">
-            {(attachment.file_size / 1024).toFixed(2)} KB
+            {attachment.file_size ? (attachment.file_size / 1024).toFixed(2) : 'Unknown'} KB
           </Badge>
         </div>
       </div>

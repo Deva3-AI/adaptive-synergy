@@ -9,6 +9,9 @@ export interface TaskAttachment {
   file_type: string;
   uploaded_by: number;
   uploaded_at: string;
+  file_url?: string;
+  description?: string;
+  file_size?: number;
 }
 
 const taskService = {
@@ -104,6 +107,41 @@ const taskService = {
     } catch (error) {
       console.error(`Error fetching tasks for user ${userId}:`, error);
       return [];
+    }
+  },
+
+  // Methods for TaskAttachmentsPanel
+  getTaskAttachments: async (taskId: number) => {
+    try {
+      const response = await apiClient.get(`/tasks/${taskId}/attachments`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching attachments for task ${taskId}:`, error);
+      return [];
+    }
+  },
+
+  uploadTaskAttachment: async (taskId: number, formData: FormData) => {
+    try {
+      const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error uploading attachment for task ${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
+    try {
+      const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting attachment ${attachmentId}:`, error);
+      throw error;
     }
   }
 };
