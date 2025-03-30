@@ -1,50 +1,63 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { hrService } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, UserCheck, UserX, Users, Clock } from "lucide-react";
 import { toast } from 'sonner';
+import { HRDashboardStats } from '@/services/api/hrServiceSupabase';
 
-const EmployeeAttendance = () => {
+interface EmployeeAttendanceProps {
+  attendanceData: HRDashboardStats | undefined;
+  isLoading: boolean;
+  refetch: () => void;
+}
+
+const EmployeeAttendance: React.FC<EmployeeAttendanceProps> = ({ 
+  attendanceData, 
+  isLoading,
+  refetch
+}) => {
   const [department, setDepartment] = useState<string>("all");
   const [view, setView] = useState<string>("daily");
   
-  // Fetch attendance data
-  const { data: attendanceData, isLoading } = useQuery({
-    queryKey: ['employee-attendance', view, department],
-    queryFn: () => hrService.getEmployeeAttendance(),
-  });
-
   // Handle export attendance
   const handleExportAttendance = () => {
     toast.success("Attendance data exported successfully");
   };
 
   // Format time for display
-  const formatTime = (timeString: string) => {
+  const formatTime = (timeString: string | null) => {
     if (!timeString) return "-";
-    const date = new Date(timeString);
-    return format(date, "h:mm a");
+    try {
+      const date = parseISO(timeString);
+      return format(date, "h:mm a");
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "-";
+    }
   };
 
   // Calculate working hours
-  const calculateWorkHours = (loginTime: string, logoutTime: string) => {
+  const calculateWorkHours = (loginTime: string | null, logoutTime: string | null) => {
     if (!loginTime || !logoutTime) return "-";
     
-    const login = new Date(loginTime);
-    const logout = new Date(logoutTime);
-    const diffMs = logout.getTime() - login.getTime();
-    const diffHrs = diffMs / (1000 * 60 * 60);
-    
-    return diffHrs.toFixed(1) + " hrs";
+    try {
+      const login = parseISO(loginTime);
+      const logout = parseISO(logoutTime);
+      const diffMs = logout.getTime() - login.getTime();
+      const diffHrs = diffMs / (1000 * 60 * 60);
+      
+      return diffHrs.toFixed(1) + " hrs";
+    } catch (error) {
+      console.error("Error calculating work hours:", error);
+      return "-";
+    }
   };
 
   // Calculate attendance status
@@ -57,12 +70,22 @@ const EmployeeAttendance = () => {
       return <Badge variant="warning">Working</Badge>;
     }
     
-    if (new Date(record.login_time).getHours() > 9) {
-      return <Badge variant="outline">Late</Badge>;
+    try {
+      if (parseISO(record.login_time).getHours() > 9) {
+        return <Badge variant="outline">Late</Badge>;
+      }
+    } catch (error) {
+      console.error("Error parsing time:", error);
     }
     
     return <Badge variant="success">Present</Badge>;
   };
+
+  // Filter records by department if selected
+  const filteredRecords = attendanceData?.records.filter(record => {
+    if (department === "all") return true;
+    return record.department?.toLowerCase() === department.toLowerCase();
+  });
 
   if (isLoading) {
     return (
@@ -83,10 +106,11 @@ const EmployeeAttendance = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Departments</SelectItem>
-              <SelectItem value="design">Design</SelectItem>
-              <SelectItem value="development">Development</SelectItem>
-              <SelectItem value="marketing">Marketing</SelectItem>
-              <SelectItem value="management">Management</SelectItem>
+              <SelectItem value="CEO">CEO</SelectItem>
+              <SelectItem value="Sr.Graphic Designer">Graphics</SelectItem>
+              <SelectItem value="Sr.Video Editior">Video</SelectItem>
+              <SelectItem value="Sr.Wordpress Developer">WordPress</SelectItem>
+              <SelectItem value="SEO expert">SEO</SelectItem>
             </SelectContent>
           </Select>
           
@@ -174,18 +198,18 @@ const EmployeeAttendance = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {attendanceData?.records?.length === 0 ? (
+              {!filteredRecords || filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-4">
                     No attendance records found
                   </TableCell>
                 </TableRow>
               ) : (
-                attendanceData?.records?.map((record: any, index: number) => (
+                filteredRecords.map((record, index) => (
                   <TableRow key={index}>
                     <TableCell className="font-medium">{record.employee_name}</TableCell>
                     <TableCell>{record.department}</TableCell>
-                    <TableCell>{format(new Date(record.date), "MMM d, yyyy")}</TableCell>
+                    <TableCell>{format(parseISO(record.work_date), "MMM d, yyyy")}</TableCell>
                     <TableCell>{formatTime(record.login_time)}</TableCell>
                     <TableCell>{formatTime(record.logout_time)}</TableCell>
                     <TableCell>{calculateWorkHours(record.login_time, record.logout_time)}</TableCell>

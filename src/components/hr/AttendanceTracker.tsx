@@ -1,225 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { InputWithIcon } from "@/components/ui/input-with-icon";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Download, Filter, Search, Clock, CheckCircle, XCircle } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from '@tanstack/react-query';
-import { hrService } from '@/services/api';
-import { format, parseISO, isToday, startOfMonth, endOfMonth, addDays, subDays } from 'date-fns';
 
-interface AttendanceRecord {
-  id: number;
-  employeeName: string;
-  date: string;
-  checkIn: string;
-  checkOut: string;
-  status: 'present' | 'absent' | 'late';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Clock, Calendar } from "lucide-react";
+import { format } from 'date-fns';
+import { toast } from 'sonner';
+import hrServiceSupabase, { Attendance } from '@/services/api/hrServiceSupabase';
+import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/react-query';
+
+interface AttendanceTrackerProps {
+  userId: number;
 }
 
-const AttendanceTracker = () => {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
-
-  useEffect(() => {
-    // Mock attendance data for demonstration
-    const mockData: AttendanceRecord[] = [
-      {
-        id: 1,
-        employeeName: "John Doe",
-        date: format(new Date(), 'yyyy-MM-dd'),
-        checkIn: "08:00",
-        checkOut: "17:00",
-        status: "present",
-      },
-      {
-        id: 2,
-        employeeName: "Jane Smith",
-        date: format(new Date(), 'yyyy-MM-dd'),
-        checkIn: "08:30",
-        checkOut: "17:30",
-        status: "present",
-      },
-      {
-        id: 3,
-        employeeName: "Alice Johnson",
-        date: format(new Date(), 'yyyy-MM-dd'),
-        checkIn: "09:15",
-        checkOut: "18:00",
-        status: "late",
-      },
-      {
-        id: 4,
-        employeeName: "Bob Williams",
-        date: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
-        checkIn: "07:45",
-        checkOut: "16:45",
-        status: "present",
-      },
-      {
-        id: 5,
-        employeeName: "Charlie Brown",
-        date: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
-        checkIn: null,
-        checkOut: null,
-        status: "absent",
-      },
-    ];
-
-    setAttendanceData(mockData);
-  }, []);
-
-  const filteredAttendance = attendanceData.filter((record) => {
-    const searchRegex = new RegExp(searchTerm, 'i');
-    const employeeNameMatches = searchRegex.test(record.employeeName);
-    const statusMatches = statusFilter === 'all' || record.status === statusFilter;
-
-    return employeeNameMatches && statusMatches && format(new Date(record.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ userId }) => {
+  const [isWorking, setIsWorking] = useState<boolean>(false);
+  const [currentAttendance, setCurrentAttendance] = useState<Attendance | null>(null);
+  const [workStartTime, setWorkStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<string>("00:00:00");
+  
+  // Fetch today's attendance record
+  const { data: todayAttendance, refetch: refetchAttendance } = useQuery({
+    queryKey: ['today-attendance', userId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Use the Supabase client directly for this specific query
+      const { data, error } = await supabase
+        .from('employee_attendance')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('work_date', today)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
   });
-
-  const handleDateChange = (offset: number) => {
-    setSelectedDate(addDays(selectedDate, offset));
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'present':
-        return <Badge className="bg-green-500">Present</Badge>;
-      case 'absent':
-        return <Badge variant="outline" className="bg-slate-100 text-slate-700">Absent</Badge>;
-      case 'late':
-        return <Badge className="bg-amber-500">Late</Badge>;
-      default:
-        return <Badge className="bg-gray-500">{status}</Badge>;
+  
+  // Update state based on today's attendance
+  useEffect(() => {
+    if (todayAttendance) {
+      setCurrentAttendance(todayAttendance);
+      
+      if (todayAttendance.login_time && !todayAttendance.logout_time) {
+        setIsWorking(true);
+        setWorkStartTime(new Date(todayAttendance.login_time));
+      } else {
+        setIsWorking(false);
+        setWorkStartTime(null);
+      }
+    } else {
+      setIsWorking(false);
+      setWorkStartTime(null);
+      setCurrentAttendance(null);
+    }
+  }, [todayAttendance]);
+  
+  // Calculate elapsed time when working
+  useEffect(() => {
+    let intervalId: number;
+    
+    if (isWorking && workStartTime) {
+      intervalId = window.setInterval(() => {
+        const now = new Date();
+        const diffMs = now.getTime() - workStartTime.getTime();
+        
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+        
+        setElapsedTime(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }, 1000);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isWorking, workStartTime]);
+  
+  const handleStartWork = async () => {
+    try {
+      await hrServiceSupabase.startWork(userId);
+      toast.success("Work started successfully");
+      refetchAttendance();
+      // Invalidate the employee-attendance query to refresh dashboard
+      queryClient.invalidateQueries({ queryKey: ['employee-attendance-supabase'] });
+    } catch (error) {
+      console.error("Error starting work:", error);
+      toast.error("Failed to start work");
     }
   };
-
+  
+  const handleStopWork = async () => {
+    if (!currentAttendance) return;
+    
+    try {
+      await hrServiceSupabase.stopWork(userId, currentAttendance.attendance_id);
+      toast.success("Work stopped successfully");
+      refetchAttendance();
+      // Invalidate the employee-attendance query to refresh dashboard
+      queryClient.invalidateQueries({ queryKey: ['employee-attendance-supabase'] });
+    } catch (error) {
+      console.error("Error stopping work:", error);
+      toast.error("Failed to stop work");
+    }
+  };
+  
   return (
-    <div className="space-y-4">
-      <Tabs defaultValue="attendance">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-2 mt-2 sm:mt-0">
-            <div className="flex items-center border rounded-md">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 rounded-r-none"
-                onClick={() => handleDateChange(-1)}
-              >
-                &lt;
-              </Button>
-              <div className="px-3 py-1 flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
-                {format(selectedDate, 'MMM d, yyyy')}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 rounded-l-none"
-                onClick={() => handleDateChange(1)}
-              >
-                &gt;
-              </Button>
-            </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle>Attendance Tracker</CardTitle>
+          <Badge variant={isWorking ? "success" : "secondary"}>
+            {isWorking ? "Working" : "Not Working"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Calendar className="mr-1 h-4 w-4" />
+            <span>{format(new Date(), 'EEEE, MMMM do, yyyy')}</span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="mr-1 h-4 w-4" />
+            <span>{format(new Date(), 'h:mm a')}</span>
           </div>
         </div>
-
-        <TabsContent value="attendance" className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <div className="flex flex-1 gap-2">
-              <InputWithIcon
-                placeholder="Search employee..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-                icon={<Search className="h-4 w-4" />}
-              />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="max-w-[150px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="present">Present</SelectItem>
-                  <SelectItem value="absent">Absent</SelectItem>
-                  <SelectItem value="late">Late</SelectItem>
-                </SelectContent>
-              </Select>
+        
+        {isWorking && (
+          <div className="text-center py-6">
+            <div className="text-4xl font-mono font-bold mb-2">{elapsedTime}</div>
+            <div className="text-muted-foreground text-sm">
+              Started at {workStartTime && format(workStartTime, 'h:mm a')}
             </div>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
           </div>
-
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-4 py-3 text-left text-sm font-medium">Employee</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Check In</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Check Out</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAttendance.map((record) => (
-                      <tr key={record.id} className="border-b hover:bg-muted/50">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center">
-                            <Avatar className="h-8 w-8 mr-2">
-                              <AvatarFallback>{record.employeeName.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{record.employeeName}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">{format(new Date(record.date), 'MMM d, yyyy')}</td>
-                        <td className="px-4 py-3">{record.checkIn || '-'}</td>
-                        <td className="px-4 py-3">{record.checkOut || '-'}</td>
-                        <td className="px-4 py-3">{getStatusBadge(record.status)}</td>
-                        <td className="px-4 py-3">
-                          <Button variant="ghost" size="sm">
-                            Edit
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance Reports</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Generate attendance reports and analytics.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+        )}
+        
+        {!isWorking && todayAttendance?.login_time && todayAttendance?.logout_time && (
+          <div className="text-center py-6">
+            <div className="text-2xl font-bold mb-1">Work Completed</div>
+            <div className="text-sm text-muted-foreground">
+              {format(new Date(todayAttendance.login_time), 'h:mm a')} - {format(new Date(todayAttendance.logout_time), 'h:mm a')}
+            </div>
+          </div>
+        )}
+        
+        {!isWorking && !todayAttendance?.login_time && (
+          <div className="text-center py-6">
+            <div className="text-2xl font-bold mb-1">Not Started</div>
+            <div className="text-sm text-muted-foreground">
+              Click 'Start Work' to begin tracking
+            </div>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter>
+        {isWorking ? (
+          <Button 
+            variant="destructive" 
+            className="w-full"
+            onClick={handleStopWork}
+          >
+            Stop Work
+          </Button>
+        ) : (
+          <Button 
+            className="w-full"
+            onClick={handleStartWork}
+            disabled={!!(todayAttendance?.login_time && todayAttendance?.logout_time)}
+          >
+            {todayAttendance?.login_time && todayAttendance?.logout_time
+              ? "Work Completed"
+              : "Start Work"
+            }
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 
