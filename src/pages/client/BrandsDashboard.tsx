@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Link2, Briefcase, Image as ImageIcon } from "lucide-react";
 import { clientService } from '@/services/api';
 import { Brand } from '@/services/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth'; // Fixed import path
 import { toast } from 'sonner';
 
 interface BrandsDashboardProps {
@@ -284,3 +284,4 @@ const BrandsDashboard: React.FC<BrandsDashboardProps> = ({ clientId: propClientI
 };
 
 export default BrandsDashboard;
+
