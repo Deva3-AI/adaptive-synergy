@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import EmployeesList from '@/components/employee/EmployeesList';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const EmployeeDirectory = () => {
   // Get employee metrics from Supabase
-  const { data: employeeMetrics, isLoading } = useQuery({
+  const { data: employeeMetrics, isLoading, refetch } = useQuery({
     queryKey: ['employee-metrics'],
     queryFn: async () => {
       try {
@@ -76,6 +76,11 @@ const EmployeeDirectory = () => {
       }
     }
   });
+
+  useEffect(() => {
+    // Force refetch on mount to ensure latest data
+    refetch();
+  }, [refetch]);
 
   return (
     <div className="space-y-6">

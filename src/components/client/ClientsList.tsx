@@ -1,15 +1,53 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useClients } from "@/utils/apiUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Eye, Edit, PlusCircle } from "lucide-react";
+import { Link } from 'react-router-dom';
+
+interface Client {
+  client_id: number;
+  client_name: string;
+  description?: string;
+  contact_info?: string;
+  created_at: string;
+}
 
 const ClientsList = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: clients, isLoading, error } = useClients();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Fetch clients directly from Supabase
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .order('client_name');
+
+        if (error) throw error;
+        
+        console.log('Fetched clients from Supabase in ClientsList:', data);
+        setClients(data || []);
+      } catch (err) {
+        console.error('Error fetching clients:', err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, []);
 
   // Filter clients based on search term
   const filteredClients = clients?.filter((client) => 
@@ -35,7 +73,7 @@ const ClientsList = () => {
         </CardHeader>
         <CardContent>
           <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md">
-            Error loading clients. Please try again later.
+            Error loading clients: {error.message}
           </div>
         </CardContent>
       </Card>
@@ -45,8 +83,16 @@ const ClientsList = () => {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Clients</CardTitle>
-        <CardDescription>View and manage your clients and their communication channels</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Clients</CardTitle>
+            <CardDescription>View and manage your clients and their communication channels</CardDescription>
+          </div>
+          <Button className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            New Client
+          </Button>
+        </div>
         <div className="mt-2">
           <Input 
             placeholder="Search clients..." 
@@ -72,6 +118,7 @@ const ClientsList = () => {
                   <TableHead>Communication Channels</TableHead>
                   <TableHead>Task Assignment</TableHead>
                   <TableHead>Contact Info</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -81,7 +128,7 @@ const ClientsList = () => {
                       <TableCell className="font-medium">{client.client_name}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {extractChannels(client.description).map((channel, idx) => (
+                          {extractChannels(client.description || '').map((channel, idx) => (
                             <Badge key={idx} variant="outline">{channel}</Badge>
                           ))}
                         </div>
@@ -98,12 +145,24 @@ const ClientsList = () => {
                         </div>
                       </TableCell>
                       <TableCell>{client.contact_info}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-3.5 w-3.5 mr-1" />
+                            Edit
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                      No clients found. Try a different search term.
+                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                      {clients.length === 0 ? 'No clients found. Add your first client to get started.' : 'No clients match your search. Try a different term.'}
                     </TableCell>
                   </TableRow>
                 )}

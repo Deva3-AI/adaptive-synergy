@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Eye, Edit, PlusCircle } from "lucide-react";
 
 interface Employee {
   user_id: number;
@@ -19,11 +21,12 @@ interface Employee {
 const EmployeesList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Fetch employees from Supabase
-  const { data: employees, isLoading, error } = useQuery({
+  // Fetch employees directly from Supabase
+  const { data: employees, isLoading, error, refetch } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       try {
+        console.log('Fetching employees from Supabase...');
         // Query employees from users table joined with roles
         const { data, error } = await supabase
           .from('users')
@@ -39,6 +42,8 @@ const EmployeesList = () => {
         
         if (error) throw error;
         
+        console.log('Fetched employees:', data);
+        
         // Format data to match our expected structure
         return data.map((employee) => ({
           user_id: employee.user_id,
@@ -52,6 +57,11 @@ const EmployeesList = () => {
       }
     }
   });
+
+  useEffect(() => {
+    // Force refetch on mount to ensure latest data
+    refetch();
+  }, [refetch]);
 
   // Filter employees based on search term
   const filteredEmployees = employees?.filter((employee) => 
@@ -80,8 +90,11 @@ const EmployeesList = () => {
         </CardHeader>
         <CardContent>
           <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md">
-            Error loading employees. Please try again later.
+            Error loading employees: {(error as Error).message}
           </div>
+          <Button onClick={() => refetch()} className="mt-4">
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );
@@ -90,8 +103,16 @@ const EmployeesList = () => {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Employees</CardTitle>
-        <CardDescription>View and manage your team members</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Employees</CardTitle>
+            <CardDescription>View and manage your team members</CardDescription>
+          </div>
+          <Button className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            New Employee
+          </Button>
+        </div>
         <div className="mt-2">
           <Input 
             placeholder="Search employees..." 
@@ -116,6 +137,7 @@ const EmployeesList = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -133,12 +155,24 @@ const EmployeesList = () => {
                           {employee.role_name}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            View
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-3.5 w-3.5 mr-1" />
+                            Edit
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                      No employees found. Try a different search term.
+                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                      {employees?.length === 0 ? 'No employees found. Add your first employee to get started.' : 'No employees match your search term.'}
                     </TableCell>
                   </TableRow>
                 )}
