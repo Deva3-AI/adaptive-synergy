@@ -30,13 +30,31 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
+// Define task priority type
+type TaskPriority = "High" | "Medium" | "Low";
+
+// Define task interfaces
+interface Task {
+  id: number;
+  title: string;
+  client: string;
+  dueDate: Date;
+  priority: TaskPriority;
+  status: string;
+  progress: number;
+  estimatedHours: number;
+}
+
+// Priority color mapping
 const priorityColorMap: Record<string, string> = {
   "High": "destructive",
   "Medium": "warning",
   "Low": "secondary",
 };
 
+// Status icon mapping
 const statusIconMap: Record<string, React.ReactNode> = {
   "completed": <CheckCircle className="h-5 w-5 text-green-500" />,
   "in_progress": <Clock8 className="h-5 w-5 text-blue-500" />,
@@ -52,16 +70,29 @@ const EmployeeTasks = () => {
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
 
   // Fetch tasks from Supabase
-  const { data: tasks, isLoading } = useQuery({
+  const { data: tasks, isLoading, error } = useQuery({
     queryKey: ['employee-tasks', user?.id],
     enabled: !!user,
     queryFn: async () => {
       try {
+        // Add a column in the database for priority if it doesn't exist
+        // Add a column in the database for progress if it doesn't exist
         const { data, error } = await supabase
           .from('tasks')
           .select(`
-            *,
-            clients (client_name)
+            task_id,
+            title,
+            description,
+            status,
+            estimated_time,
+            start_time,
+            end_time,
+            created_at,
+            updated_at,
+            clients (
+              client_id,
+              client_name
+            )
           `)
           .eq('assigned_to', user?.id)
           .order('created_at', { ascending: false });
@@ -74,14 +105,16 @@ const EmployeeTasks = () => {
           title: task.title,
           client: task.clients?.client_name || 'Unknown Client',
           dueDate: task.end_time ? new Date(task.end_time) : new Date(),
-          priority: task.priority || 'Medium', // This would require adding a priority field
+          // Default to medium priority if not set
+          priority: "Medium" as TaskPriority, 
           status: task.status,
-          progress: task.progress || 0, // This would require adding a progress field
-          estimatedHours: task.estimated_time || 0,
-          assignedBy: "System" // This would require adding an assigned_by field
+          // Default to 0 progress if not set
+          progress: 0,
+          estimatedHours: task.estimated_time || 0
         }));
       } catch (error) {
         console.error('Error fetching tasks:', error);
+        toast.error("Failed to load tasks");
         return [];
       }
     }
@@ -121,6 +154,16 @@ const EmployeeTasks = () => {
       });
     }
   };
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md">
+          Error loading tasks. Please try again later.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-blur-in">

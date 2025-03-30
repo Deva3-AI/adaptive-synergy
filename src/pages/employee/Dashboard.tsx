@@ -1,50 +1,71 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-import AttendanceTracker from '@/components/employee/AttendanceTracker';
-import { format } from 'date-fns';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChatBubbleIcon, BarChartIcon, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { formatDistanceToNow } from "date-fns";
+import AttendanceTracker from "@/components/employee/AttendanceTracker";
 import { Link } from "react-router-dom";
-import { 
-  BarChart3, 
-  Calendar, 
-  Clock, 
-  FileText, 
-  MessageSquare, 
-  MoreHorizontal, 
-  Plus, 
-  Users 
-} from "lucide-react";
+
+// Define the interface for attendance records
+interface Attendance {
+  attendance_id: number;
+  login_time: string;
+  logout_time: string | null;
+  work_date: string;
+}
+
+// Define the interface for tasks
+interface Task {
+  task_id: number;
+  title: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  estimated_time: number;
+  actual_time: number;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  updated_at: string;
+  client_id: number;
+  assigned_to: number;
+  clients: {
+    client_id: number;
+    client_name: string;
+  };
+}
 
 const EmployeeDashboard = () => {
   const { user } = useAuth();
-  const today = new Date().toISOString().split('T')[0];
-  
+
   // Fetch today's attendance record
-  const { data: todayAttendance, isLoading: attendanceLoading, refetch: refetchAttendance } = useQuery({
-    queryKey: ['employee-attendance', user?.id, today],
+  const { 
+    data: attendance, 
+    isLoading: isLoadingAttendance,
+    refetch: refetchAttendance 
+  } = useQuery({
+    queryKey: ['today-attendance', user?.id],
     enabled: !!user,
     queryFn: async () => {
       try {
+        const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
           .from('employee_attendance')
           .select('*')
           .eq('user_id', user?.id)
           .eq('work_date', today)
-          .order('login_time', { ascending: false })
-          .limit(1)
-          .single();
+          .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
-        
-        return data || null;
+        if (error) throw error;
+        return data;
       } catch (error) {
         console.error('Error fetching attendance:', error);
         return null;
@@ -52,8 +73,8 @@ const EmployeeDashboard = () => {
     }
   });
 
-  // Fetch assigned tasks
-  const { data: assignedTasks, isLoading: tasksLoading } = useQuery({
+  // Fetch tasks
+  const { data: tasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['employee-tasks', user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -62,14 +83,17 @@ const EmployeeDashboard = () => {
           .from('tasks')
           .select(`
             *,
-            clients (client_name)
+            clients (
+              client_id,
+              client_name
+            )
           `)
           .eq('assigned_to', user?.id)
+          .in('status', ['pending', 'in_progress'])
           .order('created_at', { ascending: false });
         
         if (error) throw error;
-        
-        return data || [];
+        return data as Task[];
       } catch (error) {
         console.error('Error fetching tasks:', error);
         return [];
@@ -77,316 +101,275 @@ const EmployeeDashboard = () => {
     }
   });
 
-  // Handle attendance update
+  // Fetch completed tasks count
+  const { data: completedTasksCount, isLoading: isLoadingCompletedCount } = useQuery({
+    queryKey: ['completed-tasks-count', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      try {
+        const { count, error } = await supabase
+          .from('tasks')
+          .select('*', { count: 'exact', head: true })
+          .eq('assigned_to', user?.id)
+          .eq('status', 'completed');
+        
+        if (error) throw error;
+        return count || 0;
+      } catch (error) {
+        console.error('Error fetching completed tasks count:', error);
+        return 0;
+      }
+    }
+  });
+
+  // Handler for attendance updates
   const handleAttendanceUpdate = () => {
     refetchAttendance();
   };
 
-  // Calculate task statistics
-  const taskStats = {
-    total: assignedTasks?.length || 0,
-    completed: assignedTasks?.filter(task => task.status === 'completed')?.length || 0,
-    inProgress: assignedTasks?.filter(task => task.status === 'in_progress')?.length || 0,
-    pending: assignedTasks?.filter(task => task.status === 'pending')?.length || 0,
-  };
-
-  // Calculate completion percentage
-  const completionPercentage = taskStats.total > 0 
-    ? Math.round((taskStats.completed / taskStats.total) * 100) 
-    : 0;
+  // Calculate task metrics
+  const pendingTasks = tasks?.filter(task => task.status === 'pending').length || 0;
+  const inProgressTasks = tasks?.filter(task => task.status === 'in_progress').length || 0;
+  const totalWorkHours = tasks?.reduce((total, task) => total + (task.actual_time || 0), 0) || 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Employee Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back! Here's an overview of your tasks and productivity.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Employee Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {user?.user_metadata?.name || user?.email || 'Employee'}!
+          </p>
+        </div>
+        <AttendanceTracker 
+          attendance={attendance} 
+          onAttendanceUpdate={handleAttendanceUpdate} 
+        />
       </div>
-      
-      <AttendanceTracker 
-        attendance={todayAttendance} 
-        onAttendanceUpdate={handleAttendanceUpdate} 
-      />
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Tasks
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+            <CardDescription>Assigned to you</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskStats.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {taskStats.inProgress} in progress
-            </p>
+            {isLoadingTasks || isLoadingCompletedCount ? (
+              <Skeleton className="h-8 w-28" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {(tasks?.length || 0) + (completedTasksCount || 0)}
+              </div>
+            )}
+            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">Pending</span>
+                <span className="font-medium">{pendingTasks}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">In Progress</span>
+                <span className="font-medium">{inProgressTasks}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">Completed</span>
+                <span className="font-medium">{completedTasksCount || 0}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Completion Rate
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Work Hours</CardTitle>
+            <CardDescription>This month</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completionPercentage}%</div>
-            <Progress className="mt-2" value={completionPercentage} />
+            {isLoadingTasks ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {totalWorkHours.toFixed(1)} hrs
+              </div>
+            )}
+            <div className="mt-1 flex items-center text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>Tracked from completed tasks</span>
+            </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Upcoming Meetings
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Today's Schedule</CardTitle>
+            <CardDescription>
+              {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Next: Team standup at 10:00 AM
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Work Hours
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">32.5h</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              This week (target: 40h)
-            </p>
+            {isLoadingAttendance ? (
+              <Skeleton className="h-8 w-full" />
+            ) : attendance?.login_time ? (
+              <div className="text-sm">
+                <div className="mb-1">
+                  <span className="font-medium">Login:</span>{" "}
+                  {new Date(attendance.login_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </div>
+                {attendance.logout_time && (
+                  <div>
+                    <span className="font-medium">Logout:</span>{" "}
+                    {new Date(attendance.logout_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                No attendance recorded for today
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-      
-      <Tabs defaultValue="tasks" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="tasks">Current Tasks</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-        </TabsList>
-        <TabsContent value="tasks" className="space-y-4">
-          <div className="flex justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">Your Tasks</h2>
-            <Button size="sm" asChild>
-              <Link to="/employee/tasks">
-                View All Tasks
-              </Link>
-            </Button>
-          </div>
-          
-          {tasksLoading ? (
-            <div className="space-y-2">
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Tasks</CardTitle>
+          <CardDescription>
+            Your current workload and progress
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingTasks ? (
+            <div className="space-y-4">
               {Array(3).fill(0).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full" />
+                <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
-          ) : assignedTasks && assignedTasks.length > 0 ? (
-            <div className="grid gap-4">
-              {assignedTasks.slice(0, 3).map((task) => (
-                <Card key={task.task_id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Link to={`/employee/tasks/${task.task_id}`} className="font-medium hover:underline">
+          ) : tasks && tasks.length > 0 ? (
+            <div className="space-y-4">
+              {tasks.slice(0, 5).map((task) => (
+                <div key={task.task_id} className="border rounded-md p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-medium">
+                        <Link to={`/employee/tasks/${task.task_id}`} className="hover:underline">
                           {task.title}
                         </Link>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Client: {task.clients?.client_name || 'Unknown'}
-                        </div>
-                      </div>
-                      <Badge variant={
-                        task.status === 'completed' ? 'success' : 
-                        task.status === 'in_progress' ? 'default' : 
-                        'secondary'
-                      }>
-                        {task.status === 'in_progress' ? 'In Progress' : 
-                         task.status === 'completed' ? 'Completed' : 
-                         'Pending'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="mt-4 space-y-2">
-                      <div className="text-sm flex justify-between">
-                        <span>Progress</span>
-                        <span>{task.progress || 0}%</span>
-                      </div>
-                      <Progress value={task.progress || 0} className="h-2" />
-                    </div>
-                    
-                    <div className="mt-4 flex justify-between text-sm text-muted-foreground">
-                      <div className="flex items-center">
-                        <Calendar className="h-3.5 w-3.5 mr-1" />
-                        {task.end_time ? format(new Date(task.end_time), 'MMM d, yyyy') : 'No deadline'}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-3.5 w-3.5 mr-1" />
-                        {task.estimated_time || 0} hours
+                      </h3>
+                      <div className="text-sm text-muted-foreground flex items-center space-x-2">
+                        <span>Client: {task.clients?.client_name || 'Unknown'}</span>
+                        <span>•</span>
+                        <span>Est: {task.estimated_time || 0}h</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Badge variant={task.status === 'in_progress' ? 'default' : 'secondary'}>
+                      {task.status === 'in_progress' ? 'In Progress' : 'Pending'}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Progress</span>
+                      <span>0%</span>
+                    </div>
+                    <Progress value={0} className="h-1" />
+                  </div>
+                </div>
               ))}
-              
-              {assignedTasks.length > 3 && (
-                <Button variant="outline" asChild>
-                  <Link to="/employee/tasks">
-                    View {assignedTasks.length - 3} more tasks
-                  </Link>
+              {tasks.length > 5 && (
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link to="/employee/tasks">View all tasks</Link>
                 </Button>
               )}
             </div>
           ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8">
-                <div className="text-center space-y-2">
-                  <FileText className="h-8 w-8 text-muted-foreground mx-auto" />
-                  <h3 className="font-medium text-lg">No tasks assigned</h3>
-                  <p className="text-sm text-muted-foreground">
-                    You don't have any tasks assigned to you at the moment.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No active tasks assigned to you</p>
+              <Button variant="outline" size="sm" className="mt-2" asChild>
+                <Link to="/employee/tasks">View all tasks</Link>
+              </Button>
+            </div>
           )}
-        </TabsContent>
-        
-        <TabsContent value="calendar">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Events</CardTitle>
-              <CardDescription>
-                Your schedule for the next few days
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-2 rounded-md">
-                    <Calendar className="h-5 w-5 text-primary" />
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Notifications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                {
+                  id: 1,
+                  title: "New task assigned",
+                  description: "You have been assigned a new design task",
+                  time: "2 hours ago",
+                  icon: <ChatBubbleIcon className="h-5 w-5 text-blue-500" />
+                },
+                {
+                  id: 2,
+                  title: "Task deadline approaching",
+                  description: "API Integration task is due in 2 days",
+                  time: "5 hours ago",
+                  icon: <Clock className="h-5 w-5 text-amber-500" />
+                }
+              ].map(notification => (
+                <div key={notification.id} className="flex gap-3 border-b pb-3 last:border-b-0 last:pb-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                    {notification.icon}
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">Team Standup</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Today at 10:00 AM • 30 minutes
-                    </p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">{notification.title}</p>
+                    <p className="text-sm text-muted-foreground">{notification.description}</p>
+                    <p className="text-xs text-muted-foreground">{notification.time}</p>
                   </div>
-                  <Button variant="outline" size="sm">Join</Button>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-2 rounded-md">
-                    <Users className="h-5 w-5 text-primary" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Task Completion Rate</div>
+                  <div className="text-sm text-muted-foreground">
+                    {isLoadingCompletedCount ? 
+                      <Skeleton className="h-4 w-8 inline-block" /> : 
+                      `${completedTasksCount || 0}/${(tasks?.length || 0) + (completedTasksCount || 0)}`
+                    }
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">Project Review</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Tomorrow at 2:00 PM • 1 hour
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">Details</Button>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-2 rounded-md">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">Client Meeting</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Sep 15 at 11:00 AM • 45 minutes
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">Details</Button>
-                </div>
+                <Progress 
+                  value={isLoadingCompletedCount ? 0 : 
+                    ((completedTasksCount || 0) / ((tasks?.length || 0) + (completedTasksCount || 0))) * 100 || 0
+                  } 
+                  className="h-2"
+                />
               </div>
-              
-              <div className="mt-6 flex justify-center">
-                <Button variant="outline" className="gap-1">
-                  <Plus className="h-4 w-4" />
-                  Add Event
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="messages">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Messages</CardTitle>
-              <CardDescription>
-                Stay in touch with your team and clients
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <Avatar>
-                    <AvatarImage src="/avatars/01.png" />
-                    <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Jane Doe</h4>
-                      <span className="text-xs text-muted-foreground">2h ago</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Can you review the latest design files I sent?
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Work Hour Utilization</div>
+                  <div className="text-sm text-muted-foreground">85%</div>
                 </div>
-                
-                <div className="flex gap-4">
-                  <Avatar>
-                    <AvatarImage src="/avatars/02.png" />
-                    <AvatarFallback>MS</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Mike Smith</h4>
-                      <span className="text-xs text-muted-foreground">Yesterday</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Team meeting has been rescheduled to 10 AM tomorrow.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-4">
-                  <Avatar>
-                    <AvatarImage src="/avatars/03.png" />
-                    <AvatarFallback>SC</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Sarah Chen</h4>
-                      <span className="text-xs text-muted-foreground">2d ago</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      The client approved our proposal! We can start next week.
-                    </p>
-                  </div>
-                </div>
+                <Progress value={85} className="h-2" />
               </div>
-              
-              <div className="mt-6 flex justify-center">
-                <Button variant="outline" className="gap-1">
-                  <MessageSquare className="h-4 w-4" />
-                  Open Messages
-                </Button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Client Satisfaction</div>
+                  <div className="text-sm text-muted-foreground">92%</div>
+                </div>
+                <Progress value={92} className="h-2" />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

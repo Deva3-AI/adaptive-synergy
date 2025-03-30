@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 interface Employee {
   user_id: number;
@@ -121,7 +122,11 @@ const EmployeesList = () => {
                 {filteredEmployees?.length > 0 ? (
                   filteredEmployees.map((employee) => (
                     <TableRow key={employee.user_id}>
-                      <TableCell className="font-medium">{employee.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link to={`/employee/profile/${employee.user_id}`} className="hover:underline">
+                          {employee.name}
+                        </Link>
+                      </TableCell>
                       <TableCell>{employee.email}</TableCell>
                       <TableCell>
                         <Badge className={`${getRoleColor(employee.role_name)}`}>

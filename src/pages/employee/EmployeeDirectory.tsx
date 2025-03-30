@@ -32,8 +32,30 @@ const EmployeeDirectory = () => {
         const departments = rolesData.map(role => role.role_name);
         
         // Calculate average tenure (example - in a real app this would be based on join dates)
-        // Here we're just returning a static value since we don't have actual join dates
-        const averageTenure = "1.8 years";
+        const { data: employeeDetails, error: detailsError } = await supabase
+          .from('employee_details')
+          .select('joining_date');
+          
+        if (detailsError) throw detailsError;
+        
+        // Calculate average tenure based on joining dates
+        let totalDays = 0;
+        let employeesWithJoiningDate = 0;
+        const today = new Date();
+        
+        employeeDetails.forEach(employee => {
+          if (employee.joining_date) {
+            const joinDate = new Date(employee.joining_date);
+            const diffTime = Math.abs(today.getTime() - joinDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            totalDays += diffDays;
+            employeesWithJoiningDate++;
+          }
+        });
+        
+        const averageDays = employeesWithJoiningDate > 0 ? totalDays / employeesWithJoiningDate : 0;
+        const averageYears = (averageDays / 365).toFixed(1);
+        const averageTenure = `${averageYears} years`;
         
         // Get open positions (mock data - in a real app this would be from a jobs table)
         const openPositions = [
