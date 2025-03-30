@@ -1,245 +1,258 @@
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Lightbulb, AlertCircle, Clock, ThumbsUp, Sparkles, RotateCw, CheckCircle, X } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
-import aiUtils from '@/utils/aiUtils';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertCircle, AlertTriangle, Brain, CheckCircle, Clock, Info, Lightbulb, RotateCw, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { toast } from 'sonner';
+import { aiService } from '@/services/api';
 
 interface VirtualManagerInsightsProps {
-  clientId?: number;
-  taskId?: number;
+  clientId: number;
   employeeName?: string;
+  taskId?: number;
 }
-
-type InsightType = 'tip' | 'warning' | 'deadline' | 'preference';
-type PriorityLevel = 'low' | 'medium' | 'high';
 
 interface Insight {
   id: string;
-  type: InsightType;
+  type: 'tip' | 'warning' | 'deadline' | 'preference';
   content: string;
-  priority: PriorityLevel;
-  acknowledgable?: boolean;
+  priority: 'low' | 'medium' | 'high';
+  acknowledgable: boolean;
+  acknowledged?: boolean;
 }
 
-// Interface for insights from the API
-interface ApiInsight {
-  id: string;
-  type: string;
-  content: string;
-  priority: string;
-  acknowledgable?: boolean;
-}
-
-const VirtualManagerInsights = ({ clientId, taskId, employeeName }: VirtualManagerInsightsProps) => {
-  const [acknowledgedInsights, setAcknowledgedInsights] = useState<string[]>([]);
-  const [refreshKey, setRefreshKey] = useState<number>(0);
-
-  const { data: apiInsights = [], isLoading, refetch } = useQuery({
-    queryKey: ['virtualManagerInsights', clientId, taskId, refreshKey],
-    queryFn: async () => {
-      if (!clientId && !taskId) return [];
-      
-      // Get insights based on client history and task details
-      return aiUtils.getManagerInsights({ clientId, taskId });
-    },
-    enabled: !!(clientId || taskId),
-  });
-
-  // Convert API insights to strongly-typed insights
-  const insights: ApiInsight[] = apiInsights as ApiInsight[];
-
-  const handleRefreshInsights = () => {
-    setRefreshKey(prev => prev + 1);
-    refetch();
-    toast.info("Refreshing AI insights...");
-  };
-
+const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ 
+  clientId, 
+  employeeName,
+  taskId 
+}) => {
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [taskHistory, setTaskHistory] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const fetchInsights = async () => {
+      try {
+        setLoading(true);
+        const fetchedInsights = await aiService.getManagerInsights({ clientId, taskId });
+        setInsights(fetchedInsights);
+        
+        // Also fetch task history for this client if available
+        if (clientId) {
+          // This would be a call to get historical tasks for time estimation insights
+          // For now we'll use mock data
+          setTaskHistory([
+            { 
+              title: 'Website Banner Design', 
+              completed_time: 3.2, 
+              estimated_time: 4, 
+              date: '2023-08-15'
+            },
+            { 
+              title: 'Logo Revision', 
+              completed_time: 1.5, 
+              estimated_time: 2, 
+              date: '2023-09-02'
+            },
+            { 
+              title: 'Social Media Post Design', 
+              completed_time: 2.1, 
+              estimated_time: 1.5, 
+              date: '2023-09-10'
+            }
+          ]);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching manager insights:', error);
+        toast.error('Failed to load manager insights');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (clientId) {
+      fetchInsights();
+    }
+  }, [clientId, taskId]);
+  
   const acknowledgeInsight = (insightId: string) => {
-    setAcknowledgedInsights(prev => [...prev, insightId]);
-    toast.success("Insight acknowledged");
+    setInsights(prev => 
+      prev.map(insight => 
+        insight.id === insightId 
+          ? { ...insight, acknowledged: true } 
+          : insight
+      )
+    );
+    toast.success('Insight acknowledged');
   };
-
-  const dismissInsight = (insightId: string) => {
-    setAcknowledgedInsights(prev => [...prev, insightId]);
-    toast.info("Insight dismissed");
-  };
-
-  const isAcknowledged = (insightId: string) => acknowledgedInsights.includes(insightId);
-
-  const getInsightIcon = (type: string) => {
+  
+  const getIconForType = (type: string) => {
     switch (type) {
       case 'tip':
-        return <Lightbulb className="h-4 w-4 text-yellow-500" />;
+        return <Lightbulb className="h-4 w-4 text-primary" />;
       case 'warning':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertTriangle className="h-4 w-4 text-destructive" />;
       case 'deadline':
-        return <Clock className="h-4 w-4 text-blue-500" />;
+        return <Clock className="h-4 w-4 text-amber-500" />;
       case 'preference':
-        return <ThumbsUp className="h-4 w-4 text-green-500" />;
+        return <ThumbsUp className="h-4 w-4 text-blue-500" />;
       default:
-        return <Sparkles className="h-4 w-4 text-purple-500" />;
+        return <Info className="h-4 w-4" />;
     }
   };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'text-red-600 bg-red-100';
-      case 'medium':
-        return 'text-amber-600 bg-amber-100';
-      case 'low':
-        return 'text-green-600 bg-green-100';
-      default:
-        return 'text-slate-600 bg-slate-100';
+  
+  const refreshInsights = async () => {
+    try {
+      setLoading(true);
+      toast.info('Refreshing insights...');
+      const fetchedInsights = await aiService.getManagerInsights({ clientId, taskId });
+      setInsights(fetchedInsights);
+      toast.success('Insights refreshed');
+    } catch (error) {
+      console.error('Error refreshing insights:', error);
+      toast.error('Failed to refresh insights');
+    } finally {
+      setLoading(false);
     }
   };
-
-  // Filter out acknowledged insights for the main display
-  const activeInsights = insights.filter((insight) => 
-    !isAcknowledged(insight.id) || !insight.acknowledgable
-  );
-
-  // Count by type
-  const insightCounts = insights.reduce((acc: Record<string, number>, insight) => {
-    acc[insight.type] = (acc[insight.type] || 0) + 1;
-    return acc;
-  }, {});
-
-  if (isLoading) {
+  
+  if (loading) {
     return (
       <Card>
-        <CardHeader className="pb-2">
-          <Skeleton className="h-6 w-1/2" />
-          <Skeleton className="h-4 w-1/3" />
+        <CardHeader>
+          <CardTitle>Virtual Manager</CardTitle>
+          <CardDescription>Loading insights...</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-pulse space-y-4 w-full">
             {[1, 2, 3].map(i => (
-              <div key={i} className="flex gap-2">
-                <Skeleton className="h-4 w-4 rounded-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
+              <div key={i} className="h-20 bg-muted rounded-md w-full"></div>
             ))}
           </div>
         </CardContent>
       </Card>
     );
   }
-
+  
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Avatar className="h-8 w-8 mr-2">
-              <AvatarImage src="/ai-assistant.png" alt="AI Assistant" />
-              <AvatarFallback>
-                <Sparkles className="h-4 w-4 text-purple-500" />
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-lg">Virtual Manager</CardTitle>
-              <CardDescription>AI-powered insights for optimal performance</CardDescription>
-            </div>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="flex items-center">
+              <Brain className="mr-2 h-5 w-5 text-primary" />
+              Virtual Manager
+            </CardTitle>
+            <CardDescription>
+              Personalized insights for working with this client
+            </CardDescription>
           </div>
           <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleRefreshInsights} 
-            className="h-8 px-2"
+            variant="outline" 
+            size="icon" 
+            onClick={refreshInsights}
+            title="Refresh insights"
           >
             <RotateCw className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      
-      {insights.length > 0 && (
-        <div className="px-6 py-2 border-t border-b bg-muted/30">
-          <div className="flex justify-between items-center text-xs text-muted-foreground">
-            <div className="flex space-x-2">
-              {Object.entries(insightCounts).map(([type, count]) => (
-                <Badge key={type} variant="outline" className="bg-background">
-                  {getInsightIcon(type)} <span className="ml-1">{count} {type}</span>
-                </Badge>
-              ))}
-            </div>
-            <span>
-              {acknowledgedInsights.length} of {insights.length} acknowledged
-            </span>
-          </div>
-          <Progress 
-            value={(acknowledgedInsights.length / insights.length) * 100} 
-            className="h-1 mt-2" 
-          />
-        </div>
-      )}
-      
-      <CardContent className="pt-4">
-        {activeInsights.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <p>No specific insights available.</p>
-            <p className="text-xs mt-1">Insights will appear as you work on more tasks for this client.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {activeInsights.map((insight) => (
-              <div key={insight.id} className="flex items-start gap-3 pb-3 border-b last:border-0 last:pb-0">
-                <div className="mt-0.5">{getInsightIcon(insight.type)}</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium capitalize">{insight.type}</span>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs px-1.5 py-0 h-5 ${getPriorityColor(insight.priority)}`}
-                    >
-                      {insight.priority}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{insight.content}</p>
-                  
-                  {insight.acknowledgable && !isAcknowledged(insight.id) && (
-                    <div className="flex gap-2 mt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-7 text-xs"
-                        onClick={() => dismissInsight(insight.id)}
-                      >
-                        <X className="h-3 w-3 mr-1" /> Dismiss
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="h-7 text-xs"
-                        onClick={() => acknowledgeInsight(insight.id)}
-                      >
-                        <CheckCircle className="h-3 w-3 mr-1" /> Acknowledge
-                      </Button>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[380px]">
+          <div className="p-4 space-y-4">
+            {insights.length > 0 ? (
+              insights.map(insight => (
+                <div 
+                  key={insight.id}
+                  className={`p-3 rounded-md border ${
+                    insight.acknowledged ? 'bg-muted/50 opacity-70' : ''
+                  } ${
+                    insight.priority === 'high' ? 'border-red-200 bg-red-50' : 
+                    insight.priority === 'medium' ? 'border-amber-200 bg-amber-50' : 
+                    'border-green-200 bg-green-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center space-x-2 mb-1">
+                      {getIconForType(insight.type)}
+                      <span className="font-medium text-sm">
+                        {insight.type === 'tip' ? 'Suggestion' : 
+                         insight.type === 'warning' ? 'Important Warning' : 
+                         insight.type === 'deadline' ? 'Time Insight' : 
+                         'Client Preference'}
+                      </span>
+                      {insight.priority === 'high' && (
+                        <Badge variant="destructive">High Priority</Badge>
+                      )}
                     </div>
-                  )}
+                    {insight.acknowledgable && !insight.acknowledged && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => acknowledgeInsight(insight.id)}
+                        className="h-6 text-xs"
+                      >
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        Acknowledge
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-sm mt-1">{insight.content}</p>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertCircle className="mx-auto h-8 w-8 opacity-20 mb-2" />
+                <p>No specific insights available for this client yet.</p>
+                <p className="text-xs mt-1">Insights will appear as you work with this client.</p>
               </div>
-            ))}
+            )}
+            
+            {taskHistory.length > 0 && (
+              <>
+                <Separator />
+                
+                <div>
+                  <h3 className="text-sm font-medium flex items-center mb-3">
+                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                    Historical Time Analysis
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {taskHistory.map((task, index) => (
+                      <div key={index} className="border rounded-md p-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium">{task.title}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {task.date}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                          <div className="flex items-center">
+                            <span>Estimated: {task.estimated_time}h</span>
+                            <Separator orientation="vertical" className="mx-2 h-3" />
+                            <span>Actual: {task.completed_time}h</span>
+                            <Separator orientation="vertical" className="mx-2 h-3" />
+                            <Badge variant={task.completed_time <= task.estimated_time ? "success" : "destructive"} className="text-xs">
+                              {task.completed_time <= task.estimated_time 
+                                ? `${Math.round((1 - task.completed_time/task.estimated_time) * 100)}% faster` 
+                                : `${Math.round((task.completed_time/task.estimated_time - 1) * 100)}% slower`}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </ScrollArea>
       </CardContent>
-      
-      {employeeName && (
-        <CardFooter className="px-6 py-3 border-t bg-muted/10 flex justify-between">
-          <span className="text-xs text-muted-foreground">
-            Personalized for: {employeeName}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            Last updated: {new Date().toLocaleTimeString()}
-          </span>
-        </CardFooter>
-      )}
     </Card>
   );
 };

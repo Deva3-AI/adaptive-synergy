@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
@@ -21,6 +22,9 @@ import ClientTaskDetail from './pages/client/TaskDetail';
 import BrandsDashboard from './pages/client/BrandsDashboard';
 import ClientReports from './pages/client/Reports';
 import NotFound from './pages/NotFound';
+
+// Lazy load the ClientRequirements page
+const ClientRequirements = React.lazy(() => import('./pages/ai/ClientRequirements'));
 
 // Define a ProtectedRoute component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -67,7 +71,9 @@ function App() {
           path="/ai/client-requirements"
           element={
             <ProtectedRoute>
-              <React.lazy(() => import('./pages/ai/ClientRequirements')) as any
+              <React.Suspense fallback={<div>Loading...</div>}>
+                <ClientRequirements />
+              </React.Suspense>
             </ProtectedRoute>
           }
         />
