@@ -5,7 +5,7 @@ export interface Attendance {
   attendance_id: number;
   user_id: number;
   login_time: string;
-  logout_time: string;
+  logout_time: string | null;
   work_date: string;
 }
 
@@ -117,7 +117,7 @@ const employeeService = {
     }
   },
 
-  // Additional methods for Dashboard.tsx
+  // Methods for Dashboard.tsx
   getTodayAttendance: async (employeeId: number) => {
     try {
       const response = await apiClient.get(`/employees/${employeeId}/attendance/today`);
@@ -148,9 +148,9 @@ const employeeService = {
     }
   },
 
-  stopWork: async (employeeId: number) => {
+  stopWork: async (employeeId: number, attendanceId: number) => {
     try {
-      const response = await apiClient.post(`/employees/${employeeId}/attendance/stop`);
+      const response = await apiClient.post(`/employees/${employeeId}/attendance/${attendanceId}/stop`);
       return response.data;
     } catch (error) {
       console.error(`Error stopping work for employee ${employeeId}:`, error);

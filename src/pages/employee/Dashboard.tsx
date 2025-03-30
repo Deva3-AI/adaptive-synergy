@@ -29,20 +29,20 @@ const EmployeeDashboard = () => {
   
   // Fetch today's attendance
   const { data: todayAttendance, refetch: refetchAttendance } = useQuery({
-    queryKey: ['attendance-today'],
-    queryFn: () => employeeService.getTodayAttendance(),
+    queryKey: ['attendance-today', currentUser.id],
+    queryFn: () => employeeService.getTodayAttendance(currentUser.id),
   });
   
   // Fetch today's working hours
   const { data: workHours } = useQuery({
-    queryKey: ['work-hours-today'],
-    queryFn: () => employeeService.getTodayWorkHours(),
+    queryKey: ['work-hours-today', currentUser.id],
+    queryFn: () => employeeService.getTodayWorkHours(currentUser.id),
   });
   
   // Handle Work Start/Stop
   const handleStartWork = async () => {
     try {
-      await employeeService.startWork();
+      await employeeService.startWork(currentUser.id);
       refetchAttendance();
       toast({
         title: "Work Started",
@@ -61,7 +61,7 @@ const EmployeeDashboard = () => {
     if (!todayAttendance?.attendance_id) return;
     
     try {
-      await employeeService.stopWork(todayAttendance.attendance_id);
+      await employeeService.stopWork(currentUser.id, todayAttendance.attendance_id);
       refetchAttendance();
       toast({
         title: "Work Ended",

@@ -1,26 +1,20 @@
 
+import employeeService from './employeeService';
 import clientService from './clientService';
-import marketingService from './marketingService';
 import financeService from './financeService';
 import hrService from './hrService';
-import aiService from './aiService';
-import employeeService from './employeeService';
+import marketingService from './marketingService';
 import taskService from './taskService';
-import userService from './userService';
+import aiService from './aiService';
+import authService from './authService';
 
-export { 
+export {
+  employeeService,
   clientService,
-  marketingService,
   financeService,
   hrService,
-  aiService,
-  employeeService,
+  marketingService,
   taskService,
-  userService
+  aiService,
+  authService
 };
-
-// Re-export types from service files
-export type { Brand } from './clientService';
-export type { Invoice, FinancialRecord } from './financeService';
-export type { TaskAttachment } from './taskService';
-export type { Attendance, WorkSession } from './employeeService';

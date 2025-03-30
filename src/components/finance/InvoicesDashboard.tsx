@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
@@ -53,13 +52,28 @@ const InvoicesDashboard = () => {
     },
   });
 
-  const handleSendReminder = async (invoiceId: number) => {
+  const handleSendReminder = async (invoice: Invoice) => {
+    if (invoice.status !== 'pending' && invoice.status !== 'overdue') {
+      toast({
+        title: "Cannot send reminder",
+        description: "Reminders can only be sent for pending or overdue invoices.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      await financeService.sendInvoiceReminder(invoiceId);
-      toast.success('Payment reminder sent successfully');
+      await financeService.sendInvoiceReminder(invoice.invoice_id);
+      toast({
+        title: "Reminder Sent",
+        description: `Reminder sent successfully for invoice #${invoice.invoice_number}`,
+      });
     } catch (error) {
-      console.error('Failed to send reminder:', error);
-      toast.error('Failed to send payment reminder');
+      toast({
+        title: "Error",
+        description: "Failed to send reminder. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -192,12 +206,16 @@ const InvoicesDashboard = () => {
                       <div className="flex gap-2">
                         {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                           <Button 
-                            size="sm" 
                             variant="outline"
-                            onClick={() => handleSendReminder(invoice.id)}
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSendReminder(invoice);
+                            }}
+                            disabled={invoice.status === 'paid'}
                           >
-                            <Mail className="h-3.5 w-3.5 mr-1.5" />
-                            Remind
+                            <MailIcon className="h-4 w-4" />
                           </Button>
                         )}
                         
@@ -208,10 +226,15 @@ const InvoicesDashboard = () => {
                         
                         {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                           <Button 
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleUpdateStatus(invoice.id, 'paid')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSendReminder(invoice);
+                            }}
+                            disabled={invoice.status === 'paid'}
                           >
-                            Mark as Paid
+                            <MailIcon className="h-4 w-4 mr-1" /> Send Reminder
                           </Button>
                         )}
                       </div>

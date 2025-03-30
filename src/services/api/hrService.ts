@@ -57,6 +57,7 @@ const hrService = {
     }
   },
 
+  // New methods for PayrollManagement and RecruitmentTracker
   getPayslips: async (startDate?: string, endDate?: string) => {
     try {
       let url = '/hr/payslips';

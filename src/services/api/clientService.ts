@@ -1,15 +1,6 @@
 
 import apiClient from '@/utils/apiUtils';
 
-export interface Brand {
-  id: number;
-  client_id: number;
-  name: string;
-  description: string;
-  logo?: string;
-  created_at: string;
-}
-
 const clientService = {
   getClients: async () => {
     try {
@@ -71,24 +62,20 @@ const clientService = {
     }
   },
 
-  // Methods for brands
-  getClientBrands: async (clientId?: number) => {
+  // New methods for ClientBrandsList and ClientRequirementsPanel
+  getClientBrands: async (clientId: number) => {
     try {
-      let url = '/clients/brands';
-      if (clientId) {
-        url = `/clients/${clientId}/brands`;
-      }
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(`/clients/${clientId}/brands`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching client brands:', error);
+      console.error(`Error fetching brands for client ${clientId}:`, error);
       return [];
     }
   },
 
-  getBrandTasks: async (brandId: number) => {
+  getBrandTasks: async (clientId: number, brandId: number) => {
     try {
-      const response = await apiClient.get(`/brands/${brandId}/tasks`);
+      const response = await apiClient.get(`/clients/${clientId}/brands/${brandId}/tasks`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching tasks for brand ${brandId}:`, error);
@@ -96,12 +83,12 @@ const clientService = {
     }
   },
 
-  createBrand: async (brandData: any) => {
+  createBrand: async (clientId: number, brandData: any) => {
     try {
-      const response = await apiClient.post('/clients/brands', brandData);
+      const response = await apiClient.post(`/clients/${clientId}/brands`, brandData);
       return response.data;
     } catch (error) {
-      console.error('Error creating brand:', error);
+      console.error(`Error creating brand for client ${clientId}:`, error);
       throw error;
     }
   },

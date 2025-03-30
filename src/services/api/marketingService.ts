@@ -7,7 +7,7 @@ const marketingService = {
       const response = await apiClient.get('/marketing/campaigns');
       return response.data;
     } catch (error) {
-      console.error('Error fetching marketing campaigns:', error);
+      console.error('Error fetching campaigns:', error);
       return [];
     }
   },
@@ -17,7 +17,7 @@ const marketingService = {
       const response = await apiClient.post('/marketing/campaigns', campaignData);
       return response.data;
     } catch (error) {
-      console.error('Error creating marketing campaign:', error);
+      console.error('Error creating campaign:', error);
       throw error;
     }
   },
@@ -27,7 +27,7 @@ const marketingService = {
       const response = await apiClient.get('/marketing/meetings');
       return response.data;
     } catch (error) {
-      console.error('Error fetching marketing meetings:', error);
+      console.error('Error fetching meetings:', error);
       return [];
     }
   },
@@ -37,7 +37,7 @@ const marketingService = {
       const response = await apiClient.post('/marketing/meetings', meetingData);
       return response.data;
     } catch (error) {
-      console.error('Error creating marketing meeting:', error);
+      console.error('Error creating meeting:', error);
       throw error;
     }
   },
@@ -59,13 +59,24 @@ const marketingService = {
     }
   },
 
+  // New methods for various marketing components
+  getEmailTemplates: async () => {
+    try {
+      const response = await apiClient.get('/marketing/email-templates');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      return [];
+    }
+  },
+
   getEmailOutreach: async () => {
     try {
       const response = await apiClient.get('/marketing/email-outreach');
       return response.data;
     } catch (error) {
       console.error('Error fetching email outreach data:', error);
-      return [];
+      return null;
     }
   },
 
@@ -99,23 +110,13 @@ const marketingService = {
     }
   },
 
-  getMarketingMetrics: async () => {
-    try {
-      const response = await apiClient.get('/marketing/metrics');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching marketing metrics:', error);
-      return null;
-    }
-  },
-
   getMarketingTrends: async () => {
     try {
       const response = await apiClient.get('/marketing/trends');
       return response.data;
     } catch (error) {
       console.error('Error fetching marketing trends:', error);
-      return [];
+      return null;
     }
   },
 
@@ -125,17 +126,7 @@ const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching competitor insights:', error);
-      return [];
-    }
-  },
-
-  getEmailTemplates: async () => {
-    try {
-      const response = await apiClient.get('/marketing/email-templates');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching email templates:', error);
-      return [];
+      return null;
     }
   },
 
@@ -145,6 +136,16 @@ const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Error analyzing meeting transcript:', error);
+      throw error;
+    }
+  },
+
+  getMarketingMetrics: async () => {
+    try {
+      const response = await apiClient.get('/marketing/metrics');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching marketing metrics:', error);
       return null;
     }
   }
