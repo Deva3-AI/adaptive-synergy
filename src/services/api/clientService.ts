@@ -70,6 +70,8 @@ const clientService = {
     }
   },
 
+  // Adding missing methods
+
   getClientPreferences: async (clientId: number) => {
     try {
       const response = await apiClient.get(`/clients/${clientId}/preferences`);

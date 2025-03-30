@@ -151,6 +151,66 @@ const employeeService = {
         ]
       };
     }
+  },
+  
+  // Tasks
+  getTasks: async (status?: string) => {
+    try {
+      let url = '/employee/tasks';
+      if (status) {
+        url += `?status=${status}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get tasks error:', error);
+      throw error;
+    }
+  },
+  
+  getTaskDetails: async (taskId: number) => {
+    try {
+      const response = await apiClient.get(`/employee/tasks/${taskId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get task details error:', error);
+      throw error;
+    }
+  },
+  
+  updateTaskStatus: async (taskId: number, status: string) => {
+    try {
+      const response = await apiClient.put(`/employee/tasks/${taskId}/status`, { status });
+      return response.data;
+    } catch (error) {
+      console.error('Update task status error:', error);
+      throw error;
+    }
+  },
+  
+  // Add missing method
+  getEmployeeDetails: async (employeeId: number) => {
+    try {
+      const response = await apiClient.get(`/employees/${employeeId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching employee details for ID ${employeeId}:`, error);
+      return {
+        id: employeeId,
+        name: "Employee Name",
+        position: "Job Title",
+        department: "Department",
+        email: "employee@example.com",
+        phone: "123-456-7890",
+        avatar: null,
+        joined_date: "2023-01-15",
+        stats: {
+          tasks_completed: 24,
+          tasks_in_progress: 3,
+          average_task_completion_time: 2.5
+        }
+      };
+    }
   }
 };
 

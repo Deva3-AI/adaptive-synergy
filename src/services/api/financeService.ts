@@ -1,4 +1,3 @@
-
 import apiClient from '@/utils/apiUtils';
 
 export interface Invoice {
@@ -19,6 +18,7 @@ export interface FinancialRecord {
   description: string;
   category: string;
   recordDate: string;
+  date: string;
   created_at: string;
 }
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,8 @@ import { Send, RefreshCw, Copy, CheckCircle, AlertTriangle, HelpCircle } from "l
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { clientService, aiService } from '@/services/api';
+import clientService from '@/services/api/clientService';
+import aiService from '@/services/api/aiService';
 import { useParams } from 'react-router-dom';
 
 interface ChatMessage {

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -10,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { 
   FileIcon, Plus, Trash2, Download, File, FileText, FileImage, FileArchive 
 } from "lucide-react";
-import { taskService, TaskAttachment } from '@/services/api';
+import taskService from '@/services/api/taskService';
+import { TaskAttachment } from '@/services/api/taskService';
 import { toast } from 'sonner';
 
 const TaskAttachmentsPanel = ({ taskId }: { taskId: number }) => {
