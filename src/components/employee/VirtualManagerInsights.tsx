@@ -1,23 +1,23 @@
-
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Brain, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { LightbulbIcon, AlertCircle, HelpCircle, CheckCircle2, InfoIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from '@tanstack/react-query';
-import { aiService } from '@/services/api';
-import { toast } from 'sonner';
+import aiService from "@/services/api/aiService";
 
 interface VirtualManagerInsightsProps {
-  clientId: number;
+  clientId?: number;
+  userId?: number;
   taskId?: number;
   className?: string;
 }
 
-const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ 
-  clientId, 
+const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
+  clientId,
+  userId,
   taskId,
-  className 
+  className
 }) => {
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -29,7 +29,6 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
   } = useQuery({
     queryKey: ['managerInsights', clientId, taskId, refreshKey],
     queryFn: async () => {
-      // Get client preferences and insights from AI service
       return await aiService.getAIManagerInsights({ clientId, taskId });
     },
     enabled: !!clientId,
@@ -45,7 +44,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
       <Card className={className}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center">
-            <Brain className="h-5 w-5 mr-2 text-primary" />
+            <LightbulbIcon className="h-5 w-5 mr-2 text-primary" />
             Virtual Manager Insights
           </CardTitle>
         </CardHeader>
@@ -66,7 +65,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
       <Card className={className}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center">
-            <Brain className="h-5 w-5 mr-2 text-primary" />
+            <LightbulbIcon className="h-5 w-5 mr-2 text-primary" />
             Virtual Manager Insights
           </CardTitle>
         </CardHeader>
@@ -92,7 +91,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
       <Card className={className}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center">
-            <Brain className="h-5 w-5 mr-2 text-primary" />
+            <LightbulbIcon className="h-5 w-5 mr-2 text-primary" />
             Virtual Manager Insights
           </CardTitle>
         </CardHeader>
@@ -109,7 +108,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg flex items-center">
-          <Brain className="h-5 w-5 mr-2 text-primary" />
+          <LightbulbIcon className="h-5 w-5 mr-2 text-primary" />
           Virtual Manager Insights
         </CardTitle>
         <Button 
@@ -140,7 +139,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
         {insights.warnings.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold flex items-center text-amber-600">
-              <AlertTriangle className="h-4 w-4 mr-1" />
+              <AlertCircle className="h-4 w-4 mr-1" />
               Important Warnings
             </h3>
             <ul className="space-y-2">
@@ -156,7 +155,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
         {/* Suggestions */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold flex items-center text-green-600">
-            <CheckCircle className="h-4 w-4 mr-1" />
+            <CheckCircle2 className="h-4 w-4 mr-1" />
             Suggestions
           </h3>
           <ul className="space-y-2">
@@ -170,7 +169,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
         
         <div className="pt-2">
           <Badge variant="outline" className="flex items-center justify-center w-full">
-            <Brain className="h-3 w-3 mr-1" />
+            <LightbulbIcon className="h-3 w-3 mr-1" />
             <span className="text-xs">Powered by AI based on client history and preferences</span>
           </Badge>
         </div>

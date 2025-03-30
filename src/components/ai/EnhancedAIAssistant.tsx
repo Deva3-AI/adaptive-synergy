@@ -10,7 +10,8 @@ import { Send, RefreshCw, Copy, CheckCircle, AlertTriangle, HelpCircle } from "l
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { clientService, aiService } from '@/services/api';
+import clientService from "@/services/api/clientService";
+import aiService from "@/services/api/aiService";
 import { useParams } from 'react-router-dom';
 
 interface ChatMessage {

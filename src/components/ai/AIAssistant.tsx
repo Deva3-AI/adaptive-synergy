@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,10 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, Send, X, Sparkles, ChevronDown, ChevronUp, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { aiService } from "@/services/api";
+import aiService from "@/services/api/aiService";
 import { useAuth } from "@/hooks/use-auth";
-import { useClients, useEmployees } from "@/utils/apiUtils";
-import { useTasks } from "@/utils/apiUtils";
+import { useTasks, useEmployees, useClients } from "@/utils/apiUtils";
 import { toast } from "sonner";
 
 type Message = {

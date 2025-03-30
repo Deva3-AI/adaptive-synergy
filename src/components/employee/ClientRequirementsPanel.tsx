@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Check, Clock, Pencil, ThumbsDown, ThumbsUp, AlertTriangle, Palette, FileText } from 'lucide-react';
-import { clientService } from '@/services/api';
+import clientService from '@/services/api/clientService';
 import { ClientPreferences } from '@/services/api/clientService';
 
 interface ClientRequirementsPanelProps {

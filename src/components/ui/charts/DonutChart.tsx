@@ -1,71 +1,44 @@
 
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { cn } from '@/lib/utils';
+import { PieChart as RechartsPieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 export interface DonutChartProps {
   data: any[];
   nameKey: string;
   dataKey: string;
-  height?: number;
-  className?: string;
-  showLegend?: boolean;
-  showTooltip?: boolean;
   colors?: string[];
   innerRadius?: number;
   outerRadius?: number;
-  children?: React.ReactNode;
+  height?: number;
+  className?: string;
+  showLegend?: boolean;
 }
 
-const COLORS = [
-  'var(--chart-0)',
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
-  'var(--chart-6)',
-  'var(--chart-7)',
-];
+const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-const DonutChart = ({
+const DonutChart: React.FC<DonutChartProps> = ({
   data,
   nameKey,
   dataKey,
+  colors = DEFAULT_COLORS,
+  innerRadius = 60,
+  outerRadius = 80,
   height = 300,
   className,
   showLegend = true,
-  showTooltip = true,
-  colors = COLORS,
-  innerRadius = 60,
-  outerRadius = 80,
-  children,
-}: DonutChartProps) => {
-  if (!data || data.length === 0) {
-    return <div className={cn("flex items-center justify-center h-64", className)}>No data available</div>;
-  }
-
+}) => {
   return (
-    <div className={cn("w-full relative", className)}>
-      <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          {showTooltip && <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'white', 
-              borderRadius: '0.375rem',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-              padding: '0.5rem'
-            }} 
-            formatter={(value: any) => [`${value} (${Math.round(value / data.reduce((sum, entry) => sum + entry[dataKey], 0) * 100)}%)`, null]}
-          />}
+    <div className={cn("w-full", className)} style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsPieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
             labelLine={false}
-            innerRadius={innerRadius}
+            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
             outerRadius={outerRadius}
+            innerRadius={innerRadius}
             fill="#8884d8"
             dataKey={dataKey}
             nameKey={nameKey}
@@ -74,15 +47,10 @@ const DonutChart = ({
               <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
             ))}
           </Pie>
+          <Tooltip formatter={(value: number) => [`${value}`, dataKey]} />
           {showLegend && <Legend />}
-        </PieChart>
+        </RechartsPieChart>
       </ResponsiveContainer>
-      
-      {children && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {children}
-        </div>
-      )}
     </div>
   );
 };

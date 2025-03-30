@@ -2,232 +2,303 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * AI Service for accessing AI-powered features
+ * AI service for managing AI-related operations
  */
 const aiService = {
   /**
-   * Get client preferences from the AI system
+   * Analyze requirements from input text
    */
-  getClientPreferences: async (clientId: number) => {
+  analyzeRequirements: async (input: string) => {
     try {
-      // First check if we have stored preferences
-      const { data: preferences, error } = await supabase
+      // Simulate AI analysis with mock data
+      // In a real app, this would call an AI service
+      const mockAnalysis = {
+        sentiment: Math.random() > 0.7 ? 'positive' : Math.random() > 0.5 ? 'neutral' : 'negative',
+        priority_level: Math.random() > 0.7 ? 'high' : Math.random() > 0.5 ? 'medium' : 'low',
+        key_requirements: [
+          'Responsive layout',
+          'Brand color consistency',
+          'Mobile optimization',
+          'Fast loading times',
+          'User-friendly navigation'
+        ].slice(0, Math.floor(Math.random() * 5) + 1)
+      };
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      return mockAnalysis;
+    } catch (error) {
+      console.error('Error analyzing requirements:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get client-specific AI insights
+   */
+  getClientInsights: async (clientId: number) => {
+    try {
+      // Fetch client data for context
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('client_id', clientId)
+        .single();
+      
+      if (clientError) throw clientError;
+      
+      // Fetch client preferences
+      const { data: clientPreferences, error: prefError } = await supabase
         .from('client_preferences')
         .select('*')
         .eq('client_id', clientId)
         .single();
-        
-      if (error) {
-        console.error('Error fetching client preferences:', error);
-        return null;
-      }
       
-      return preferences;
-    } catch (error) {
-      console.error('Error in getClientPreferences:', error);
-      return null;
-    }
-  },
-  
-  /**
-   * Analyze client requirements from text input
-   */
-  analyzeRequirements: async (input: string) => {
-    try {
-      // This would typically call an AI service API
-      // For now, we're using a mock implementation
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API call
-      
-      return {
-        sentiment: input.toLowerCase().includes('urgent') ? 'urgent' : 'normal',
-        priority_level: input.toLowerCase().includes('important') ? 'high' : 'medium',
-        key_requirements: input.split('.').filter(item => item.trim().length > 10)
-      };
-    } catch (error) {
-      console.error('Error analyzing requirements:', error);
-      return {
-        sentiment: 'normal',
-        priority_level: 'medium',
-        key_requirements: []
-      };
-    }
-  },
-  
-  /**
-   * Get client communication analysis
-   */
-  analyzeClientCommunication: async (clientId: number) => {
-    try {
-      // This would typically call an AI service API
-      // For now, we're returning mock data
-      return {
-        common_requests: [
-          "Logo placement in top-right corner",
-          "Use vibrant color palette",
-          "Keep designs minimal and modern"
-        ],
-        communication_style: "Formal, prefers detailed explanations",
-        response_time_preference: "Expects responses within 4 hours",
-        insights: [
-          "Client usually requests revisions on color choices",
-          "Prefers clear timelines for deliverables",
-          "Often references competitor websites"
+      // Mock AI-generated insights based on client data
+      const insights = {
+        communication_style: `Based on past interactions, this client prefers ${clientPreferences?.preferred_contact_method || 'email'} communication with ${clientPreferences?.communication_frequency || 'weekly'} updates.`,
+        design_preferences: `This client typically favors ${clientPreferences?.design_preferences?.style || 'modern'} design aesthetics.`,
+        dos: clientPreferences?.dos || ['Be responsive', 'Provide regular updates'],
+        donts: clientPreferences?.donts || ['Avoid technical jargon', 'Don\'t miss deadlines'],
+        improvement_suggestions: [
+          'Consider sending updates more frequently',
+          'Include more visual examples in proposals',
+          'Schedule regular feedback sessions'
         ]
       };
+      
+      return insights;
     } catch (error) {
-      console.error('Error analyzing client communication:', error);
-      return null;
+      console.error(`Error getting AI insights for client ${clientId}:`, error);
+      return {
+        communication_style: 'No data available',
+        design_preferences: 'No data available',
+        dos: [],
+        donts: [],
+        improvement_suggestions: []
+      };
     }
   },
   
   /**
-   * Get task insights for a specific task
+   * Generate personalized task recommendations for a user
+   */
+  getAITaskRecommendations: async (userId: number) => {
+    try {
+      // Fetch user's past tasks for context
+      const { data: userTasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('assigned_to', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (tasksError) throw tasksError;
+      
+      // Mock AI-generated task recommendations
+      const mockRecommendations = [
+        {
+          task_id: 1001,
+          title: 'Review client feedback on landing page',
+          description: 'Client has sent feedback on the new landing page design. Review and prepare implementation plan.',
+          priority: 'high',
+          estimated_time: 1.5,
+          status: 'pending'
+        },
+        {
+          task_id: 1002,
+          title: 'Update brand guidelines document',
+          description: 'Several new brand elements have been developed in recent projects. Update the central guidelines to reflect these changes.',
+          priority: 'medium',
+          estimated_time: 2,
+          status: 'pending'
+        },
+        {
+          task_id: 1003,
+          title: 'Prepare weekly progress report',
+          description: 'Compile status updates for all active projects into a weekly summary for management review.',
+          priority: 'medium',
+          estimated_time: 1,
+          status: 'pending'
+        }
+      ];
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return mockRecommendations;
+    } catch (error) {
+      console.error(`Error getting AI task recommendations for user ${userId}:`, error);
+      return [];
+    }
+  },
+  
+  /**
+   * Get insights for a specific task
    */
   getTaskInsights: async (taskId: number) => {
     try {
-      // First check if we have stored insights
-      const { data: insights, error } = await supabase
-        .from('ai_insights')
-        .select('*')
+      // Fetch task data
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          clients (*)
+        `)
         .eq('task_id', taskId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-        
-      if (error) {
-        console.error('Error fetching task insights:', error);
-        return null;
-      }
+        .single();
       
-      if (insights && insights.length > 0) {
-        return insights[0];
-      }
+      if (taskError) throw taskError;
       
-      // If no insights stored, generate new ones
-      // This would call an AI service
-      const mockInsight = {
-        task_id: taskId,
-        insight: "Based on past projects, this task may take 2-3 hours longer than estimated. Consider allocating additional time for client revisions.",
-        created_at: new Date().toISOString()
+      // Mock AI-generated insights
+      const insights = {
+        estimated_completion_time: Math.round((taskData.estimated_time || 2) * (Math.random() * 0.4 + 0.8) * 10) / 10, // Slight variation around estimated time
+        complexity_score: Math.round(Math.random() * 100),
+        similar_tasks_avg_time: Math.round((taskData.estimated_time || 2) * (Math.random() * 0.6 + 0.7) * 10) / 10,
+        suggested_approaches: [
+          'Break this task into smaller sub-tasks for better tracking',
+          'Consider referencing similar past projects for efficiency',
+          'Schedule a brief check-in halfway through the task timeline'
+        ],
+        potential_challenges: [
+          'This type of task has historically required more client feedback than initially expected',
+          'Technical complexity may be higher than appears at first glance',
+          'Resource coordination might be needed for timely completion'
+        ]
       };
       
-      return mockInsight;
+      return insights;
     } catch (error) {
-      console.error('Error in getTaskInsights:', error);
+      console.error(`Error getting AI insights for task ${taskId}:`, error);
       return null;
     }
   },
   
   /**
-   * Get Virtual Manager insights based on context
+   * Analyze communication with a client
    */
-  getManagerInsights: async ({ client_id, task_type, user_id }: { client_id?: number, task_type?: string, user_id?: number }) => {
+  analyzeClientCommunication: async (clientId: number) => {
     try {
-      // This would typically call an AI service API
-      // For now, we're returning mock data based on the parameters
+      // Fetch recent communication logs
+      const { data: commLogs, error: commError } = await supabase
+        .from('communication_logs')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (commError) throw commError;
+      
+      // Mock AI analysis of communication patterns
+      const analysis = {
+        response_time_avg: Math.round(Math.random() * 24 * 10) / 10, // Random hours between 0-24
+        sentiment_trend: Math.random() > 0.7 ? 'increasingly positive' : Math.random() > 0.4 ? 'stable' : 'declining',
+        common_topics: ['design feedback', 'timeline updates', 'budget discussions'],
+        suggested_improvements: [
+          'Consider more frequent status updates',
+          'Proactively address potential timeline concerns',
+          'Include more visual examples in communications'
+        ],
+        communication_quality_score: Math.round(Math.random() * 40 + 60) // Score between 60-100
+      };
+      
+      return analysis;
+    } catch (error) {
+      console.error(`Error analyzing client communication for client ${clientId}:`, error);
+      return null;
+    }
+  },
+  
+  /**
+   * Get virtual manager insights
+   */
+  getManagerInsights: async ({ clientId, userId, taskId }: { clientId?: number, userId?: number, taskId?: number }) => {
+    try {
       let insights = [];
       
-      if (client_id) {
-        // Get client-specific insights
-        const { data: clientPrefs } = await supabase
+      // Add client-specific insights if clientId is provided
+      if (clientId) {
+        // Fetch client preferences
+        const { data: clientPreferences, error: prefError } = await supabase
           .from('client_preferences')
           .select('*')
-          .eq('client_id', client_id)
+          .eq('client_id', clientId)
           .single();
-          
-        if (clientPrefs) {
-          // Format specific client dos and don'ts
-          const clientDesignPrefs = clientPrefs.design_preferences || {};
-          insights.push(`Client prefers ${clientDesignPrefs.style || 'modern'} design style`);
-          
-          if (clientPrefs.dos) {
-            insights.push(`DO: ${clientPrefs.dos[0]}`);
+        
+        if (clientPreferences) {
+          // Add insights based on client preferences
+          if (clientPreferences.dos && clientPreferences.dos.length > 0) {
+            insights.push({
+              type: 'reminder',
+              category: 'client_preference',
+              title: 'Client Do\'s',
+              content: `Remember: ${clientPreferences.dos.join(', ')}`,
+              importance: 'medium'
+            });
           }
           
-          if (clientPrefs.donts) {
-            insights.push(`DON'T: ${clientPrefs.donts[0]}`);
+          if (clientPreferences.donts && clientPreferences.donts.length > 0) {
+            insights.push({
+              type: 'warning',
+              category: 'client_preference',
+              title: 'Client Don\'ts',
+              content: `Avoid: ${clientPreferences.donts.join(', ')}`,
+              importance: 'high'
+            });
           }
         }
       }
       
-      if (task_type) {
-        // Add task-type specific insights
-        if (task_type.toLowerCase().includes('design')) {
-          insights.push("Design tasks for this client typically require 2 revision cycles");
-          insights.push("Check brand guidelines before submitting first draft");
-        } else if (task_type.toLowerCase().includes('content')) {
-          insights.push("Content should be approx. 500 words per section");
-          insights.push("Include SEO keywords in headlines and first paragraph");
-        }
-      }
-      
-      if (user_id) {
-        // Add user-specific insights
-        const { data: tasks } = await supabase
+      // Add task-specific insights if taskId is provided
+      if (taskId) {
+        // Fetch task details
+        const { data: taskData, error: taskError } = await supabase
           .from('tasks')
-          .select('title, status, created_at')
-          .eq('assigned_to', user_id)
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-          .limit(5);
+          .select('*')
+          .eq('task_id', taskId)
+          .single();
+        
+        if (taskData) {
+          // Check if the task might be at risk of delay
+          const today = new Date();
+          const dueDate = taskData.end_time ? new Date(taskData.end_time) : null;
           
-        if (tasks && tasks.length > 0) {
-          insights.push(`You've completed ${tasks.length} similar tasks recently`);
-          
-          // Calculate average completion time
-          insights.push("Your average completion time is faster than team average");
+          if (dueDate && dueDate.getTime() - today.getTime() < 2 * 24 * 60 * 60 * 1000) { // Less than 2 days remaining
+            insights.push({
+              type: 'alert',
+              category: 'deadline',
+              title: 'Approaching Deadline',
+              content: `This task is due in less than 2 days`,
+              importance: 'high'
+            });
+          }
         }
       }
       
-      // Add general insights if we don't have enough
-      if (insights.length < 3) {
-        insights.push("Schedule regular updates with the client throughout the task");
-        insights.push("Document all client feedback for future reference");
+      // Add some general insights
+      insights.push({
+        type: 'suggestion',
+        category: 'productivity',
+        title: 'Productivity Tip',
+        content: 'Consider using time blocking to improve focus on complex tasks',
+        importance: 'low'
+      });
+      
+      // Add personalized insights if userId is provided
+      if (userId) {
+        insights.push({
+          type: 'reminder',
+          category: 'personal',
+          title: 'Weekly Report Due',
+          content: 'Remember to submit your weekly progress report by Friday',
+          importance: 'medium'
+        });
       }
       
       return insights;
     } catch (error) {
-      console.error('Error in getManagerInsights:', error);
-      return ["Error retrieving insights. Check task details directly."];
-    }
-  },
-  
-  /**
-   * Get AI task recommendations
-   */
-  getAITaskRecommendations: async (userId: number) => {
-    try {
-      // In a real app, this would call an AI service API
-      // For now, return mock recommendations
-      await new Promise(resolve => setTimeout(resolve, 1200)); // Simulate API call
-      
-      return [
-        {
-          task_id: 1001,
-          title: "Optimize landing page for conversion",
-          description: "Review and update the landing page content to improve conversion rates. Focus on call-to-action placement and value proposition clarity.",
-          priority: "high",
-          estimated_time: 3,
-          status: "pending"
-        },
-        {
-          task_id: 1002,
-          title: "Create email newsletter template",
-          description: "Design a reusable email template for the monthly newsletter that matches brand guidelines and has responsive design.",
-          priority: "medium",
-          estimated_time: 4,
-          status: "pending"
-        },
-        {
-          task_id: 1003,
-          title: "Update product image gallery",
-          description: "Refresh the product gallery with new images and optimize for faster loading. Ensure alt tags are descriptive for SEO.",
-          priority: "medium",
-          estimated_time: 2,
-          status: "pending"
-        }
-      ];
-    } catch (error) {
-      console.error('Error in getAITaskRecommendations:', error);
+      console.error('Error getting manager insights:', error);
       return [];
     }
   },
@@ -235,35 +306,40 @@ const aiService = {
   /**
    * Get a response from the AI assistant
    */
-  getResponse: async (userInput: string) => {
+  getResponse: async (query: string) => {
     try {
-      // This would typically call an AI service API
-      // For now, we're using a mock implementation
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      // In a production app, this would call an actual AI service API
+      // For now, we'll simulate with mock responses
       
-      // Simple keyword-based responses
-      if (userInput.toLowerCase().includes('hello') || userInput.toLowerCase().includes('hi')) {
-        return { response: "Hello! How can I assist you today with your work?" };
-      } else if (userInput.toLowerCase().includes('task')) {
-        return { 
-          response: "I can help you manage tasks. Would you like me to help you prioritize your current tasks, or suggest new tasks based on your recent work?" 
-        };
-      } else if (userInput.toLowerCase().includes('client')) {
-        return { 
-          response: "To help with client work, I need to know which client you're referring to. Can you provide the client name or ID?" 
-        };
-      } else if (userInput.toLowerCase().includes('report')) {
-        return { 
-          response: "I can generate various reports for you. Would you like a task completion report, client interaction report, or something else?" 
-        };
+      // Simple keyword matching for demo purposes
+      const lowercaseQuery = query.toLowerCase();
+      let response = '';
+      
+      if (lowercaseQuery.includes('hello') || lowercaseQuery.includes('hi')) {
+        response = "Hello! I'm your AI assistant. How can I help you today?";
+      } else if (lowercaseQuery.includes('task') && lowercaseQuery.includes('recommend')) {
+        response = "Based on your current workload and skills, I recommend focusing on the client feedback task first, as it has the highest priority and shortest timeline.";
+      } else if (lowercaseQuery.includes('client') && (lowercaseQuery.includes('preference') || lowercaseQuery.includes('like'))) {
+        response = "This client typically prefers modern design with minimalist aesthetics. They value timely communication and detailed progress reports. Their feedback cycle is usually weekly.";
+      } else if (lowercaseQuery.includes('deadline') || lowercaseQuery.includes('overdue')) {
+        response = "You have 3 upcoming deadlines this week. The most urgent is the website mockup for Client X due tomorrow at 5PM.";
+      } else if (lowercaseQuery.includes('performance') || lowercaseQuery.includes('productivity')) {
+        response = "Your task completion rate is 15% above average this month. Your strongest area is design implementation, while project documentation has opportunity for improvement.";
+      } else if (lowercaseQuery.includes('summary') || lowercaseQuery.includes('overview')) {
+        response = "Currently, you have 7 active tasks across 3 different clients. Your workload is approximately 85% of your ideal capacity based on historical data. Two tasks require attention in the next 48 hours.";
       } else {
-        return { 
-          response: "I'm here to help with your work. You can ask me about your tasks, clients, or request assistance with specific workflows." 
-        };
+        response = "I understand you're asking about " + query.substring(0, 30) + "... To give you the most helpful answer, could you provide a bit more context or specify what aspect you're interested in?";
       }
+      
+      // Simulate a delay for a more realistic AI response experience
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return { response };
     } catch (error) {
       console.error('Error getting AI response:', error);
-      return { response: "I'm sorry, I encountered an error processing your request. Please try again later." };
+      return { 
+        response: "I'm sorry, I encountered an error processing your request. Please try again later." 
+      };
     }
   }
 };

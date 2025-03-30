@@ -9,8 +9,22 @@ import marketingService from './marketingService';
 import taskService from './taskService';
 import aiService from './aiService';
 
-// Export all service modules
+// Export all service modules directly
 export { authService, clientService, employeeService, financeService, hrService, marketingService, taskService, aiService };
+
+// Also export as an object for backward compatibility
+const api = {
+  auth: authService,
+  client: clientService,
+  employee: employeeService,
+  finance: financeService,
+  hr: hrService,
+  marketing: marketingService,
+  task: taskService,
+  ai: aiService,
+};
+
+export default api;
 
 // Export interfaces
 export interface Task {
@@ -203,14 +217,66 @@ export interface CompetitorInsight {
   description: string;
 }
 
-// Export default API object with all services
-export default {
-  auth: authService,
-  client: clientService,
-  employee: employeeService,
-  finance: financeService,
-  hr: hrService,
-  marketing: marketingService,
-  task: taskService,
-  ai: aiService,
-};
+export interface SalesData {
+  monthly_revenue: number;
+  annual_target: number;
+  growth_rate: number;
+  client_acquisition: number;
+  conversion_rate: number;
+  avg_deal_size: number;
+  top_clients: {
+    client_id: number;
+    client_name: string;
+    revenue: number;
+    growth: number;
+  }[];
+  monthly_trend: {
+    month: string;
+    revenue: number;
+    target: number;
+  }[];
+  sales_by_service: {
+    service: string;
+    value: number;
+  }[];
+}
+
+export interface FinancialMetrics {
+  income: number;
+  expenses: number;
+  profit_margin: number;
+  outstanding_invoices: number;
+  monthly_revenue: {
+    month: string;
+    amount: number;
+  }[];
+  revenue_by_client: {
+    client: string;
+    amount: number;
+  }[];
+}
+
+// Types for employee attendance and payroll
+export interface LeaveRequest {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  reason?: string;
+}
+
+export interface PaySlip {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  periodStart: string;
+  periodEnd: string;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  netSalary: number;
+  status: 'draft' | 'final' | 'paid';
+}

@@ -1,6 +1,29 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Define ClientPreferences interface
+export interface ClientPreferences {
+  id: number;
+  client_id: number;
+  preferred_contact_method: string;
+  communication_frequency: string;
+  feedback_frequency?: string;
+  design_preferences: {
+    colors?: string[];
+    style?: string;
+    fonts?: string[];
+  };
+  industry_specific_requirements: {
+    compliance?: string[];
+    accessibility?: string;
+    [key: string]: any;
+  };
+  dos: string[];
+  donts: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Client service for managing client-related operations
  */
@@ -136,7 +159,7 @@ const clientService = {
       if (error) throw error;
       
       // Format preferences with default values if needed
-      const formattedPreferences = {
+      const formattedPreferences: ClientPreferences = {
         ...data,
         design_preferences: data.design_preferences || {
           colors: [],
@@ -169,6 +192,64 @@ const clientService = {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+    }
+  },
+  
+  /**
+   * Get client brands
+   */
+  getClientBrands: async (clientId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .select('*')
+        .eq('client_id', clientId);
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error(`Error fetching brands for client ${clientId}:`, error);
+      return [];
+    }
+  },
+  
+  /**
+   * Get tasks for a specific brand
+   */
+  getBrandTasks: async (brandId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          users (name, email)
+        `)
+        .eq('brand_id', brandId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error(`Error fetching tasks for brand ${brandId}:`, error);
+      return [];
+    }
+  },
+  
+  /**
+   * Create a new brand
+   */
+  createBrand: async (brandData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .insert(brandData)
+        .select();
+        
+      if (error) throw error;
+      return data[0];
+    } catch (error) {
+      console.error('Error creating brand:', error);
+      throw error;
     }
   }
 };

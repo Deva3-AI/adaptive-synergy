@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { aiService, taskService } from '@/services/api';
+import aiService from "@/services/api/aiService";
+import taskService from "@/services/api/taskService";
 import { toast } from 'sonner';
 
 interface TaskRecommendationsProps {

@@ -1,31 +1,19 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Brain, 
-  BrainCircuit,
-  Building2, 
-  FileText, 
-  ListChecks, 
-  ArrowLeft, 
-  CheckCircle2 
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { clientService, taskService } from '@/services/api';
-import ClientRequirementsAnalyzer from '@/components/ai/ClientRequirementsAnalyzer';
-import VirtualManagerInsights from '@/components/employee/VirtualManagerInsights';
-import { useAuth } from '@/hooks/useAuth';
-import { useNavigate, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Bot, Loader2, CheckCircle, Brain, ListChecks, Sparkles, FileText, Download, Copy, ArrowRight } from "lucide-react";
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { ClientRequirementsPanel } from '@/components/employee';
+import { cn } from '@/lib/utils';
+import { useToast } from "@/components/ui/use-toast";
+import aiService from '@/services/api/aiService';
+import taskService from '@/services/api/taskService';
 
 const ClientRequirements = () => {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -131,7 +119,7 @@ const ClientRequirements = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           {selectedClientId ? (
-            <ClientRequirementsAnalyzer 
+            <ClientRequirementsPanel 
               clientId={selectedClientId} 
               onInsightsGenerated={handleAnalysisResults}
             />

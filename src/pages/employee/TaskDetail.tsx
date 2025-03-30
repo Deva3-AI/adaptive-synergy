@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { MessageSquare, Paperclip, Calendar, Clock, ArrowLeft } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskService } from '@/services/api';
+import taskService from '@/services/api/taskService';
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 

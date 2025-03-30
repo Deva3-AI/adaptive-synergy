@@ -1,14 +1,15 @@
-
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
-import { BarChart, LineChart } from "@/components/ui/charts";
-import { DonutChart } from "@/components/ui/charts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BarChart, LineChart, PieChart, DonutChart } from "@/components/ui/charts";
 import { useQuery } from '@tanstack/react-query';
-import { taskService } from '@/services/api';
-import type { TaskStatistics } from '@/services/api';
+import taskService from '@/services/api/taskService';
+import { TaskStatistics } from '@/services/api';
+import { ChartPieIcon, BarChartIcon, ArrowUpRightIcon, ArrowDownRightIcon, ClockIcon, CheckIcon } from "lucide-react";
 
 interface TaskProgressInsightsProps {
   userId?: number;
@@ -16,165 +17,166 @@ interface TaskProgressInsightsProps {
 }
 
 const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ userId, className }) => {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['taskStatistics', userId],
-    queryFn: () => taskService.getTaskStatistics(userId),
+  const [timeFrame, setTimeFrame] = useState('last_30_days');
+  const [selectedChart, setSelectedChart] = useState('task_type');
+
+  const { data: taskStats, isLoading, error } = useQuery({
+    queryKey: ['task-statistics', userId, timeFrame],
+    queryFn: async () => {
+      try {
+        // Mock API call to fetch task statistics
+        // In a real application, replace this with an actual API call
+        const mockStats: TaskStatistics = {
+          total: 150,
+          completed: 90,
+          in_progress: 30,
+          pending: 20,
+          cancelled: 10,
+          avg_completion_time: 72,
+          completion_rate: 60
+        };
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        return mockStats;
+      } catch (error) {
+        console.error('Error fetching task statistics:', error);
+        return null;
+      }
+    }
   });
+
+  const taskTypeData = [
+    { name: 'Design', value: 35 },
+    { name: 'Development', value: 40 },
+    { name: 'Testing', value: 15 },
+    { name: 'Documentation', value: 10 }
+  ];
+
+  const completionTrendData = [
+    { name: 'Week 1', value: 15 },
+    { name: 'Week 2', value: 22 },
+    { name: 'Week 3', value: 28 },
+    { name: 'Week 4', value: 25 }
+  ];
+
+  const timeByTaskTypeData = [
+    { name: 'Design', value: 80 },
+    { name: 'Development', value: 120 },
+    { name: 'Testing', value: 40 },
+    { name: 'Documentation', value: 30 }
+  ];
+
+  const statusDistributionData = [
+    { name: 'Completed', value: 60 },
+    { name: 'In Progress', value: 20 },
+    { name: 'Pending', value: 13 },
+    { name: 'Cancelled', value: 7 }
+  ];
 
   if (isLoading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Task Progress</CardTitle>
-          <CardDescription>Your task progress and statistics</CardDescription>
+          <CardTitle>Task Progress Insights</CardTitle>
+          <CardDescription>Loading performance metrics...</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <Skeleton className="h-48 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  if (!stats) {
+  if (error || !taskStats) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Task Progress</CardTitle>
-          <CardDescription>No task statistics available</CardDescription>
+          <CardTitle>Task Progress Insights</CardTitle>
+          <CardDescription>Error loading performance metrics</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-10 text-muted-foreground">
-            <p>No task data available. Start working on tasks to see insights.</p>
-          </div>
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to load task statistics. Please try again later.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
-
-  const statusData = [
-    { name: 'Completed', value: stats.completed },
-    { name: 'In Progress', value: stats.inProgress },
-    { name: 'Pending', value: stats.pending },
-    { name: 'Cancelled', value: stats.cancelled },
-  ];
-
-  const priorityData = stats.tasksByPriority.map(item => ({
-    name: item.priority,
-    value: item.count
-  }));
-
-  const progressData = stats.tasksByDay.map(item => ({
-    name: new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-    Completed: item.count
-  }));
-
+  
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Task Progress</CardTitle>
-        <CardDescription>Your task progress and performance metrics</CardDescription>
+        <CardTitle>Task Progress Insights</CardTitle>
+        <CardDescription>
+          Performance metrics and completion trends
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="overview">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="priority">Priority</TabsTrigger>
+        <Tabs defaultValue="task_type" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="task_type">
+              <ChartPieIcon className="mr-2 h-4 w-4" />
+              Task Types
+            </TabsTrigger>
+            <TabsTrigger value="completion_trend">
+              <ArrowUpRightIcon className="mr-2 h-4 w-4" />
+              Completion Trend
+            </TabsTrigger>
+            <TabsTrigger value="time_by_type">
+              <BarChartIcon className="mr-2 h-4 w-4" />
+              Time by Type
+            </TabsTrigger>
+            <TabsTrigger value="status_distribution">
+              <ClockIcon className="mr-2 h-4 w-4" />
+              Status Distribution
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="overview" className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-semibold">{stats.completed}</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                  Completed
-                </div>
-              </div>
-              
-              <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-semibold">{stats.inProgress}</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <Clock className="h-3 w-3 mr-1 text-blue-500" />
-                  In Progress
-                </div>
-              </div>
-              
-              <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-semibold">{stats.pending}</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <AlertCircle className="h-3 w-3 mr-1 text-yellow-500" />
-                  Pending
-                </div>
-              </div>
-              
-              <div className="bg-card border rounded-lg p-4 flex flex-col items-center justify-center">
-                <div className="text-3xl font-semibold">{stats.cancelled}</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <XCircle className="h-3 w-3 mr-1 text-red-500" />
-                  Cancelled
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-medium mb-1">Completion Rate</h3>
-              <Progress value={stats.completionRate} className="h-2" />
-              <div className="flex justify-between mt-1">
-                <span className="text-xs text-muted-foreground">{stats.completionRate}% Completed</span>
-                <span className="text-xs text-muted-foreground">Target: 80%</span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-sm font-medium mb-4">Task Status Distribution</h3>
-                <div className="h-[200px]">
-                  <DonutChart 
-                    data={statusData}
-                    colors={['#22c55e', '#3b82f6', '#f59e0b', '#ef4444']}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-4">Recent Task Activity</h3>
-                <div className="h-[200px]">
-                  <LineChart 
-                    data={progressData}
-                    xAxisKey="name"
-                    yAxisKey="Completed"
-                  />
-                </div>
-              </div>
-            </div>
+          <TabsContent value="task_type" className="space-y-2">
+            <div className="text-sm font-medium">Task Types</div>
+            <DonutChart
+              data={taskTypeData}
+              nameKey="name"
+              dataKey="value"
+              colors={["#8884d8", "#82ca9d", "#ffc658", "#ff8042"]}
+            />
           </TabsContent>
           
-          <TabsContent value="trends" className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2">Task Completion Trend</h3>
-              <div className="h-[300px]">
-                <BarChart 
-                  data={progressData}
-                  xAxisKey="name"
-                  yAxisKey="Completed"
-                />
-              </div>
-            </div>
+          <TabsContent value="completion_trend" className="space-y-2">
+            <div className="text-sm font-medium">Completion Trend</div>
+            <LineChart
+              data={completionTrendData}
+              xAxisKey="name"
+              series={[
+                { key: "value", label: "Tasks Completed", color: "#8884d8" }
+              ]}
+            />
           </TabsContent>
           
-          <TabsContent value="priority" className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2">Tasks by Priority</h3>
-              <div className="h-[300px]">
-                <DonutChart 
-                  data={priorityData}
-                  colors={['#ef4444', '#f59e0b', '#22c55e']}
-                />
-              </div>
-            </div>
+          <TabsContent value="time_by_type" className="space-y-2">
+            <div className="text-sm font-medium">Time by Task Type</div>
+            <BarChart
+              data={timeByTaskTypeData}
+              xAxisKey="name"
+              series={[
+                { key: "value", label: "Hours Spent", color: "#82ca9d" }
+              ]}
+            />
+          </TabsContent>
+          
+          <TabsContent value="status_distribution" className="space-y-2">
+            <div className="text-sm font-medium">Status Distribution</div>
+            <DonutChart
+              data={statusDistributionData}
+              nameKey="name"
+              dataKey="value"
+              colors={["#8884d8", "#82ca9d", "#ffc658", "#ff8042"]}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
