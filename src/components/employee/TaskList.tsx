@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
-import taskService from '@/services/api/taskService';
+import { taskService } from '@/services/api';
 
 const TaskList = () => {
   const { data: tasks = [], isLoading } = useQuery({

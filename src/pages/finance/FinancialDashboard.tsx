@@ -1,12 +1,16 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { financeService } from '@/services/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarChart, LineChart, PieChart } from "@/components/ui/charts";
+import { ArrowDown, ArrowUp, CreditCard, DollarSign, Users, FileText, PieChart as PieChartIcon, BarChart3, LineChart as LineChartIcon, Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { financeService } from "@/services/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import TeamCostsAnalysis from '@/components/finance/TeamCostsAnalysis';
 
 const FinancialDashboard = () => {

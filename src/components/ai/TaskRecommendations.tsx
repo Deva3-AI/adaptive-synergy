@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,7 @@ import { PlusCircle, Check, Clock, CalendarClock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from '@tanstack/react-query';
-import aiService from '@/services/api/aiService';
-import taskService from '@/services/api/taskService';
+import { aiService, taskService } from '@/services/api';
 
 interface TaskRecommendationsProps {
   userId: number;

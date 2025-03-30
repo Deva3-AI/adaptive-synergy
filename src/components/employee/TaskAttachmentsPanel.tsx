@@ -6,7 +6,7 @@ import { UploadCloud, File, Download, FileText, Image, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useDropzone } from 'react-dropzone';
 import { TaskAttachment } from '@/services/api/taskService';
-import taskService from '@/services/api/taskService';
+import { taskService } from '@/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";
 import { formatFileSize, formatDate } from '@/utils/formatters';

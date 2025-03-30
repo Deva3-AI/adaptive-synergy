@@ -5,27 +5,27 @@ import { apiRequest } from '@/utils/apiUtils';
 export interface Brand {
   id: number;
   name: string;
-  client_id: number;
   logo?: string;
   description?: string;
   website?: string;
   industry?: string;
+  client_id: number;
   created_at?: string;
 }
 
 export interface ClientPreferences {
   id: number;
-  client_id: number | null;
-  communication_frequency: string | null;
-  preferred_contact_method: string | null;
-  design_preferences: Record<string, any> | any;
-  industry_specific_requirements: Record<string, any> | any;
-  created_at: string | null;
-  updated_at: string | null;
+  client_id: number;
+  preferred_contact_method: string;
+  communication_frequency: string;
   communication_channel?: string;
   feedback_frequency?: string;
+  design_preferences: Record<string, any>;
+  industry_specific_requirements: Record<string, any>;
   dos?: string[];
   donts?: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 // Sample client data
@@ -209,76 +209,180 @@ const clientService = {
         .select('*')
         .eq('client_id', clientId)
         .single();
+        
+      if (error) throw error;
       
-      if (error) {
-        throw error;
+      // If no preferences found, return default preferences with additional fields
+      if (!data) {
+        return {
+          id: 0,
+          client_id: clientId,
+          preferred_contact_method: 'Email',
+          communication_frequency: 'Weekly',
+          communication_channel: 'Email',
+          feedback_frequency: 'Weekly',
+          design_preferences: {
+            colors: ['#3B82F6', '#10B981', '#F59E0B'],
+            style: 'Modern',
+            fonts: ['Inter', 'Roboto']
+          },
+          industry_specific_requirements: {
+            regulations: [],
+            certifications: []
+          },
+          dos: [
+            'Provide regular updates',
+            'Follow brand guidelines',
+            'Prioritize user experience'
+          ],
+          donts: [
+            'Miss deadlines',
+            'Change scope without approval',
+            'Ignore feedback'
+          ],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
       }
       
-      // Convert stored JSON into the expected format with dos and donts arrays
-      const preferences: ClientPreferences = {
+      // If data exists but doesn't have the extended fields, add them
+      return {
         ...data,
-        communication_channel: data.preferred_contact_method || 'Email',
-        feedback_frequency: data.communication_frequency || 'As needed',
-        dos: (data.design_preferences as any)?.dos as string[] || [],
-        donts: (data.design_preferences as any)?.donts as string[] || []
+        communication_channel: data.communication_channel || 'Email',
+        feedback_frequency: data.feedback_frequency || data.communication_frequency,
+        dos: data.dos || [
+          'Provide regular updates',
+          'Follow brand guidelines',
+          'Prioritize user experience'
+        ],
+        donts: data.donts || [
+          'Miss deadlines',
+          'Change scope without approval',
+          'Ignore feedback'
+        ]
       };
-      
-      return preferences;
     } catch (error) {
       console.error('Error fetching client preferences:', error);
-      // Return mock data if Supabase query fails
-      return samplePreferences;
+      // Return mock data for now
+      return {
+        id: 0,
+        client_id: clientId,
+        preferred_contact_method: 'Email',
+        communication_frequency: 'Weekly',
+        communication_channel: 'Email',
+        feedback_frequency: 'Weekly',
+        design_preferences: {
+          colors: ['#3B82F6', '#10B981', '#F59E0B'],
+          style: 'Modern',
+          fonts: ['Inter', 'Roboto']
+        },
+        industry_specific_requirements: {
+          regulations: [],
+          certifications: []
+        },
+        dos: [
+          'Provide regular updates',
+          'Follow brand guidelines',
+          'Prioritize user experience'
+        ],
+        donts: [
+          'Miss deadlines',
+          'Change scope without approval',
+          'Ignore feedback'
+        ],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     }
   },
   
   // Get client brands
-  getClientBrands: async (clientId: number) => {
+  getClientBrands: async (clientId: number): Promise<Brand[]> => {
     try {
       const { data, error } = await supabase
         .from('brands')
         .select('*')
         .eq('client_id', clientId);
-      
+        
       if (error) throw error;
-      return data as Brand[];
+      return data;
     } catch (error) {
-      console.error('Error fetching client brands:', error);
-      return apiRequest(`/clients/${clientId}/brands`, 'get', undefined, []);
+      console.error(`Error fetching brands for client ${clientId}:`, error);
+      // Return mock data
+      return [
+        {
+          id: 1,
+          name: 'Brand One',
+          logo: '/placeholder.svg',
+          description: 'Description for Brand One',
+          website: 'https://example.com',
+          industry: 'Technology',
+          client_id: clientId,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          name: 'Brand Two',
+          logo: '/placeholder.svg',
+          description: 'Description for Brand Two',
+          website: 'https://example.com',
+          industry: 'Retail',
+          client_id: clientId,
+          created_at: new Date().toISOString()
+        }
+      ];
     }
   },
   
   getBrandTasks: async (brandId: number) => {
-    return apiRequest(`/brands/${brandId}/tasks`, 'get', undefined, [
-      // Mock brand tasks
-      {
-        task_id: 1,
-        title: 'Website Redesign',
-        description: 'Redesign the brand website with new brand guidelines',
-        status: 'in_progress',
-        assigned_to: 2,
-        created_at: '2023-06-01T10:00:00'
-      },
-      // More mock tasks
-    ]);
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          task_id,
+          title,
+          description,
+          status,
+          estimated_time,
+          actual_time,
+          start_time,
+          end_time,
+          created_at,
+          updated_at,
+          clients (client_name)
+        `)
+        .eq('brand_id', brandId)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error(`Error fetching tasks for brand ${brandId}:`, error);
+      // Return mock data
+      return [];
+    }
   },
   
-  // Create a new brand
   createBrand: async (brandData: Omit<Brand, 'id' | 'created_at'>) => {
     try {
       const { data, error } = await supabase
         .from('brands')
-        .insert(brandData)
+        .insert({
+          ...brandData,
+          created_at: new Date().toISOString()
+        })
         .select();
-      
+        
       if (error) throw error;
-      return data[0] as Brand;
+      return data[0];
     } catch (error) {
       console.error('Error creating brand:', error);
-      return apiRequest('/brands', 'post', brandData, {
-        id: Date.now(),
+      // Return mock response
+      return {
         ...brandData,
+        id: Math.floor(Math.random() * 1000),
         created_at: new Date().toISOString()
-      });
+      };
     }
   }
 };
