@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription
 } from "@/components/ui/card";
 import {
   Tabs,
@@ -38,10 +39,10 @@ import DashboardCard from "@/components/dashboard/DashboardCard";
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A259FF", "#4BC0C0"];
 
 interface TeamCostsAnalysisProps {
-  period: "month" | "quarter" | "year";
+  period: string;
 }
 
-const TeamCostsAnalysis = ({ period }: TeamCostsAnalysisProps) => {
+export const TeamCostsAnalysis = ({ period }: TeamCostsAnalysisProps) => {
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Fetch team costs data

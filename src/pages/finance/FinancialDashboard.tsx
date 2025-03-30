@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TeamCostsAnalysis } from '@/components/finance/TeamCostsAnalysis';
+import TeamCostsAnalysis from '@/components/finance/TeamCostsAnalysis';
 
 const FinancialDashboard = () => {
   const [period, setPeriod] = useState('monthly');
