@@ -70,7 +70,7 @@ const clientService = {
     }
   },
 
-  // Methods for ClientBrandsList and ClientRequirementsPanel
+  // Add these methods to fix the TypeScript errors
   getClientBrands: async (clientId: number) => {
     try {
       const response = await apiClient.get(`/clients/${clientId}/brands`);

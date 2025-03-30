@@ -57,7 +57,7 @@ const hrService = {
     }
   },
 
-  // New methods for PayrollManagement
+  // Add these methods to fix the TypeScript errors
   getPayslips: async (startDate: string, endDate: string) => {
     try {
       const response = await apiClient.get(`/hr/payslips?startDate=${startDate}&endDate=${endDate}`);
@@ -78,7 +78,6 @@ const hrService = {
     }
   },
 
-  // New methods for RecruitmentTracker
   getJobOpenings: async () => {
     try {
       const response = await apiClient.get('/hr/job-openings');

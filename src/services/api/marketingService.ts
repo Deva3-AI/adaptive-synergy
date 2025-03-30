@@ -59,7 +59,7 @@ const marketingService = {
     }
   },
 
-  // Email Outreach methods
+  // Add these methods to fix the TypeScript errors
   getEmailOutreach: async () => {
     try {
       const response = await apiClient.get('/marketing/email-outreach');
@@ -70,7 +70,6 @@ const marketingService = {
     }
   },
 
-  // Email Templates methods
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
@@ -81,7 +80,6 @@ const marketingService = {
     }
   },
 
-  // Leads methods
   getLeads: async () => {
     try {
       const response = await apiClient.get('/marketing/leads');
@@ -92,7 +90,6 @@ const marketingService = {
     }
   },
 
-  // Marketing Plans methods
   getMarketingPlans: async () => {
     try {
       const response = await apiClient.get('/marketing/plans');
@@ -113,7 +110,6 @@ const marketingService = {
     }
   },
 
-  // Marketing Trends methods
   getMarketingTrends: async () => {
     try {
       const response = await apiClient.get('/marketing/trends');
@@ -134,7 +130,6 @@ const marketingService = {
     }
   },
 
-  // Meeting Analysis methods
   analyzeMeetingTranscript: async (transcriptData: any) => {
     try {
       const response = await apiClient.post('/marketing/analyze-transcript', transcriptData);
@@ -145,7 +140,6 @@ const marketingService = {
     }
   },
 
-  // Marketing Metrics
   getMarketingMetrics: async () => {
     try {
       const response = await apiClient.get('/marketing/metrics');
