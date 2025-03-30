@@ -7,7 +7,7 @@ export interface LeaveRequest {
   id: number;
   employeeId: number;
   employeeName: string;
-  leaveType: 'annual' | 'sick' | 'personal' | 'wfh' | 'halfDay';
+  leaveType: 'annual' | 'sick' | 'personal' | 'wfh' | 'halfDay' | 'other';
   startDate: string;
   endDate?: string;
   reason: string;
@@ -28,7 +28,30 @@ export interface PaySlip {
   deductions: number;
   netSalary: number;
   paidDate?: string;
-  status: 'draft' | 'final' | 'paid';
+  status: 'draft' | 'final' | 'paid' | 'pending';
+}
+
+export interface SalesData {
+  id: number;
+  period: string;
+  revenue: number;
+  growth: number;
+  target: number;
+  channel: string;
+  products: Array<{name: string, amount: number}>;
+}
+
+export interface DetailedTask {
+  id: number;
+  title: string;
+  description: string;
+  client: string;
+  priority: "high" | "medium" | "low";
+  status: string;
+  dueDate: Date;
+  estimatedHours: number;
+  actualHours: number;
+  assignedTo: string;
 }
 
 // API utilities

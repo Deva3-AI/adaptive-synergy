@@ -39,7 +39,7 @@ export interface LeaveRequest {
   id: number;
   employeeId: number;
   employeeName: string;
-  leaveType: 'annual' | 'sick' | 'personal' | 'wfh' | 'halfDay';
+  leaveType: 'annual' | 'sick' | 'personal' | 'wfh' | 'halfDay' | 'other';
   startDate: string;
   endDate?: string;
   reason: string;
@@ -60,7 +60,7 @@ export interface PaySlip {
   deductions: number;
   netSalary: number;
   paidDate?: string;
-  status: 'draft' | 'final' | 'paid';
+  status: 'paid' | 'pending' | 'draft' | 'final';
 }
 
 export interface JobOpening {
@@ -79,6 +79,7 @@ export interface JobOpening {
   posted_date: string;
   status: 'open' | 'closed' | 'on_hold';
   applicants_count: number;
+  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'other';
 }
 
 export interface Candidate {
@@ -98,6 +99,8 @@ export interface Candidate {
   notes: string;
   strengths: string[];
   gaps: string[];
+  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'email' | 'other';
+  last_contact?: string;
 }
 
 export interface PerformanceMetric {

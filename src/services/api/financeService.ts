@@ -1,879 +1,1007 @@
 
-import axios from 'axios';
+import apiClient, { handleApiError } from '@/utils/apiUtils';
 import config from '@/config/config';
-import { supabase } from '@/integrations/supabase/client';
 
-export interface SalesMetrics {
-  monthly_revenue: number;
-  annual_target: number;
-  growth_rate: number;
-  conversion_rate: number;
-  client_acquisition: number;
-  avg_deal_size: number;
-  top_performing_services: Array<{
-    service: string;
-    revenue: number;
-    growth: number;
-  }>;
-  monthly_trend: Array<{
-    month: string;
-    revenue: number;
-    target: number;
-  }>;
-  customer_retention_rate: number;
+// Define interfaces for finance-related data
+interface FinancialRecord {
+  record_id: number;
+  record_type: 'expense' | 'income';
+  amount: number;
+  description: string;
+  record_date: string;
+  created_at: string;
 }
 
-const api = axios.create({
-  baseURL: config.apiUrl,
-});
+interface SalesMetrics {
+  revenue: {
+    current: number;
+    previous: number;
+    growth: number;
+  };
+  customers: {
+    current: number;
+    previous: number;
+    growth: number;
+  };
+  average_deal_size: {
+    current: number;
+    previous: number;
+    growth: number;
+  };
+  conversion_rate: {
+    current: number;
+    previous: number;
+    growth: number;
+  };
+}
 
-// Mock data for finance services until backend is connected
-const mockInvoices = [
-  {
-    invoice_id: 1,
-    client_id: 1,
-    client_name: 'Acme Corp',
-    invoice_number: 'INV-2023-001',
-    amount: 2500.00,
-    due_date: '2023-04-15',
-    status: 'paid',
-    created_at: '2023-03-15',
-  },
-  {
-    invoice_id: 2,
-    client_id: 2,
-    client_name: 'Beta Industries',
-    invoice_number: 'INV-2023-002',
-    amount: 1800.00,
-    due_date: '2023-04-20',
-    status: 'pending',
-    created_at: '2023-03-20',
-  },
-  {
-    invoice_id: 3,
-    client_id: 3,
-    client_name: 'Gamma Solutions',
-    invoice_number: 'INV-2023-003',
-    amount: 3200.00,
-    due_date: '2023-04-30',
-    status: 'overdue',
-    created_at: '2023-03-25',
-  }
-];
+interface TeamCosts {
+  department: string;
+  cost: number;
+  employee_count: number;
+  avg_salary: number;
+  productivity_score: number;
+}
 
-const mockFinancialRecords = [
-  {
-    record_id: 1,
-    record_type: 'income',
-    amount: 5000.00,
-    description: 'Client payment - Acme Corp',
-    record_date: '2023-03-15',
-    created_at: '2023-03-15',
-  },
-  {
-    record_id: 2,
-    record_type: 'expense',
-    amount: 1200.00,
-    description: 'Office rent',
-    record_date: '2023-03-01',
-    created_at: '2023-03-01',
-  },
-  {
-    record_id: 3,
-    record_type: 'expense',
-    amount: 350.00,
-    description: 'Utilities',
-    record_date: '2023-03-05',
-    created_at: '2023-03-05',
-  }
-];
+interface UpsellOpportunity {
+  client_id: number;
+  client_name: string;
+  current_revenue: number;
+  potential_revenue: number;
+  suggested_services: string[];
+  probability: number;
+  last_purchase: string;
+}
 
-// Mock analytics data
-const mockSalesMetrics = {
-  monthly_revenue: 15000,
-  annual_target: 200000,
-  growth_rate: 12.5,
-  conversion_rate: 28.3,
-  client_acquisition: 5,
-  avg_deal_size: 3000,
-  top_performing_services: [
-    { service: 'Web Design', revenue: 5000, growth: 15 },
-    { service: 'Digital Marketing', revenue: 4000, growth: 10 },
-    { service: 'SEO', revenue: 3000, growth: 8 }
-  ],
-  monthly_trend: [
-    { month: 'Jan', revenue: 12000, target: 13000 },
-    { month: 'Feb', revenue: 13500, target: 13500 },
-    { month: 'Mar', revenue: 15000, target: 14000 },
-  ],
-  customer_retention_rate: 85
-};
-
-// Finance Service API
+// Create finance service
 const financeService = {
-  // Invoice Management
+  // Invoices
   getInvoices: async (status?: string) => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get(`/finance/invoices${status ? `?status=${status}` : ''}`);
-        return response.data;
-      }
-
-      // Mock response
+      let url = '/finance/invoices';
       if (status) {
-        return mockInvoices.filter(invoice => invoice.status === status);
+        url += `?status=${status}`;
       }
-      return mockInvoices;
+      const response = await apiClient.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Error fetching invoices:', error);
-      return mockInvoices; // Fallback to mock data
+      return handleApiError(error, []);
     }
   },
-
+  
   getInvoiceDetails: async (invoiceId: number) => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get(`/finance/invoices/${invoiceId}`);
-        return response.data;
-      }
-
-      // Mock response
-      return mockInvoices.find(invoice => invoice.invoice_id === invoiceId);
+      const response = await apiClient.get(`/finance/invoices/${invoiceId}`);
+      return response.data;
     } catch (error) {
-      console.error(`Error fetching invoice ${invoiceId}:`, error);
-      // Fallback to mock data
-      return mockInvoices.find(invoice => invoice.invoice_id === invoiceId);
+      return handleApiError(error, null);
     }
   },
-
+  
   createInvoice: async (invoiceData: any) => {
     try {
-      if (config.useRealApi) {
-        const response = await api.post('/finance/invoices', invoiceData);
-        return response.data;
-      }
-
-      // Mock response
-      const newInvoice = {
-        invoice_id: mockInvoices.length + 1,
-        ...invoiceData,
-        created_at: new Date().toISOString()
-      };
-      mockInvoices.push(newInvoice);
-      return newInvoice;
+      const response = await apiClient.post('/finance/invoices', invoiceData);
+      return response.data;
     } catch (error) {
-      console.error('Error creating invoice:', error);
       throw error;
     }
   },
-
+  
   updateInvoiceStatus: async (invoiceId: number, status: string) => {
     try {
-      if (config.useRealApi) {
-        const response = await api.patch(`/finance/invoices/${invoiceId}`, { status });
-        return response.data;
-      }
-
-      // Mock response
-      const invoice = mockInvoices.find(inv => inv.invoice_id === invoiceId);
-      if (invoice) {
-        invoice.status = status;
-        return invoice;
-      }
-      throw new Error(`Invoice with ID ${invoiceId} not found`);
+      const response = await apiClient.put(`/finance/invoices/${invoiceId}/status`, { status });
+      return response.data;
     } catch (error) {
-      console.error(`Error updating invoice ${invoiceId}:`, error);
       throw error;
     }
   },
-
-  // Send invoice reminder
-  sendInvoiceReminder: async (invoiceId: number, message?: string) => {
+  
+  sendInvoiceReminder: async (invoiceId: number) => {
     try {
-      if (config.useRealApi) {
-        const response = await api.post(`/finance/invoices/${invoiceId}/remind`, { message });
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<{success: boolean, message: string}>((resolve) => {
+          setTimeout(() => {
+            resolve({ success: true, message: "Reminder sent successfully" });
+          }, 500);
+        });
       }
-
-      // Mock response
-      return { success: true, message: 'Reminder sent successfully' };
+      
+      const response = await apiClient.post(`/finance/invoices/${invoiceId}/remind`);
+      return response.data;
     } catch (error) {
-      console.error(`Error sending reminder for invoice ${invoiceId}:`, error);
-      throw error;
+      return handleApiError(error, { success: false, message: "Failed to send reminder" });
     }
   },
-
-  // Financial Records Management
-  getFinancialRecords: async (type?: string, startDate?: string, endDate?: string) => {
-    try {
-      if (config.useRealApi) {
-        let url = '/finance/records';
-        const params = [];
-        if (type) params.push(`type=${type}`);
-        if (startDate) params.push(`startDate=${startDate}`);
-        if (endDate) params.push(`endDate=${endDate}`);
-        if (params.length > 0) {
-          url += `?${params.join('&')}`;
-        }
-        const response = await api.get(url);
-        return response.data;
-      }
-
-      // Mock response
-      let records = [...mockFinancialRecords];
-      if (type) {
-        records = records.filter(record => record.record_type === type);
-      }
-      if (startDate) {
-        records = records.filter(record => record.record_date >= startDate);
-      }
-      if (endDate) {
-        records = records.filter(record => record.record_date <= endDate);
-      }
-      return records;
-    } catch (error) {
-      console.error('Error fetching financial records:', error);
-      return mockFinancialRecords; // Fallback to mock data
-    }
-  },
-
-  createFinancialRecord: async (recordData: any) => {
-    try {
-      if (config.useRealApi) {
-        const response = await api.post('/finance/records', recordData);
-        return response.data;
-      }
-
-      // Mock response
-      const newRecord = {
-        record_id: mockFinancialRecords.length + 1,
-        ...recordData,
-        created_at: new Date().toISOString()
-      };
-      mockFinancialRecords.push(newRecord);
-      return newRecord;
-    } catch (error) {
-      console.error('Error creating financial record:', error);
-      throw error;
-    }
-  },
-
-  // Reports and Analytics
+  
+  // Reports
   getRevenueReports: async (startDate?: string, endDate?: string) => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/reports/revenue';
-        if (startDate && endDate) {
-          url += `?startDate=${startDate}&endDate=${endDate}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      let url = '/finance/reports/revenue';
+      const params = new URLSearchParams();
+      
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
-
-      // Mock response
-      return {
-        total_revenue: 45000,
-        by_month: [
-          { month: 'January', revenue: 12000 },
-          { month: 'February', revenue: 15000 },
-          { month: 'March', revenue: 18000 }
-        ],
-        by_client: [
-          { client_name: 'Acme Corp', revenue: 20000 },
-          { client_name: 'Beta Industries', revenue: 15000 },
-          { client_name: 'Gamma Solutions', revenue: 10000 }
-        ]
-      };
+      
+      const response = await apiClient.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Error fetching revenue reports:', error);
-      return null;
+      return handleApiError(error, []);
     }
   },
-
+  
   getExpenseReports: async (startDate?: string, endDate?: string) => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/reports/expenses';
-        if (startDate && endDate) {
-          url += `?startDate=${startDate}&endDate=${endDate}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      let url = '/finance/reports/expenses';
+      const params = new URLSearchParams();
+      
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
-
-      // Mock response
-      return {
-        total_expenses: 25000,
-        by_month: [
-          { month: 'January', expenses: 7000 },
-          { month: 'February', expenses: 8000 },
-          { month: 'March', expenses: 10000 }
-        ],
-        by_category: [
-          { category: 'Rent', expenses: 9000 },
-          { category: 'Salaries', expenses: 12000 },
-          { category: 'Utilities', expenses: 4000 }
-        ]
-      };
+      
+      const response = await apiClient.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Error fetching expense reports:', error);
-      return null;
+      return handleApiError(error, []);
     }
   },
-
-  // Team costs and analysis
-  analyzeTeamCosts: async (departmentId?: number, period?: string) => {
+  
+  // Financial records
+  getFinancialRecords: async (
+    type?: 'expense' | 'income',
+    startDate?: string,
+    endDate?: string
+  ) => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/analysis/team-costs';
-        const params = [];
-        if (departmentId) params.push(`departmentId=${departmentId}`);
-        if (period) params.push(`period=${period}`);
-        if (params.length > 0) {
-          url += `?${params.join('&')}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<FinancialRecord[]>((resolve) => {
+          setTimeout(() => {
+            const mockRecords: FinancialRecord[] = [
+              {
+                record_id: 1,
+                record_type: 'income',
+                amount: 5000,
+                description: 'Client payment - Website redesign',
+                record_date: '2023-05-15',
+                created_at: '2023-05-15T10:30:00Z'
+              },
+              {
+                record_id: 2,
+                record_type: 'expense',
+                amount: 1200,
+                description: 'Office rent',
+                record_date: '2023-05-01',
+                created_at: '2023-05-01T09:00:00Z'
+              },
+              {
+                record_id: 3,
+                record_type: 'expense',
+                amount: 350,
+                description: 'Software subscriptions',
+                record_date: '2023-05-05',
+                created_at: '2023-05-05T14:20:00Z'
+              },
+              {
+                record_id: 4,
+                record_type: 'income',
+                amount: 3500,
+                description: 'Client payment - Logo design',
+                record_date: '2023-05-20',
+                created_at: '2023-05-20T11:45:00Z'
+              }
+            ];
+            
+            let filteredRecords = [...mockRecords];
+            
+            if (type) {
+              filteredRecords = filteredRecords.filter(record => record.record_type === type);
+            }
+            
+            if (startDate) {
+              filteredRecords = filteredRecords.filter(record => 
+                new Date(record.record_date) >= new Date(startDate)
+              );
+            }
+            
+            if (endDate) {
+              filteredRecords = filteredRecords.filter(record => 
+                new Date(record.record_date) <= new Date(endDate)
+              );
+            }
+            
+            resolve(filteredRecords);
+          }, 500);
+        });
       }
-
-      // Mock response
-      return {
-        total_cost: 125000,
-        by_department: [
-          { department: 'Engineering', cost: 60000 },
-          { department: 'Marketing', cost: 35000 },
-          { department: 'Design', cost: 30000 }
-        ],
-        by_employee_type: [
-          { type: 'Full-time', cost: 100000 },
-          { type: 'Contract', cost: 25000 }
-        ],
-        by_month: [
-          { month: 'January', cost: 40000 },
-          { month: 'February', cost: 42000 },
-          { month: 'March', cost: 43000 }
-        ]
-      };
+      
+      let url = '/finance/records';
+      const params = new URLSearchParams();
+      
+      if (type) params.append('type', type);
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Error analyzing team costs:', error);
-      return null;
+      return handleApiError(error, []);
     }
   },
-
-  // Financial metrics and KPIs
+  
+  createFinancialRecord: async (recordData: Omit<FinancialRecord, 'record_id' | 'created_at'>) => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<FinancialRecord>((resolve) => {
+          setTimeout(() => {
+            const newRecord: FinancialRecord = {
+              ...recordData,
+              record_id: Math.floor(Math.random() * 1000) + 5,
+              created_at: new Date().toISOString()
+            };
+            resolve(newRecord);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.post('/finance/records', recordData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Dashboard data
+  getFinancialOverview: async (period: 'month' | 'quarter' | 'year' = 'month') => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = {
+              income: 85000,
+              expenses: 62000,
+              profit: 23000,
+              profit_margin: 27.06,
+              outstanding_invoices: 15000,
+              monthly_revenue: [
+                { month: 'Jan', value: 65000 },
+                { month: 'Feb', value: 68000 },
+                { month: 'Mar', value: 72000 },
+                { month: 'Apr', value: 75000 },
+                { month: 'May', value: 85000 },
+                { month: 'Jun', value: 0 }, // Future month
+              ],
+              revenue_by_client: [
+                { name: 'Client A', value: 32000 },
+                { name: 'Client B', value: 18000 },
+                { name: 'Client C', value: 15000 },
+                { name: 'Client D', value: 12000 },
+                { name: 'Others', value: 8000 },
+              ]
+            };
+            resolve(mockData);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get(`/finance/overview?period=${period}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, {
+        income: 0,
+        expenses: 0,
+        profit: 0,
+        profit_margin: 0,
+        outstanding_invoices: 0,
+        monthly_revenue: [],
+        revenue_by_client: []
+      });
+    }
+  },
+  
   getFinancialMetrics: async () => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get('/finance/metrics');
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = {
+              current_month: {
+                revenue: 85000,
+                expenses: 62000,
+                profit: 23000,
+                profit_margin: 27.06
+              },
+              previous_month: {
+                revenue: 75000,
+                expenses: 58000,
+                profit: 17000,
+                profit_margin: 22.67
+              },
+              year_to_date: {
+                revenue: 410000,
+                expenses: 310000,
+                profit: 100000,
+                profit_margin: 24.39
+              },
+              metrics: {
+                cash_flow: 18000,
+                burn_rate: 62000,
+                runway_months: 6.5,
+                average_invoice_value: 4250
+              }
+            };
+            resolve(mockData);
+          }, 500);
+        });
       }
-
-      // Mock response
-      return {
-        profitability: {
-          gross_profit_margin: 60,
-          net_profit_margin: 25,
-          operating_margin: 35
-        },
-        liquidity: {
-          current_ratio: 2.5,
-          quick_ratio: 2.0,
-          cash_ratio: 0.8
-        },
-        efficiency: {
-          asset_turnover: 1.2,
-          inventory_turnover: 6.5,
-          days_sales_outstanding: 45
-        },
-        growth: {
-          revenue_growth: 15,
-          profit_growth: 12,
-          asset_growth: 8
-        }
-      };
+      
+      const response = await apiClient.get('/finance/metrics');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching financial metrics:', error);
-      return null;
+      return handleApiError(error, {
+        current_month: {
+          revenue: 0,
+          expenses: 0,
+          profit: 0,
+          profit_margin: 0
+        },
+        previous_month: {
+          revenue: 0,
+          expenses: 0,
+          profit: 0,
+          profit_margin: 0
+        },
+        year_to_date: {
+          revenue: 0,
+          expenses: 0,
+          profit: 0,
+          profit_margin: 0
+        },
+        metrics: {
+          cash_flow: 0,
+          burn_rate: 0,
+          runway_months: 0,
+          average_invoice_value: 0
+        }
+      });
     }
   },
-
-  // Financial overview
-  getFinancialOverview: async (period?: string) => {
-    try {
-      if (config.useRealApi) {
-        let url = '/finance/overview';
-        if (period) {
-          url += `?period=${period}`;
-        }
-        const response = await api.get(url);
-        return response.data;
-      }
-
-      // Mock response
-      return {
-        revenue: 150000,
-        expenses: 90000,
-        profit: 60000,
-        cash_flow: 45000,
-        outstanding_invoices: 35000,
-        upcoming_expenses: 25000,
-        key_metrics: {
-          profit_margin: 40,
-          burn_rate: 30000,
-          runway_months: 18
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching financial overview:', error);
-      return null;
-    }
-  },
-
-  // Upsell Opportunities
-  getUpsellOpportunities: async () => {
-    try {
-      if (config.useRealApi) {
-        const response = await api.get('/finance/upsell-opportunities');
-        return response.data;
-      }
-
-      // Mock response
-      return [
-        {
-          client_id: 1,
-          client_name: 'Acme Corp',
-          current_services: ['Web Design', 'SEO'],
-          suggested_services: ['Digital Marketing', 'Content Creation'],
-          potential_revenue: 5000,
-          success_probability: 75
-        },
-        {
-          client_id: 2,
-          client_name: 'Beta Industries',
-          current_services: ['Digital Marketing'],
-          suggested_services: ['SEO', 'Web Maintenance'],
-          potential_revenue: 3500,
-          success_probability: 60
-        }
-      ];
-    } catch (error) {
-      console.error('Error fetching upsell opportunities:', error);
-      return [];
-    }
-  },
-
-  // Financial plans
+  
   getFinancialPlans: async () => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get('/finance/plans');
-        return response.data;
-      }
-
-      // Mock response
-      return [
-        {
-          plan_id: 1,
-          title: 'Q2 2023 Financial Plan',
-          description: 'Financial planning for Q2 2023',
-          goals: [
-            { title: 'Increase revenue by 15%', status: 'in_progress' },
-            { title: 'Reduce operational costs by 10%', status: 'pending' }
-          ],
-          created_at: '2023-03-15'
-        },
-        {
-          plan_id: 2,
-          title: 'Annual Budget 2023',
-          description: 'Annual budget planning for 2023',
-          goals: [
-            { title: 'Achieve $1M in annual revenue', status: 'in_progress' },
-            { title: 'Maintain 35% profit margin', status: 'in_progress' }
-          ],
-          created_at: '2023-01-05'
-        }
-      ];
-    } catch (error) {
-      console.error('Error fetching financial plans:', error);
-      return [];
-    }
-  },
-  
-  // Sales metrics
-  getSalesMetrics: async (period?: string): Promise<SalesMetrics> => {
-    try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/metrics';
-        if (period) {
-          url += `?period=${period}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any[]>((resolve) => {
+          setTimeout(() => {
+            const mockPlans = [
+              {
+                id: 1,
+                title: 'Q3 Growth Plan',
+                description: 'Strategic plan to increase revenue by 20% in Q3 2023',
+                created_at: '2023-04-15T10:00:00Z',
+                status: 'active',
+                goals: [
+                  { id: 1, title: 'Increase client base', target: '15 new clients', progress: 60 },
+                  { id: 2, title: 'Optimize expenses', target: 'Reduce by 10%', progress: 40 },
+                  { id: 3, title: 'Expand service offerings', target: '3 new services', progress: 30 }
+                ]
+              },
+              {
+                id: 2,
+                title: '2023 Budget Plan',
+                description: 'Annual budget allocation and financial forecasting',
+                created_at: '2023-01-05T09:30:00Z',
+                status: 'active',
+                goals: [
+                  { id: 4, title: 'Maintain profit margin', target: '≥ 25%', progress: 90 },
+                  { id: 5, title: 'Capital investments', target: '$50,000 allocation', progress: 70 },
+                  { id: 6, title: 'Emergency fund', target: '3 months runway', progress: 100 }
+                ]
+              }
+            ];
+            resolve(mockPlans);
+          }, 500);
+        });
       }
       
-      // Return mock data
-      return mockSalesMetrics;
+      const response = await apiClient.get('/finance/plans');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching sales metrics:', error);
-      return mockSalesMetrics; // Fallback to mock data
+      return handleApiError(error, []);
     }
   },
   
-  // Sales follow-ups
+  getUpsellOpportunities: async () => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<UpsellOpportunity[]>((resolve) => {
+          setTimeout(() => {
+            const mockOpportunities: UpsellOpportunity[] = [
+              {
+                client_id: 1,
+                client_name: 'ABC Corporation',
+                current_revenue: 15000,
+                potential_revenue: 25000,
+                suggested_services: ['SEO Optimization', 'Content Marketing'],
+                probability: 75,
+                last_purchase: '2023-04-10'
+              },
+              {
+                client_id: 2,
+                client_name: 'XYZ Industries',
+                current_revenue: 8000,
+                potential_revenue: 12000,
+                suggested_services: ['Social Media Management', 'Email Marketing'],
+                probability: 60,
+                last_purchase: '2023-03-22'
+              },
+              {
+                client_id: 3,
+                client_name: 'Global Innovations',
+                current_revenue: 20000,
+                potential_revenue: 35000,
+                suggested_services: ['Website Redesign', 'Mobile App Development'],
+                probability: 80,
+                last_purchase: '2023-05-05'
+              }
+            ];
+            resolve(mockOpportunities);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get('/finance/upsell-opportunities');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, []);
+    }
+  },
+  
+  // Sales analytics
+  getSalesMetrics: async (period: 'week' | 'month' | 'quarter' | 'year' = 'month') => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<SalesMetrics>((resolve) => {
+          setTimeout(() => {
+            const mockMetrics: SalesMetrics = {
+              revenue: {
+                current: 85000,
+                previous: 75000,
+                growth: 13.33
+              },
+              customers: {
+                current: 15,
+                previous: 12,
+                growth: 25
+              },
+              average_deal_size: {
+                current: 5667,
+                previous: 6250,
+                growth: -9.33
+              },
+              conversion_rate: {
+                current: 18,
+                previous: 15,
+                growth: 20
+              }
+            };
+            resolve(mockMetrics);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get(`/finance/sales/metrics?period=${period}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, {
+        revenue: { current: 0, previous: 0, growth: 0 },
+        customers: { current: 0, previous: 0, growth: 0 },
+        average_deal_size: { current: 0, previous: 0, growth: 0 },
+        conversion_rate: { current: 0, previous: 0, growth: 0 }
+      });
+    }
+  },
+  
+  getSalesTrends: async () => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockTrends = {
+              monthly_sales: [
+                { month: 'Jan', value: 65000 },
+                { month: 'Feb', value: 68000 },
+                { month: 'Mar', value: 72000 },
+                { month: 'Apr', value: 75000 },
+                { month: 'May', value: 85000 },
+              ],
+              quarterly_growth: [
+                { quarter: 'Q1', growth: 8.5 },
+                { quarter: 'Q2', growth: 13.3 },
+                { quarter: 'Q3', growth: 7.2 },
+                { quarter: 'Q4', growth: 15.6 },
+              ]
+            };
+            resolve(mockTrends);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get('/finance/sales/trends');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, { monthly_sales: [], quarterly_growth: [] });
+    }
+  },
+  
+  getSalesByChannel: async () => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = [
+              { channel: 'Direct', value: 45000 },
+              { channel: 'Referral', value: 20000 },
+              { channel: 'Social Media', value: 15000 },
+              { channel: 'Website', value: 12000 },
+              { channel: 'Other', value: 8000 },
+            ];
+            resolve(mockData);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get('/finance/sales/channels');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, []);
+    }
+  },
+  
+  getTopProducts: async () => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = [
+              { product: 'Website Development', value: 35000 },
+              { product: 'SEO Services', value: 18000 },
+              { product: 'Content Marketing', value: 15000 },
+              { product: 'UI/UX Design', value: 12000 },
+              { product: 'Social Media Mgmt', value: 10000 },
+            ];
+            resolve(mockData);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get('/finance/sales/products');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, []);
+    }
+  },
+  
   getSalesFollowUps: async () => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get('/finance/sales/follow-ups');
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any[]>((resolve) => {
+          setTimeout(() => {
+            const mockData = [
+              {
+                id: 1,
+                client_name: 'Acme Corp',
+                contact_name: 'John Smith',
+                contact_email: 'john@acmecorp.com',
+                contact_phone: '+1 555-123-4567',
+                last_contact: '2023-05-10',
+                next_contact_due: '2023-05-17',
+                status: 'pending',
+                opportunity_value: 12000,
+                notes: 'Discussed website redesign, needs follow-up proposal'
+              },
+              {
+                id: 2,
+                client_name: 'TechSolutions Inc',
+                contact_name: 'Sarah Jones',
+                contact_email: 'sarah@techsolutions.com',
+                contact_phone: '+1 555-987-6543',
+                last_contact: '2023-05-05',
+                next_contact_due: '2023-05-15',
+                status: 'overdue',
+                opportunity_value: 8500,
+                notes: 'Interested in SEO services, sent initial quote'
+              },
+              {
+                id: 3,
+                client_name: 'Global Media',
+                contact_name: 'Michael Brown',
+                contact_email: 'michael@globalmedia.com',
+                contact_phone: '+1 555-456-7890',
+                last_contact: '2023-05-12',
+                next_contact_due: '2023-05-19',
+                status: 'pending',
+                opportunity_value: 15000,
+                notes: 'Needs social media management, considering our premium package'
+              }
+            ];
+            resolve(mockData);
+          }, 500);
+        });
       }
       
-      // Mock response
-      return [
-        {
-          id: 1,
-          client_name: 'Acme Corp',
-          contact_person: 'John Smith',
-          follow_up_date: '2023-04-05',
-          status: 'pending',
-          notes: 'Discuss new website project',
-          potential_value: 15000
-        },
-        {
-          id: 2,
-          client_name: 'Beta Industries',
-          contact_person: 'Sarah Johnson',
-          follow_up_date: '2023-04-07',
-          status: 'pending',
-          notes: 'Present marketing proposal',
-          potential_value: 8000
-        }
-      ];
+      const response = await apiClient.get('/finance/sales/follow-ups');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching sales follow-ups:', error);
-      return [];
-    }
-  },
-  
-  completeFollowUp: async (followUpId: number, notes: string) => {
-    try {
-      if (config.useRealApi) {
-        const response = await api.post(`/finance/sales/follow-ups/${followUpId}/complete`, { notes });
-        return response.data;
-      }
-      
-      // Mock response
-      return { success: true, message: 'Follow-up marked as completed' };
-    } catch (error) {
-      console.error(`Error completing follow-up ${followUpId}:`, error);
-      throw error;
+      return handleApiError(error, []);
     }
   },
   
   getImprovementSuggestions: async () => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get('/finance/sales/improvement-suggestions');
-        return response.data;
-      }
-      
-      // Mock response
-      return [
-        {
-          id: 1,
-          title: 'Implement email follow-up sequence',
-          description: 'Create an automated email sequence for following up with leads at 2, 7, and 14 days.',
-          estimated_impact: 'Could increase conversion rate by 15%',
-          difficulty: 'medium',
-          priority: 'high'
-        },
-        {
-          id: 2,
-          title: 'Adjust pricing strategy',
-          description: 'Consider offering tiered pricing options to capture more budget-conscious clients.',
-          estimated_impact: 'Potential 10% increase in client acquisition',
-          difficulty: 'high',
-          priority: 'medium'
-        }
-      ];
-    } catch (error) {
-      console.error('Error fetching improvement suggestions:', error);
-      return [];
-    }
-  },
-  
-  // Sales growth tracking
-  getSalesGrowthData: async (period?: string) => {
-    try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/growth';
-        if (period) {
-          url += `?period=${period}`;
-        }
-        const response = await api.get(url);
-        return response.data;
-      }
-      
-      // Mock response
-      return {
-        year_over_year_growth: 22.5,
-        quarter_over_quarter_growth: 7.8,
-        monthly_data: [
-          { month: 'January', revenue: 120000, growth_rate: 5.2 },
-          { month: 'February', revenue: 135000, growth_rate: 12.5 },
-          { month: 'March', revenue: 150000, growth_rate: 11.1 }
-        ],
-        by_service: [
-          { service: 'Web Design', growth_rate: 25 },
-          { service: 'Digital Marketing', growth_rate: 18 },
-          { service: 'SEO', growth_rate: 15 }
-        ]
-      };
-    } catch (error) {
-      console.error('Error fetching sales growth data:', error);
-      return null;
-    }
-  },
-  
-  getSalesTargets: async (period?: string) => {
-    try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/targets';
-        if (period) {
-          url += `?period=${period}`;
-        }
-        const response = await api.get(url);
-        return response.data;
-      }
-      
-      // Mock response
-      return {
-        current_month: { target: 160000, actual: 150000, progress: 93.75 },
-        current_quarter: { target: 450000, actual: 405000, progress: 90 },
-        current_year: { target: 1800000, actual: 1050000, progress: 58.3 },
-        by_service: [
-          { service: 'Web Design', target: 60000, actual: 55000, progress: 91.7 },
-          { service: 'Digital Marketing', target: 50000, actual: 48000, progress: 96 },
-          { service: 'SEO', target: 40000, actual: 35000, progress: 87.5 }
-        ],
-        by_team_member: [
-          { name: 'John Smith', target: 40000, actual: 38000, progress: 95 },
-          { name: 'Sarah Johnson', target: 35000, actual: 32000, progress: 91.4 },
-          { name: 'Michael Brown', target: 30000, actual: 25000, progress: 83.3 }
-        ]
-      };
-    } catch (error) {
-      console.error('Error fetching sales targets:', error);
-      return null;
-    }
-  },
-  
-  getGrowthForecast: async (months: number = 12) => {
-    try {
-      if (config.useRealApi) {
-        const response = await api.get(`/finance/sales/forecast?months=${months}`);
-        return response.data;
-      }
-      
-      // Mock response
-      const forecast = [];
-      let currentRevenue = 150000;
-      const growthRate = 0.05; // 5% monthly growth
-      
-      for (let i = 0; i < months; i++) {
-        const month = new Date();
-        month.setMonth(month.getMonth() + i + 1);
-        currentRevenue = currentRevenue * (1 + growthRate);
-        
-        forecast.push({
-          month: month.toLocaleString('default', { month: 'long', year: 'numeric' }),
-          projected_revenue: Math.round(currentRevenue),
-          best_case: Math.round(currentRevenue * 1.1),
-          worst_case: Math.round(currentRevenue * 0.9)
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any[]>((resolve) => {
+          setTimeout(() => {
+            const mockData = [
+              {
+                id: 1,
+                title: 'Implement CRM Follow-up Reminders',
+                description: 'Set automated reminders for sales follow-ups to reduce missed opportunities',
+                impact: 'high',
+                effort: 'medium',
+                estimated_value: 15000,
+                implementation_time: '2 weeks'
+              },
+              {
+                id: 2,
+                title: 'Optimize Pricing Tiers',
+                description: 'Adjust service pricing tiers based on competitor analysis and client feedback',
+                impact: 'high',
+                effort: 'low',
+                estimated_value: 25000,
+                implementation_time: '1 week'
+              },
+              {
+                id: 3,
+                title: 'Create Case Studies',
+                description: 'Develop detailed case studies for top 5 client success stories to use in sales process',
+                impact: 'medium',
+                effort: 'medium',
+                estimated_value: 12000,
+                implementation_time: '3 weeks'
+              }
+            ];
+            resolve(mockData);
+          }, 500);
         });
       }
       
-      return {
-        forecast,
-        average_monthly_growth: 5,
-        confidence_score: 85
-      };
+      const response = await apiClient.get('/finance/sales/improvement-suggestions');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching growth forecast:', error);
-      return null;
+      return handleApiError(error, []);
     }
   },
   
-  // Sales reporting
-  getWeeklyReports: async (startDate?: string, endDate?: string) => {
+  completeFollowUp: async (followUpId: number, notes: string) => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/reports/weekly';
-        const params = [];
-        if (startDate) params.push(`startDate=${startDate}`);
-        if (endDate) params.push(`endDate=${endDate}`);
-        if (params.length > 0) {
-          url += `?${params.join('&')}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<{success: boolean}>((resolve) => {
+          setTimeout(() => {
+            resolve({ success: true });
+          }, 500);
+        });
       }
       
-      // Mock response
-      return [
-        {
-          week: 'Mar 20-26, 2023',
-          revenue: 35000,
-          new_clients: 2,
-          deals_closed: 3,
-          average_deal_size: 11666.67,
-          conversion_rate: 30,
-          top_performer: 'John Smith'
-        },
-        {
-          week: 'Mar 27-Apr 2, 2023',
-          revenue: 42000,
-          new_clients: 3,
-          deals_closed: 4,
-          average_deal_size: 10500,
-          conversion_rate: 35,
-          top_performer: 'Sarah Johnson'
-        }
-      ];
+      const response = await apiClient.post(`/finance/sales/follow-ups/${followUpId}/complete`, { notes });
+      return response.data;
     } catch (error) {
-      console.error('Error fetching weekly reports:', error);
-      return [];
+      throw error;
     }
   },
   
-  getMonthlyReports: async (year?: number) => {
+  getSalesGrowthData: async (period: 'month' | 'quarter' | 'year' = 'month') => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/reports/monthly';
-        if (year) {
-          url += `?year=${year}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = {
+              trends: [
+                { period: 'Jan', current_year: 65000, previous_year: 58000 },
+                { period: 'Feb', current_year: 68000, previous_year: 60000 },
+                { period: 'Mar', current_year: 72000, previous_year: 62000 },
+                { period: 'Apr', current_year: 75000, previous_year: 65000 },
+                { period: 'May', current_year: 85000, previous_year: 68000 },
+              ],
+              growth_rate: 18.5,
+              year_over_year: 15.2,
+              forecast_next_period: 92000
+            };
+            resolve(mockData);
+          }, 500);
+        });
       }
       
-      // Mock response
-      return [
-        {
-          month: 'January 2023',
-          revenue: 120000,
-          new_clients: 8,
-          deals_closed: 12,
-          average_deal_size: 10000,
-          conversion_rate: 28,
-          top_performer: 'John Smith'
-        },
-        {
-          month: 'February 2023',
-          revenue: 135000,
-          new_clients: 9,
-          deals_closed: 14,
-          average_deal_size: 9643,
-          conversion_rate: 32,
-          top_performer: 'Sarah Johnson'
-        },
-        {
-          month: 'March 2023',
-          revenue: 150000,
-          new_clients: 10,
-          deals_closed: 15,
-          average_deal_size: 10000,
-          conversion_rate: 35,
-          top_performer: 'John Smith'
-        }
-      ];
+      const response = await apiClient.get(`/finance/sales/growth?period=${period}`);
+      return response.data;
     } catch (error) {
-      console.error('Error fetching monthly reports:', error);
-      return [];
+      return handleApiError(error, { trends: [], growth_rate: 0, year_over_year: 0, forecast_next_period: 0 });
     }
   },
   
-  // Sales analysis
-  getSalesTrends: async (period?: string) => {
+  getSalesTargets: async () => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/trends';
-        if (period) {
-          url += `?period=${period}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = {
+              overall: { target: 100000, actual: 85000, percentage: 85 },
+              by_service: [
+                { service: 'Website Development', target: 40000, actual: 35000, percentage: 87.5 },
+                { service: 'SEO Services', target: 20000, actual: 18000, percentage: 90 },
+                { service: 'Content Marketing', target: 20000, actual: 15000, percentage: 75 },
+                { service: 'UI/UX Design', target: 15000, actual: 12000, percentage: 80 },
+                { service: 'Social Media Mgmt', target: 15000, actual: 10000, percentage: 66.7 },
+              ],
+              team_performance: [
+                { member: 'Sarah Wilson', target: 25000, actual: 28000, percentage: 112 },
+                { member: 'John Davis', target: 25000, actual: 22000, percentage: 88 },
+                { member: 'Emily Thompson', target: 20000, actual: 17500, percentage: 87.5 },
+                { member: 'Michael Brown', target: 20000, actual: 15000, percentage: 75 },
+              ]
+            };
+            resolve(mockData);
+          }, 500);
+        });
       }
       
-      // Mock response
-      return {
-        revenue_trend: [
-          { month: 'January', value: 120000 },
-          { month: 'February', value: 135000 },
-          { month: 'March', value: 150000 }
-        ],
-        conversion_trend: [
-          { month: 'January', value: 28 },
-          { month: 'February', value: 32 },
-          { month: 'March', value: 35 }
-        ],
-        average_deal_size_trend: [
-          { month: 'January', value: 10000 },
-          { month: 'February', value: 9643 },
-          { month: 'March', value: 10000 }
-        ],
-        seasonal_patterns: {
-          strong_months: ['March', 'June', 'October'],
-          weak_months: ['January', 'August', 'December']
-        }
-      };
+      const response = await apiClient.get('/finance/sales/targets');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching sales trends:', error);
-      return null;
+      return handleApiError(error, { overall: {}, by_service: [], team_performance: [] });
     }
   },
   
-  getSalesByChannel: async (period?: string) => {
+  getGrowthForecast: async () => {
     try {
-      if (config.useRealApi) {
-        let url = '/finance/sales/by-channel';
-        if (period) {
-          url += `?period=${period}`;
-        }
-        const response = await api.get(url);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any>((resolve) => {
+          setTimeout(() => {
+            const mockData = {
+              forecast: [
+                { month: 'Jun', value: 92000 },
+                { month: 'Jul', value: 98000 },
+                { month: 'Aug', value: 105000 },
+                { month: 'Sep', value: 110000 },
+                { month: 'Oct', value: 120000 },
+                { month: 'Nov', value: 135000 },
+                { month: 'Dec', value: 150000 },
+              ],
+              annual_growth_estimate: 22.5,
+              confidence_level: 85,
+              factors: [
+                { factor: 'Market conditions', impact: 'positive', weight: 0.3 },
+                { factor: 'Team expansion', impact: 'positive', weight: 0.25 },
+                { factor: 'Competition', impact: 'neutral', weight: 0.2 },
+                { factor: 'Economic outlook', impact: 'positive', weight: 0.25 },
+              ]
+            };
+            resolve(mockData);
+          }, 500);
+        });
       }
       
-      // Mock response
-      return [
-        { channel: 'Website', revenue: 60000, deals: 6, conversion_rate: 30 },
-        { channel: 'Referrals', revenue: 45000, deals: 4, conversion_rate: 40 },
-        { channel: 'Direct', revenue: 30000, deals: 3, conversion_rate: 35 },
-        { channel: 'Social Media', revenue: 15000, deals: 2, conversion_rate: 25 }
-      ];
+      const response = await apiClient.get('/finance/sales/forecast');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching sales by channel:', error);
-      return [];
+      return handleApiError(error, { forecast: [], annual_growth_estimate: 0, confidence_level: 0, factors: [] });
     }
   },
   
-  getTopProducts: async (limit: number = 5) => {
+  getWeeklyReports: async () => {
     try {
-      if (config.useRealApi) {
-        const response = await api.get(`/finance/sales/top-products?limit=${limit}`);
-        return response.data;
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any[]>((resolve) => {
+          setTimeout(() => {
+            const mockData = [
+              {
+                id: 1,
+                week: 'May 8-14, 2023',
+                revenue: 21500,
+                leads: 12,
+                conversions: 3,
+                highlights: [
+                  'Closed deal with Acme Corp worth $8,500',
+                  'New lead from LinkedIn campaign showing high interest',
+                  'Improved conversion rate by 2.5% from previous week'
+                ],
+                challenges: [
+                  'One client meeting postponed to next week',
+                  'Website lead form had technical issues for 2 hours'
+                ]
+              },
+              {
+                id: 2,
+                week: 'May 1-7, 2023',
+                revenue: 18200,
+                leads: 10,
+                conversions: 2,
+                highlights: [
+                  'Renewed contract with TechSolutions Inc',
+                  'Successful product demo with 3 potential clients',
+                  'Social media campaign exceeded target reach by 30%'
+                ],
+                challenges: [
+                  'One proposal rejected due to budget constraints',
+                  'Sales team training took away from prospecting time'
+                ]
+              }
+            ];
+            resolve(mockData);
+          }, 500);
+        });
       }
       
-      // Mock response
-      return [
-        { product: 'Website Design', revenue: 60000, count: 6, growth: 15 },
-        { product: 'SEO Package', revenue: 45000, count: 9, growth: 12 },
-        { product: 'Social Media Management', revenue: 30000, count: 5, growth: 10 },
-        { product: 'Content Creation', revenue: 15000, count: 3, growth: 8 },
-        { product: 'Email Marketing', revenue: 10000, count: 2, growth: 5 }
-      ];
+      const response = await apiClient.get('/finance/sales/reports/weekly');
+      return response.data;
     } catch (error) {
-      console.error('Error fetching top products:', error);
-      return [];
+      return handleApiError(error, []);
+    }
+  },
+  
+  getMonthlyReports: async () => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<any[]>((resolve) => {
+          setTimeout(() => {
+            const mockData = [
+              {
+                id: 1,
+                month: 'May 2023',
+                revenue: 85000,
+                new_clients: 3,
+                leads: 45,
+                conversion_rate: 6.7,
+                average_deal_size: 5667,
+                top_performers: [
+                  { name: 'Sarah Wilson', sales: 28000 },
+                  { name: 'John Davis', sales: 22000 }
+                ],
+                highlights: [
+                  'Highest monthly revenue in 2023 so far',
+                  'New service package launched successfully',
+                  'Reduced sales cycle time by 15%'
+                ],
+                action_items: [
+                  'Review pricing strategy for enterprise clients',
+                  'Implement new CRM follow-up reminders',
+                  'Schedule team training on new service offerings'
+                ]
+              },
+              {
+                id: 2,
+                month: 'April 2023',
+                revenue: 75000,
+                new_clients: 2,
+                leads: 38,
+                conversion_rate: 5.3,
+                average_deal_size: 6250,
+                top_performers: [
+                  { name: 'Sarah Wilson', sales: 25000 },
+                  { name: 'Emily Thompson', sales: 18000 }
+                ],
+                highlights: [
+                  'Closed major deal with Global Media',
+                  'Implemented new sales process documentation',
+                  'LinkedIn campaign generated 15 qualified leads'
+                ],
+                action_items: [
+                  'Follow up with 3 prospects in final decision stage',
+                  'Update case studies with recent successes',
+                  'Review competitor pricing changes'
+                ]
+              }
+            ];
+            resolve(mockData);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get('/finance/sales/reports/monthly');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, []);
+    }
+  },
+  
+  analyzeTeamCosts: async () => {
+    try {
+      if (!config.useRealApi) {
+        // Mock implementation
+        return new Promise<{ teams: TeamCosts[], recommendations: string[] }>((resolve) => {
+          setTimeout(() => {
+            const mockData = {
+              teams: [
+                { 
+                  department: 'Development', 
+                  cost: 205000, 
+                  employee_count: 8, 
+                  avg_salary: 92500, 
+                  productivity_score: 87 
+                },
+                { 
+                  department: 'Design', 
+                  cost: 180000, 
+                  employee_count: 5, 
+                  avg_salary: 85000, 
+                  productivity_score: 92 
+                },
+                { 
+                  department: 'Marketing', 
+                  cost: 155000, 
+                  employee_count: 4, 
+                  avg_salary: 77500, 
+                  productivity_score: 85 
+                },
+                { 
+                  department: 'Sales', 
+                  cost: 195000, 
+                  employee_count: 4, 
+                  avg_salary: 97500, 
+                  productivity_score: 90 
+                },
+                { 
+                  department: 'Admin', 
+                  cost: 125000, 
+                  employee_count: 3, 
+                  avg_salary: 62500, 
+                  productivity_score: 84 
+                }
+              ],
+              recommendations: [
+                "Development team productivity could improve with additional training in new technologies.",
+                "Design team shows highest productivity to cost ratio - consider expanding this team.",
+                "Marketing team has slightly lower productivity score but is essential for growth.",
+                "Sales team compensation closely tied to performance - continue incentive program.",
+                "Admin costs could be optimized through automation of routine tasks."
+              ]
+            };
+            resolve(mockData);
+          }, 500);
+        });
+      }
+      
+      const response = await apiClient.get('/finance/team-costs/analysis');
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, { teams: [], recommendations: [] });
     }
   }
 };

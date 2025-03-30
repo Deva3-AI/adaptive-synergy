@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Play, Pause, Clock } from "lucide-react";
-import { formatDuration } from '@/utils/dateUtils';
+import { format, formatDistanceStrict } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -30,7 +30,12 @@ const AttendanceTracker = ({ attendance, onAttendanceUpdate }: AttendanceTracker
     
     const updateElapsedTime = () => {
       if (attendance?.login_time) {
-        setElapsedTime(formatDuration(new Date(attendance.login_time)));
+        const startTime = new Date(attendance.login_time);
+        const now = new Date();
+        setElapsedTime(formatDistanceStrict(now, startTime, { 
+          addSuffix: false,
+          roundingMethod: 'floor'
+        }));
       }
     };
     

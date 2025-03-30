@@ -169,7 +169,7 @@ const HRDashboard = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="attendance" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="attendance" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid grid-cols-4 md:w-[500px]">
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="recruitment">Recruitment</TabsTrigger>
@@ -177,7 +177,7 @@ const HRDashboard = () => {
           <TabsTrigger value="payroll">Payroll</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="attendance" className="mt-6">
+        <TabsContent value="attendance">
           <EmployeeAttendance 
             attendanceData={attendanceData}
             isLoading={attendanceLoading}
@@ -185,15 +185,15 @@ const HRDashboard = () => {
           />
         </TabsContent>
         
-        <TabsContent value="recruitment" className="mt-6">
+        <TabsContent value="recruitment">
           <RecruitmentTracker />
         </TabsContent>
         
-        <TabsContent value="tasks" className="mt-6">
+        <TabsContent value="tasks">
           <HRTaskManagement />
         </TabsContent>
         
-        <TabsContent value="payroll" className="mt-6">
+        <TabsContent value="payroll">
           <PayrollManagement />
         </TabsContent>
       </Tabs>
