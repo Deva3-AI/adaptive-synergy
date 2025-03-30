@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,10 +72,10 @@ const TaskList: React.FC<TaskListProps> = ({
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       )}
                     </div>
-                    {showClient && (
+                    {showClient && task.clients && (
                       <div className="text-sm text-muted-foreground mt-1">
                         <FolderOpen className="h-3 w-3 inline-block mr-1 align-text-bottom" />
-                        {task.client_name || 'Unknown Client'}
+                        {task.clients.client_name || 'Unknown Client'}
                       </div>
                     )}
                     <div className="text-xs text-muted-foreground mt-1">

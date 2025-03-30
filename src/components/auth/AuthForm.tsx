@@ -1,217 +1,216 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import useAuth from '@/hooks/useAuth';
 
-// Form schemas
-const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-});
+interface AuthFormProps {
+  mode: 'login' | 'signup' | 'recovery';
+}
 
-const signupSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
+const formSchema = z.object({
+  name: mode => mode === 'signup' ? z.string().min(3, 'Name must be at least 3 characters') : z.string().optional(),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().optional(),
+}).refine(data => {
+  if (data.confirmPassword !== undefined && data.password !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
-type SignupFormValues = z.infer<typeof signupSchema>;
-
-interface AuthFormProps {
-  type: "login" | "signup";
-}
-
-const AuthForm = ({ type }: AuthFormProps) => {
-  const [isLoading, setIsLoading] = useState(false);
+const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
-
-  // Login form
-  const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const { login, register, signup } = useAuth();
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
     },
   });
 
-  // Signup form
-  const signupForm = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  // Handle login form submission
-  const onLoginSubmit = async (values: LoginFormValues) => {
-    setIsLoading(true);
+  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
+    setLoading(true);
     try {
-      console.log("Login attempt with:", values.email);
-      await login(values.email, values.password);
-      // Login will handle navigation in the hook
+      if (mode === 'login') {
+        const result = await login(data.email, data.password);
+        if (result.success) {
+          toast.success('Login successful!');
+          navigate('/dashboard');
+        } else {
+          toast.error(result.error || 'Login failed');
+        }
+      } else if (mode === 'signup') {
+        const result = await signup({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        });
+        if (result.success) {
+          toast.success('Account created successfully!');
+          navigate('/login');
+        } else {
+          toast.error(result.error || 'Signup failed');
+        }
+      } else if (mode === 'recovery') {
+        toast.success('Password recovery email sent!');
+        navigate('/login');
+      }
     } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || "Something went wrong. Please try again.");
+      toast.error(error.message || 'An error occurred');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle signup form submission
-  const onSignupSubmit = async (values: SignupFormValues) => {
-    setIsLoading(true);
-    try {
-      await signup({
-        name: values.name,
-        email: values.email,
-        password: values.password,
-        role: 'employee', // Default role
-      });
-      // Signup will handle navigation in the hook
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      toast.error(error.message || "Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md">
-      {type === "login" ? (
-        <Form {...loginForm}>
-          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-6">
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {mode === 'login' ? 'Login' : mode === 'signup' ? 'Create an Account' : 'Password Recovery'}
+        </CardTitle>
+        <CardDescription>
+          {mode === 'login' 
+            ? 'Enter your credentials to access your account.' 
+            : mode === 'signup' 
+              ? 'Fill in the details to create your account.' 
+              : 'Enter your email to receive a password reset link.'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {mode === 'signup' && (
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
             <FormField
-              control={loginForm.control}
+              control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="email@example.com" {...field} />
+                    <Input type="email" placeholder="Email address" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={loginForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                "Login"
-              )}
+            
+            {mode !== 'recovery' && (
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            {mode === 'signup' && (
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        placeholder="Confirm password" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading 
+                ? 'Processing...' 
+                : mode === 'login' 
+                  ? 'Login' 
+                  : mode === 'signup' 
+                    ? 'Create Account' 
+                    : 'Reset Password'}
             </Button>
           </form>
         </Form>
-      ) : (
-        <Form {...signupForm}>
-          <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-6">
-            <FormField
-              control={signupForm.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={signupForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="email@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={signupForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={signupForm.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                "Sign Up"
-              )}
-            </Button>
-          </form>
-        </Form>
-      )}
-    </div>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-4">
+        {mode === 'login' && (
+          <>
+            <div className="text-sm text-center">
+              <Link to="/password-recovery" className="text-primary hover:underline">
+                Forgot your password?
+              </Link>
+            </div>
+            <div className="text-sm text-center">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </div>
+          </>
+        )}
+        
+        {mode === 'signup' && (
+          <div className="text-sm text-center">
+            Already have an account?{' '}
+            <Link to="/login" className="text-primary hover:underline">
+              Login
+            </Link>
+          </div>
+        )}
+        
+        {mode === 'recovery' && (
+          <div className="text-sm text-center">
+            Remember your password?{' '}
+            <Link to="/login" className="text-primary hover:underline">
+              Login
+            </Link>
+          </div>
+        )}
+      </CardFooter>
+    </Card>
   );
 };
 

@@ -10,6 +10,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import aiService from "@/services/api/aiService";
 import taskService from "@/services/api/taskService";
 import { toast } from 'sonner';
+import { Task } from '@/services/api';
 
 interface TaskRecommendationsProps {
   userId: number;
@@ -68,7 +69,7 @@ const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({
         title: task.title,
         description: task.description,
         assigned_to: userId,
-        status: 'pending',
+        status: "pending" as "pending" | "in_progress" | "completed" | "cancelled",
         estimated_time: task.estimated_time || 1,
         ...(clientId ? { client_id: clientId } : {})
       };

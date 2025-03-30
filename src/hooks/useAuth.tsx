@@ -84,16 +84,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 email,
                 roles (role_name)
               `)
-              .eq('user_id', parseInt(session.user.id))
+              .eq('user_id', session.user.id)
               .single();
             
             if (error) throw error;
+            
+            const roleName = userData.roles?.role_name || 'user';
             
             const user: User = {
               id: userData.user_id,
               name: userData.name,
               email: userData.email,
-              role: userData.roles?.role_name || 'user',
+              role: roleName,
             };
             
             // Store in localStorage and update state
@@ -102,12 +104,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               isAuthenticated: true,
               user,
               loading: false,
-              isEmployee: user.role === 'employee',
-              isClient: user.role === 'client',
-              isMarketing: user.role === 'marketing',
-              isHR: user.role === 'hr',
-              isFinance: user.role === 'finance',
-              isAdmin: user.role === 'admin',
+              isEmployee: roleName === 'employee',
+              isClient: roleName === 'client',
+              isMarketing: roleName === 'marketing',
+              isHR: roleName === 'hr',
+              isFinance: roleName === 'finance',
+              isAdmin: roleName === 'admin',
             });
           } catch (error) {
             console.error('Error fetching user details:', error);

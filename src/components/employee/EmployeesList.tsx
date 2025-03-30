@@ -15,7 +15,9 @@ interface Employee {
   user_id: number;
   name: string;
   email: string;
-  role_name: string;
+  roles: {
+    role_name: string;
+  };
 }
 
 const EmployeesList = () => {
@@ -45,7 +47,7 @@ const EmployeesList = () => {
         console.log('Fetched employees:', data);
         
         // Format data to match our expected structure
-        return data.map((employee) => ({
+        return data.map((employee: Employee) => ({
           user_id: employee.user_id,
           name: employee.name,
           email: employee.email,

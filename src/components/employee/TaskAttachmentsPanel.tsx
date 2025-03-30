@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Download, Paperclip, FileText, FileImage, FileArchive, Film, X } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 import taskService from "@/services/api/taskService";
-import { TaskAttachment } from '@/services/api';
+
+interface TaskAttachment {
+  id: number;
+  task_id: number;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  url: string;
+  uploaded_by: string;
+  uploaded_at: string;
+}
 
 interface TaskAttachmentsPanelProps {
   taskId: number;

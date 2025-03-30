@@ -1,7 +1,35 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { LeaveRequest, PaySlip } from '@/services/api';
+
+export interface LeaveRequest {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  reason?: string;
+}
+
+export interface PaySlip {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  periodStart: string;
+  periodEnd: string;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  netSalary: number;
+  status: 'draft' | 'final' | 'paid';
+}
+
+export interface DateRange {
+  from: Date;
+  to: Date;
+}
 
 // Custom hook to fetch clients from Supabase
 export const useClients = () => {
@@ -86,7 +114,7 @@ export const useEmployees = () => {
   });
 };
 
-// Custom function to fetch financial data
+// Custom function to fetch financial data for charts
 export const fetchData = async (endpoint: string, params: any = {}) => {
   // Mock function to simulate API calls
   return new Promise((resolve) => {
@@ -108,8 +136,38 @@ export const fetchData = async (endpoint: string, params: any = {}) => {
   });
 };
 
-// Export types that don't have circular dependencies
-export interface DateRange {
-  from: Date;
-  to: Date;
+// Helper function for making API requests (shared across services)
+export const apiRequest = async (endpoint: string, method = 'GET', data?: any) => {
+  // This is a mock implementation - in a real app, this would call your backend
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log(`${method} request to ${endpoint}`, data);
+      resolve({ success: true, data: { message: 'Mock API call successful' } });
+    }, 500);
+  });
+};
+
+// Export interfaces that are used across multiple files
+export interface SalesData {
+  monthly_revenue: number;
+  annual_target: number;
+  growth_rate: number;
+  client_acquisition: number;
+  conversion_rate: number;
+  avg_deal_size: number;
+  top_clients: {
+    client_id: number;
+    client_name: string;
+    revenue: number;
+    growth: number;
+  }[];
+  monthly_trend: {
+    month: string;
+    revenue: number;
+    target: number;
+  }[];
+  sales_by_service: {
+    service: string;
+    value: number;
+  }[];
 }

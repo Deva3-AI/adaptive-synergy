@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { PieChart as RechartsPieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
+import { cn } from '@/lib/utils';
 
 export interface DonutChartProps {
   data: any[];

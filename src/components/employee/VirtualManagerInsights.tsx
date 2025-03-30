@@ -1,9 +1,13 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { LightbulbIcon, AlertCircle, HelpCircle, CheckCircle2, InfoIcon } from "lucide-react";
+import { LightbulbIcon, AlertCircle, HelpCircle, CheckCircle2, InfoIcon, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import aiService from "@/services/api/aiService";
 
 interface VirtualManagerInsightsProps {
@@ -29,7 +33,7 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({
   } = useQuery({
     queryKey: ['managerInsights', clientId, taskId, refreshKey],
     queryFn: async () => {
-      return await aiService.getAIManagerInsights({ clientId, taskId });
+      return await aiService.getManagerInsights({ clientId, taskId });
     },
     enabled: !!clientId,
   });
