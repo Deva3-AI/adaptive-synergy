@@ -38,6 +38,88 @@ export type Database = {
           },
         ]
       }
+      brands: {
+        Row: {
+          client_id: number | null
+          created_at: string | null
+          description: string | null
+          id: number
+          industry: string | null
+          logo: string | null
+          name: string
+          website: string | null
+        }
+        Insert: {
+          client_id?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          industry?: string | null
+          logo?: string | null
+          name: string
+          website?: string | null
+        }
+        Update: {
+          client_id?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          industry?: string | null
+          logo?: string | null
+          name?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brands_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
+      client_preferences: {
+        Row: {
+          client_id: number | null
+          communication_frequency: string | null
+          created_at: string | null
+          design_preferences: Json | null
+          id: number
+          industry_specific_requirements: Json | null
+          preferred_contact_method: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: number | null
+          communication_frequency?: string | null
+          created_at?: string | null
+          design_preferences?: Json | null
+          id?: number
+          industry_specific_requirements?: Json | null
+          preferred_contact_method?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: number | null
+          communication_frequency?: string | null
+          created_at?: string | null
+          design_preferences?: Json | null
+          id?: number
+          industry_specific_requirements?: Json | null
+          preferred_contact_method?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_preferences_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["client_id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           client_id: number
@@ -244,6 +326,86 @@ export type Database = {
           role_name?: string
         }
         Relationships: []
+      }
+      task_attachments: {
+        Row: {
+          file_name: string
+          file_size: number
+          file_type: string | null
+          id: number
+          task_id: number | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          file_name: string
+          file_size: number
+          file_type?: string | null
+          id?: number
+          task_id?: number | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          file_name?: string
+          file_size?: number
+          file_type?: string | null
+          id?: number
+          task_id?: number | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          comment: string
+          created_at: string | null
+          id: number
+          task_id: number | null
+          user_id: number | null
+        }
+        Insert: {
+          comment: string
+          created_at?: string | null
+          id?: number
+          task_id?: number | null
+          user_id?: number | null
+        }
+        Update: {
+          comment?: string
+          created_at?: string | null
+          id?: number
+          task_id?: number | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       tasks: {
         Row: {

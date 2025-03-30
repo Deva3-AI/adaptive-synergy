@@ -1,321 +1,286 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { financeService } from "@/services/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  PieChart,
-  Pie,
-  ResponsiveContainer,
-  Cell,
-  Legend,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  LineChart,
-  Line,
-} from "recharts";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, DonutChart } from "@/components/ui/charts";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  DollarSign,
-  TrendingUp,
-  Users,
-  Briefcase,
-  AlertTriangle,
-  CheckCircle2,
-} from "lucide-react";
+import { financeService } from '@/services/api';
+import { formatCurrency, formatPercentage } from '@/utils/formatters';
 
-// Colors for charts
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
-
-// Format currencies
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(value);
-};
-
-interface TeamCostsAnalysisProps {
-  period: string;
-}
-
-const TeamCostsAnalysis = ({ period }: TeamCostsAnalysisProps) => {
-  const [activeTab, setActiveTab] = useState<string>("overview");
-
-  // Fetch team costs data
+export const TeamCostsAnalysis = () => {
+  const [timeRange, setTimeRange] = useState('monthly');
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [department, setDepartment] = useState('all');
+  
+  // Query team costs analysis data
   const { data: teamCostsData, isLoading } = useQuery({
-    queryKey: ["team-costs", period],
-    queryFn: () => financeService.analyzeTeamCosts(period),
+    queryKey: ['team-costs', timeRange, year, department],
+    queryFn: () => {
+      // In a real app, these parameters would be passed to the API
+      return financeService.analyzeTeamCosts();
+    }
   });
-
-  if (isLoading) {
-    return <Skeleton className="h-[400px] w-full" />;
-  }
-
-  if (!teamCostsData) {
-    return <div>No team cost data available.</div>;
-  }
-
+  
+  // Placeholder for the department selection options
+  const departments = ['all', 'Design', 'Development', 'Marketing'];
+  
+  // Placeholder for year selection options
+  const years = [
+    (new Date().getFullYear() - 1).toString(),
+    new Date().getFullYear().toString(),
+    (new Date().getFullYear() + 1).toString()
+  ];
+  
+  // Prepare data for charts
+  const departmentCostData = teamCostsData?.cost_per_department.map(dept => ({
+    name: dept.department,
+    value: dept.cost
+  })) || [];
+  
+  const projectCostData = teamCostsData?.cost_per_project.map(project => ({
+    name: project.project,
+    value: project.cost
+  })) || [];
+  
   return (
-    <Card className="mt-6">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Team Costs Analysis</span>
-          <Badge variant="outline">{period}</Badge>
-        </CardTitle>
+        <div className="flex flex-col md:flex-row justify-between md:items-center">
+          <div>
+            <CardTitle className="text-xl">Team Costs Analysis</CardTitle>
+            <CardDescription>Detailed breakdown of team-related expenses</CardDescription>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
+            <div className="flex items-center">
+              <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map(dept => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept === 'all' ? 'All Departments' : dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Time range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={year} onValueChange={setYear}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(year => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="departments">Departments</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="efficiency">Efficiency</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Cost
-                  </CardTitle>
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-[300px] w-full" />
+          </div>
+        ) : teamCostsData ? (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-6">
+              <Card className="flex-1">
+                <CardHeader>
+                  <CardTitle className="text-lg">Total Team Cost</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(teamCostsData.total_cost)}
+                  <div className="text-3xl font-bold">
+                    {formatCurrency(teamCostsData.total_team_cost)}
                   </div>
-                  <p className="text-xs flex items-center mt-1">
-                    <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-                    <span className={teamCostsData.trend_percentage >= 0 ? "text-green-500" : "text-red-500"}>
-                      {teamCostsData.trend_percentage}% from last {period}
-                    </span>
-                  </p>
+                  <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{timeRange === 'monthly' ? 'This month' : timeRange === 'quarterly' ? 'This quarter' : 'This year'}</span>
+                  </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Average Cost
-                  </CardTitle>
+              
+              <Card className="flex-1">
+                <CardHeader>
+                  <CardTitle className="text-lg">Key Metrics</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(teamCostsData.avg_cost_per_employee)}
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Average hourly rate:</span>
+                    <span className="font-medium">{formatCurrency(teamCostsData.efficiency_metrics.average_hourly_rate)}/hour</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Per employee
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Employees
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{teamCostsData.total_employees}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Across all departments
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Optimization Potential
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(
-                      teamCostsData.optimization_opportunities.reduce(
-                        (total: number, item: any) => total + item.potential_savings,
-                        0
-                      )
-                    )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Billable hours:</span>
+                    <span className="font-medium">{formatPercentage(teamCostsData.efficiency_metrics.billable_hours_percentage)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Potential savings
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Cost per billable hour:</span>
+                    <span className="font-medium">{formatCurrency(teamCostsData.efficiency_metrics.cost_per_billable_hour)}</span>
+                  </div>
                 </CardContent>
               </Card>
             </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Cost Distribution by Department</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={teamCostsData.departments}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="cost"
-                        nameKey="name"
-                      >
-                        {teamCostsData.departments.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            
+            <Tabs defaultValue="department" className="w-full">
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="department">By Department</TabsTrigger>
+                <TabsTrigger value="project">By Project</TabsTrigger>
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="department" className="mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="h-80">
+                    <DonutChart data={departmentCostData} />
+                  </div>
+                  
+                  <div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Department</TableHead>
+                          <TableHead>Employees</TableHead>
+                          <TableHead className="text-right">Cost</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {teamCostsData.cost_per_department.map((dept, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{dept.department}</TableCell>
+                            <TableCell>{dept.employee_count}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(dept.cost)}</TableCell>
+                          </TableRow>
                         ))}
-                      </Pie>
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Key Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {teamCostsData.insights.map((insight: string, index: number) => (
-                    <li key={index} className="flex items-start">
-                      <CheckCircle2 className="h-5 w-5 mr-2 text-green-500 shrink-0" />
-                      <span>{insight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="departments">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Headcount</TableHead>
-                  <TableHead>Cost</TableHead>
-                  <TableHead>Percentage</TableHead>
-                  <TableHead>YoY Change</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teamCostsData.departments.map((dept: any) => (
-                  <TableRow key={dept.name}>
-                    <TableCell className="font-medium">{dept.name}</TableCell>
-                    <TableCell>{dept.headcount}</TableCell>
-                    <TableCell>{formatCurrency(dept.cost)}</TableCell>
-                    <TableCell>{dept.percentage}%</TableCell>
-                    <TableCell>
-                      <span className={dept.yoy_change >= 0 ? "text-green-500" : "text-red-500"}>
-                        {dept.yoy_change >= 0 ? "+" : ""}
-                        {dept.yoy_change}%
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TabsContent>
-
-          <TabsContent value="trends">
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={teamCostsData.trend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
-                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                  <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="total_cost"
-                    name="Total Cost"
-                    stroke="#8884d8"
-                    activeDot={{ r: 8 }}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="avg_cost"
-                    name="Avg Cost per Employee"
-                    stroke="#82ca9d"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="efficiency">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Efficiency by Department</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={teamCostsData.efficiency}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis domain={[0, 100]} />
-                        <Tooltip formatter={(value: number) => `${value}%`} />
-                        <Bar
-                          dataKey="efficiency"
-                          name="Efficiency Score"
-                          fill="#8884d8"
-                          background={{ fill: "#eee" }}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                        <TableRow>
+                          <TableCell className="font-bold">Total</TableCell>
+                          <TableCell className="font-bold">
+                            {teamCostsData.cost_per_department.reduce((acc, dept) => acc + dept.employee_count, 0)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">{formatCurrency(teamCostsData.total_team_cost)}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Optimization Opportunities</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {teamCostsData.optimization_opportunities.map((opportunity: any, index: number) => (
-                      <div
-                        key={index}
-                        className="border rounded-lg p-4 flex flex-col space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{opportunity.department}</span>
-                          <Badge variant="outline">
-                            Save {formatCurrency(opportunity.potential_savings)}
-                          </Badge>
-                        </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="project" className="mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="h-80">
+                    <BarChart data={projectCostData} />
+                  </div>
+                  
+                  <div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Project</TableHead>
+                          <TableHead>Hours</TableHead>
+                          <TableHead className="text-right">Cost</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {teamCostsData.cost_per_project.map((project, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{project.project}</TableCell>
+                            <TableCell>{project.hours}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.cost)}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow>
+                          <TableCell className="font-bold">Total</TableCell>
+                          <TableCell className="font-bold">
+                            {teamCostsData.cost_per_project.reduce((acc, project) => acc + project.hours, 0)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">
+                            {formatCurrency(teamCostsData.cost_per_project.reduce((acc, project) => acc + project.cost, 0))}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="summary" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Team Cost Efficiency Summary</CardTitle>
+                    <CardDescription>
+                      Overall analysis and recommendations for team cost optimization
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="border rounded-lg p-4">
+                        <h3 className="font-medium mb-2">Current Efficiency</h3>
                         <p className="text-sm text-muted-foreground">
-                          {opportunity.description}
+                          Your team's billable percentage is {formatPercentage(teamCostsData.efficiency_metrics.billable_hours_percentage)}, 
+                          which is {teamCostsData.efficiency_metrics.billable_hours_percentage >= 70 ? 'good' : 'below target'}. 
+                          The industry average is around 70-75%.
                         </p>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                      
+                      <div className="border rounded-lg p-4">
+                        <h3 className="font-medium mb-2">Cost Distribution</h3>
+                        <p className="text-sm text-muted-foreground">
+                          The {teamCostsData.cost_per_department[0].department} department represents the highest portion 
+                          of your team costs ({formatPercentage(teamCostsData.cost_per_department[0].cost / teamCostsData.total_team_cost)}), 
+                          followed by {teamCostsData.cost_per_department[1].department} ({formatPercentage(teamCostsData.cost_per_department[1].cost / teamCostsData.total_team_cost)}).
+                        </p>
+                      </div>
+                      
+                      <div className="border rounded-lg p-4">
+                        <h3 className="font-medium mb-2">Optimization Opportunities</h3>
+                        <ul className="text-sm text-muted-foreground space-y-2">
+                          <li className="flex items-start gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-xs text-primary shrink-0 mt-0.5">1</div>
+                            <span>Increase billable hours percentage to 80% or higher</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-xs text-primary shrink-0 mt-0.5">2</div>
+                            <span>Optimize resource allocation on smaller projects</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-xs text-primary shrink-0 mt-0.5">3</div>
+                            <span>Consider cross-training team members for better utilization</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No team cost data available.</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

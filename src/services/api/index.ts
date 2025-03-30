@@ -14,7 +14,8 @@ import reportService from './reportService';
 export type { 
   TaskAttachment, 
   TaskStatistics,
-  TaskComment
+  TaskComment,
+  TaskWithDetails
 } from './taskService';
 
 export type { 

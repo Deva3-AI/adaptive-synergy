@@ -149,24 +149,9 @@ const taskService = {
       if (taskError) throw taskError;
       
       // Get task attachments
-      const { data: attachments, error: attachmentsError } = await supabase
-        .from('task_attachments')
-        .select('*')
-        .eq('task_id', taskId);
-      
-      if (attachmentsError) throw attachmentsError;
-      
-      // Get task comments
-      const { data: comments, error: commentsError } = await supabase
-        .from('task_comments')
-        .select(`
-          *,
-          users (name)
-        `)
-        .eq('task_id', taskId)
-        .order('created_at', { ascending: false });
-      
-      if (commentsError) throw commentsError;
+      // Use separate queries for attachments and comments as Supabase doesn't recognize these tables yet
+      const attachments = await taskService.getTaskAttachments(taskId);
+      const comments = await taskService.getTaskComments(taskId);
       
       // Format the data
       const formattedTask = {
@@ -174,10 +159,7 @@ const taskService = {
         client_name: task.clients?.client_name,
         assignee_name: task.users?.name,
         attachments: attachments || [],
-        comments: comments ? comments.map(comment => ({
-          ...comment,
-          user_name: comment.users?.name
-        })) : []
+        comments: comments || []
       };
       
       return formattedTask;
@@ -254,6 +236,51 @@ const taskService = {
     }
   },
   
+  // Get task attachments
+  getTaskAttachments: async (taskId: number) => {
+    try {
+      // Use apiRequest as fallback since Supabase doesn't have the table yet
+      const { data, error } = await supabase
+        .from('task_attachments')
+        .select('*')
+        .eq('task_id', taskId);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching task attachments:', error);
+      // Mock data as fallback
+      return apiRequest(`/tasks/${taskId}/attachments`, 'get', undefined, []);
+    }
+  },
+  
+  // Get task comments
+  getTaskComments: async (taskId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('task_comments')
+        .select(`
+          *,
+          users (name)
+        `)
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Format the data
+      const formattedData = data.map(comment => ({
+        ...comment,
+        user_name: comment.users ? comment.users.name : 'Unknown User'
+      }));
+      
+      return formattedData;
+    } catch (error) {
+      console.error('Error fetching task comments:', error);
+      return apiRequest(`/tasks/${taskId}/comments`, 'get', undefined, []);
+    }
+  },
+  
   // Add attachment to a task
   addTaskAttachment: async (taskId: number, attachment: Omit<TaskAttachment, 'id' | 'task_id' | 'uploaded_at'>) => {
     try {
@@ -270,6 +297,50 @@ const taskService = {
     } catch (error) {
       console.error('Error adding task attachment:', error);
       return apiRequest(`/tasks/${taskId}/attachments`, 'post', attachment, {});
+    }
+  },
+  
+  // Upload task attachment (handles file upload + attachment creation)
+  uploadTaskAttachment: async (taskId: number, file: File, userId: number) => {
+    try {
+      // 1. Upload the file to Supabase Storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const filePath = `tasks/${taskId}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      // 2. Get the public URL
+      const { data: urlData } = await supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath);
+      
+      // 3. Create the task attachment record
+      const attachmentData = {
+        file_name: fileName,
+        file_size: file.size,
+        file_type: file.type,
+        url: urlData.publicUrl,
+        uploaded_by: userId.toString()
+      };
+      
+      return await taskService.addTaskAttachment(taskId, attachmentData);
+    } catch (error) {
+      console.error('Error uploading task attachment:', error);
+      // Mock response
+      return {
+        id: Date.now(),
+        task_id: taskId,
+        file_name: file.name,
+        file_size: file.size,
+        file_type: file.type,
+        url: URL.createObjectURL(file),
+        uploaded_at: new Date().toISOString(),
+        uploaded_by: userId.toString()
+      };
     }
   },
   

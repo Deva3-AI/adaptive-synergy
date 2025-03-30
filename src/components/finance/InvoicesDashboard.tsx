@@ -1,253 +1,273 @@
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { financeService, type Invoice } from '@/services/api';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
-import { DollarSign, FileText, Mail, Check, Clock, AlertTriangle, Search, Filter, Download } from "lucide-react";
-import { format } from 'date-fns';
+import { Clock, Send, Check, AlertTriangle, MoreHorizontal, Plus, Filter, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { financeService } from '@/services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { formatCurrency, formatDate } from '@/utils/formatters';
+import { useNavigate } from 'react-router-dom';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const InvoicesDashboard = () => {
-  const [activeTab, setActiveTab] = useState('all');
+export const InvoicesDashboard = () => {
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  // Fetch invoices based on active tab
+  
+  // Fetch invoices
   const { data: invoices, isLoading } = useQuery({
-    queryKey: ['invoices', activeTab],
-    queryFn: () => financeService.getInvoices(activeTab === 'all' ? undefined : activeTab),
+    queryKey: ['invoices', statusFilter !== 'all' ? statusFilter : null],
+    queryFn: () => financeService.getInvoices(statusFilter !== 'all' ? statusFilter : undefined)
   });
-
-  // Mutation for updating invoice status
+  
+  // Update invoice status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: ({ invoiceId, status }: { invoiceId: number; status: "pending" | "paid" | "overdue" }) => 
-      financeService.updateInvoiceStatus(invoiceId, status),
+    mutationFn: ({ invoiceId, status }: { invoiceId: number, status: string }) => {
+      return financeService.updateInvoiceStatus(invoiceId, status);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       toast.success('Invoice status updated successfully');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error updating invoice status:', error);
       toast.error('Failed to update invoice status');
-    },
+    }
   });
-
-  // Mutation for sending invoice reminder
+  
+  // Send invoice reminder mutation
   const sendReminderMutation = useMutation({
-    mutationFn: (invoiceId: number) => financeService.sendInvoiceReminder(invoiceId),
+    mutationFn: (invoiceId: number) => {
+      return financeService.sendInvoiceReminder(invoiceId);
+    },
     onSuccess: () => {
       toast.success('Reminder sent successfully');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error sending reminder:', error);
       toast.error('Failed to send reminder');
-    },
+    }
   });
-
-  // Handle status update
-  const handleStatusUpdate = (invoiceId: number, status: "pending" | "paid" | "overdue") => {
-    updateStatusMutation.mutate({ invoiceId, status });
-  };
-
-  // Handle sending reminder
-  const handleSendReminder = (invoiceId: number) => {
-    sendReminderMutation.mutate(invoiceId);
-  };
-
+  
   // Filter invoices based on search term
-  const filteredInvoices = invoices?.filter((invoice: Invoice) => 
+  const filteredInvoices = invoices?.filter(invoice => 
     invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount);
+  
+  // Get counts for status badges
+  const getStatusCounts = () => {
+    if (!invoices) return { all: 0, pending: 0, paid: 0, overdue: 0 };
+    
+    return {
+      all: invoices.length,
+      pending: invoices.filter(inv => inv.status === 'pending').length,
+      paid: invoices.filter(inv => inv.status === 'paid').length,
+      overdue: invoices.filter(inv => inv.status === 'overdue').length
+    };
   };
-
-  // Get status badge
+  
+  const statusCounts = getStatusCounts();
+  
+  // Handle status update
+  const handleStatusUpdate = (invoiceId: number, newStatus: string) => {
+    updateStatusMutation.mutate({ invoiceId, status: newStatus });
+  };
+  
+  // Handle send reminder
+  const handleSendReminder = (invoiceId: number) => {
+    sendReminderMutation.mutate(invoiceId);
+  };
+  
+  // Get status badge variant
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
-      case 'pending':
-        return <Badge className="bg-amber-500">Pending</Badge>;
+        return <Badge variant="success" className="gap-1"><Check className="h-3 w-3" /> Paid</Badge>;
       case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>;
+        return <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Overdue</Badge>;
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Pending</Badge>;
     }
   };
-
+  
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Invoices</h1>
-        <Button>
-          <DollarSign className="mr-2 h-4 w-4" />
-          Create Invoice
+        <h1 className="text-2xl font-bold">Invoice Management</h1>
+        <Button className="flex items-center gap-2">
+          <Plus size={16} />
+          <span>Create Invoice</span>
         </Button>
       </div>
-
-      <div className="flex justify-between items-center">
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="paid">Paid</TabsTrigger>
-            <TabsTrigger value="overdue">Overdue</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search invoices..."
-              className="pl-8 w-[250px]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon">
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
+      
       <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <p>Loading invoices...</p>
+        <CardHeader>
+          <CardTitle>All Invoices</CardTitle>
+          <CardDescription>
+            Manage and track all invoices in one place
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all" value={statusFilter} onValueChange={setStatusFilter}>
+            <div className="flex justify-between items-center mb-6">
+              <TabsList>
+                <TabsTrigger value="all" className="gap-2">
+                  All
+                  <Badge variant="secondary">{statusCounts.all}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="gap-2">
+                  Pending
+                  <Badge variant="secondary">{statusCounts.pending}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="paid" className="gap-2">
+                  Paid
+                  <Badge variant="secondary">{statusCounts.paid}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="overdue" className="gap-2">
+                  Overdue
+                  <Badge variant="secondary">{statusCounts.overdue}</Badge>
+                </TabsTrigger>
+              </TabsList>
+              
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search invoices..."
+                    className="pl-8 w-[250px]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-          ) : filteredInvoices && filteredInvoices.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices.map((invoice: Invoice) => (
-                  <TableRow key={invoice.invoice_id}>
-                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                    <TableCell>{invoice.client_name}</TableCell>
-                    <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-                    <TableCell>{format(new Date(invoice.created_at), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{format(new Date(invoice.due_date), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                        {invoice.status === 'pending' && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleSendReminder(invoice.invoice_id)}
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleStatusUpdate(invoice.invoice_id, 'paid')}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-64">
-              <FileText className="h-8 w-8 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No invoices found</p>
-            </div>
-          )}
+            
+            <TabsContent value="all" className="space-y-4">
+              {renderInvoicesTable(filteredInvoices, isLoading, handleStatusUpdate, handleSendReminder)}
+            </TabsContent>
+            <TabsContent value="pending" className="space-y-4">
+              {renderInvoicesTable(filteredInvoices, isLoading, handleStatusUpdate, handleSendReminder)}
+            </TabsContent>
+            <TabsContent value="paid" className="space-y-4">
+              {renderInvoicesTable(filteredInvoices, isLoading, handleStatusUpdate, handleSendReminder)}
+            </TabsContent>
+            <TabsContent value="overdue" className="space-y-4">
+              {renderInvoicesTable(filteredInvoices, isLoading, handleStatusUpdate, handleSendReminder)}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(
-                filteredInvoices
-                  ?.filter((invoice: Invoice) => invoice.status !== 'paid')
-                  .reduce((sum: number, invoice: Invoice) => sum + invoice.amount, 0) || 0
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              From {filteredInvoices?.filter((invoice: Invoice) => invoice.status !== 'paid').length || 0} unpaid invoices
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(
-                filteredInvoices
-                  ?.filter((invoice: Invoice) => invoice.status === 'overdue')
-                  .reduce((sum: number, invoice: Invoice) => sum + invoice.amount, 0) || 0
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              From {filteredInvoices?.filter((invoice: Invoice) => invoice.status === 'overdue').length || 0} overdue invoices
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Paid (Last 30 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(
-                filteredInvoices
-                  ?.filter((invoice: Invoice) => invoice.status === 'paid')
-                  .reduce((sum: number, invoice: Invoice) => sum + invoice.amount, 0) || 0
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              From {filteredInvoices?.filter((invoice: Invoice) => invoice.status === 'paid').length || 0} paid invoices
-            </p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
+  );
+};
+
+// Helper function to render invoices table
+const renderInvoicesTable = (
+  invoices: any[] | undefined,
+  isLoading: boolean,
+  onStatusUpdate: (invoiceId: number, status: string) => void,
+  onSendReminder: (invoiceId: number) => void
+) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex justify-between items-center p-2">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-6 w-1/4" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!invoices || invoices.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>No invoices found matching your criteria.</p>
+      </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Invoice #</TableHead>
+          <TableHead>Client</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead>Due Date</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {invoices.map((invoice) => (
+          <TableRow key={invoice.invoice_id}>
+            <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+            <TableCell>{invoice.client_name}</TableCell>
+            <TableCell>{formatDate(invoice.created_at)}</TableCell>
+            <TableCell>{formatDate(invoice.due_date)}</TableCell>
+            <TableCell className="font-medium">{formatCurrency(invoice.amount)}</TableCell>
+            <TableCell>
+              {invoice.status === 'paid' ? (
+                <Badge variant="success" className="gap-1"><Check className="h-3 w-3" /> Paid</Badge>
+              ) : invoice.status === 'overdue' ? (
+                <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Overdue</Badge>
+              ) : (
+                <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Pending</Badge>
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => window.open(`/finance/invoices/${invoice.invoice_id}`, '_blank')}>
+                    View details
+                  </DropdownMenuItem>
+                  {invoice.status === 'pending' && (
+                    <DropdownMenuItem onClick={() => onStatusUpdate(invoice.invoice_id, 'paid')}>
+                      Mark as paid
+                    </DropdownMenuItem>
+                  )}
+                  {invoice.status === 'overdue' && (
+                    <DropdownMenuItem onClick={() => onSendReminder(invoice.invoice_id)}>
+                      Send reminder
+                    </DropdownMenuItem>
+                  )}
+                  {invoice.status === 'overdue' && (
+                    <DropdownMenuItem onClick={() => onStatusUpdate(invoice.invoice_id, 'paid')}>
+                      Mark as paid
+                    </DropdownMenuItem>
+                  )}
+                  {invoice.status === 'paid' && (
+                    <DropdownMenuItem onClick={() => onStatusUpdate(invoice.invoice_id, 'pending')}>
+                      Mark as pending
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 };
 

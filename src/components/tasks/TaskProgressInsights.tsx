@@ -1,228 +1,173 @@
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { taskService } from "@/services/api";
-import type { TaskStatistics } from "@/services/api/taskService";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, CheckCircle, AlertTriangle, BarChart as BarChartIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BarChart, LineChart, PieChart, DonutChart } from "@/components/ui/charts";
+import { BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { taskService, TaskStatistics } from '@/services/api';
+import { formatPercentage, formatDuration } from '@/utils/formatters';
 
-// Custom chart components (simplified for our use case)
-const LineChart = ({ data, categories, colors, height }: { data: any[], categories: string[], colors: string[], height: number }) => {
-  return (
-    <div style={{ height }}>
-      {/* Simplified chart display */}
-      <div className="flex flex-col h-full justify-center items-center">
-        <BarChartIcon className="h-16 w-16 text-muted-foreground mb-2" />
-        <div className="text-sm text-muted-foreground text-center">
-          Line chart showing trends for {categories.join(' and ')}
-        </div>
-      </div>
-    </div>
-  );
-};
+interface TaskProgressInsightsProps {
+  userId?: number;
+}
 
-const PieChart = ({ data, height }: { data: any[], height: number }) => {
-  return (
-    <div style={{ height }}>
-      {/* Simplified chart display */}
-      <div className="flex flex-col h-full justify-center items-center">
-        <BarChartIcon className="h-16 w-16 text-muted-foreground mb-2" />
-        <div className="text-sm text-muted-foreground text-center">
-          Pie chart showing distribution across {data.length} categories
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TaskProgressInsights = ({ userId }: { userId?: number }) => {
+export const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ userId }) => {
   const { data: statistics, isLoading } = useQuery({
-    queryKey: ["task-statistics", userId],
-    queryFn: () => taskService.getTaskStatistics(userId),
+    queryKey: ['task-statistics', userId],
+    queryFn: () => taskService.getTaskStatistics(userId)
   });
 
+  // Handle loading state
   if (isLoading) {
     return (
-      <Card className="col-span-3">
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle>Task Progress & Insights</CardTitle>
+          <CardTitle className="text-lg animate-pulse">Loading insights...</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Cast the data to the TaskStatistics type
-  const stats = statistics as TaskStatistics;
-
-  // Handle case where stats is undefined
-  if (!stats) {
-    return (
-      <Card className="col-span-3">
-        <CardHeader>
-          <CardTitle>Task Progress & Insights</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            No task statistics available
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="bg-muted rounded-lg p-4 animate-pulse">
+                <div className="h-4 w-1/2 bg-muted-foreground/20 rounded mb-2"></div>
+                <div className="h-6 w-3/4 bg-muted-foreground/20 rounded"></div>
+              </div>
+            ))}
           </div>
+          <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
         </CardContent>
       </Card>
     );
   }
 
-  // Format the monthly trends data for the charts
-  const monthlyTrendsData = stats.monthly_trends.map(item => ({
+  // Handle no data state
+  if (!statistics) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-lg">No task insights available</CardTitle>
+          <CardDescription>Complete some tasks to see performance insights</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // Prepare data for charts
+  const taskStatusData = [
+    { name: 'Completed', value: statistics.completed_tasks },
+    { name: 'In Progress', value: statistics.in_progress_tasks },
+    { name: 'Pending', value: statistics.pending_tasks },
+    { name: 'Overdue', value: statistics.overdue_tasks }
+  ];
+
+  const taskDistributionData = statistics.task_distribution.map(item => ({
+    name: item.name,
+    value: item.value
+  }));
+
+  const monthlyTrendsForChart = statistics.monthly_trends.map(item => ({
     name: item.month,
     Completed: item.completed,
     Assigned: item.assigned
   }));
 
-  // Calculate percentage of on-time completions
-  const onTimePercentage = Math.round(stats.on_time_completion);
-  
-  // Calculate average task duration in days
-  const avgDuration = Math.round(stats.average_task_duration * 10) / 10;
-
-  // Format recent completions for display
-  const recentCompletions = stats.recent_completions || [];
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Completion Rate</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold mb-2">{stats.completion_rate}%</div>
-          <Progress value={stats.completion_rate} className="h-2 mb-4" />
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="text-muted-foreground mb-1">Completed</div>
-              <div className="font-medium">{stats.completed_tasks}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground mb-1">In Progress</div>
-              <div className="font-medium">{stats.in_progress_tasks}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground mb-1">Pending</div>
-              <div className="font-medium">{stats.pending_tasks}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground mb-1">Overdue</div>
-              <div className="font-medium text-red-500">{stats.overdue_tasks}</div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-lg">Task Performance Insights</CardTitle>
+        <CardDescription>Analytics on task completion and efficiency</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-background rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground mb-1">Completion Rate</div>
+            <div className="text-2xl font-bold">{formatPercentage(statistics.completion_rate)}</div>
+            <Progress value={statistics.completion_rate} className="mt-2" />
+          </div>
+          
+          <div className="bg-background rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground mb-1">On-Time Completion</div>
+            <div className="text-2xl font-bold">{formatPercentage(statistics.on_time_completion)}</div>
+            <Progress value={statistics.on_time_completion} className="mt-2" />
+          </div>
+          
+          <div className="bg-background rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground mb-1">Avg. Completion Time</div>
+            <div className="text-2xl font-bold">{formatDuration(statistics.average_task_duration)}</div>
+            <div className="text-xs text-muted-foreground mt-2 flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              Per completed task
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">On-Time Completion</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold">{onTimePercentage}%</div>
-            <div className="p-2 bg-green-500/10 rounded-full">
-              <CheckCircle className="text-green-500 h-5 w-5" />
+          
+          <div className="bg-background rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground mb-1">Recent Completions</div>
+            <div className="text-2xl font-bold">{statistics.recent_completions?.length || 0}</div>
+            <div className="text-xs text-muted-foreground mt-2 flex items-center">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              In the last 30 days
             </div>
           </div>
-          <Progress value={onTimePercentage} className="h-2 mt-2 mb-4" />
-          <div className="text-sm text-muted-foreground">
-            {onTimePercentage >= 80 ? (
-              <span>Great job keeping tasks on schedule!</span>
-            ) : onTimePercentage >= 50 ? (
-              <span>Make sure to prioritize timely deliveries.</span>
-            ) : (
-              <span className="text-red-500">Task timeliness needs improvement.</span>
-            )}
+        </div>
+        
+        <Tabs defaultValue="distribution" className="w-full">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="distribution" className="flex items-center gap-2">
+              <PieChartIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Task Distribution</span>
+            </TabsTrigger>
+            <TabsTrigger value="status" className="flex items-center gap-2">
+              <DonutChart className="h-4 w-4" />
+              <span className="hidden sm:inline">Task Status</span>
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="flex items-center gap-2">
+              <LineChartIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Monthly Trends</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="distribution" className="mt-0">
+            <div className="h-80">
+              <PieChart data={taskDistributionData} />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="status" className="mt-0">
+            <div className="h-80">
+              <DonutChart data={taskStatusData} />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="trends" className="mt-0">
+            <div className="h-80">
+              <LineChart 
+                data={monthlyTrendsForChart} 
+                xAxisKey="name"
+                series={[
+                  { key: "Completed", color: "hsl(var(--primary))" },
+                  { key: "Assigned", color: "hsl(var(--muted-foreground))" }
+                ]}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        {statistics.overdue_tasks > 0 && (
+          <div className="mt-6 bg-destructive/10 rounded-lg p-4 border border-destructive/20">
+            <div className="flex items-center gap-2 text-destructive font-medium mb-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Attention Required</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              You have {statistics.overdue_tasks} overdue {statistics.overdue_tasks === 1 ? 'task' : 'tasks'} that require immediate attention.
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Avg. Completion Time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="text-3xl font-bold">{avgDuration} days</div>
-            <div className="p-2 bg-blue-500/10 rounded-full">
-              <Clock className="text-blue-500 h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-4 text-sm">
-            <div className="mb-2">Average time to complete tasks</div>
-            <div className="flex items-center">
-              <div className="text-muted-foreground">Compared to target: </div>
-              <div className={`ml-2 ${avgDuration <= 5 ? 'text-green-500' : 'text-amber-500'}`}>
-                {avgDuration <= 5 ? 'On target' : 'Above target'}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle className="text-base font-medium">Task Completion Trends</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LineChart 
-            data={monthlyTrendsData}
-            categories={["Completed", "Assigned"]}
-            colors={["green", "blue"]}
-            height={240}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-medium">Task Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <PieChart 
-            data={stats.task_distribution}
-            height={240}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="md:col-span-3">
-        <CardHeader>
-          <CardTitle className="text-base font-medium">Recently Completed Tasks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentCompletions.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
-              No recently completed tasks
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentCompletions.map((task) => (
-                <div key={task.task_id} className="border rounded-lg p-3 space-y-2">
-                  <div className="font-medium">{task.title}</div>
-                  <div className="flex justify-between text-sm">
-                    <div className="text-muted-foreground">Completed on: </div>
-                    <div>{new Date(task.completed_on).toLocaleDateString()}</div>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <div className="text-muted-foreground">Duration: </div>
-                    <div>{task.duration} days</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
