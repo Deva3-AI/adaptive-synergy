@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useUser } from '@/hooks/useUser';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Mock data for chart examples
 const taskCompletionData = [
@@ -275,7 +276,7 @@ const EmployeeDashboard = () => {
       case 'High': return 'destructive';
       case 'Medium': return 'default';
       case 'Low': return 'secondary';
-      default': return 'default';
+      default: return 'default';
     }
   };
   
