@@ -43,15 +43,25 @@ const HRDashboard = () => {
       
       // Format the data to match our Employee interface
       return data.map(item => {
-        const roleData = transformSupabaseData.getRoleName(item.roles);
-        const employeeDetails = transformSupabaseData.getEmployeeDetails(item.employee_details);
+        const roleName = item.roles ? item.roles.role_name : 'Unknown';
+        const employeeDetails = item.employee_details && item.employee_details.length > 0 
+          ? {
+              joining_date: item.employee_details[0].joining_date,
+              employee_id: item.employee_details[0].employee_id,
+              date_of_birth: item.employee_details[0].date_of_birth
+            }
+          : {
+              joining_date: null,
+              employee_id: null,
+              date_of_birth: null
+            };
         
         return {
           user_id: item.user_id,
           name: item.name,
           email: item.email,
           role_id: item.role_id,
-          role_name: roleData,
+          role_name: roleName,
           joining_date: employeeDetails.joining_date,
           employee_id: employeeDetails.employee_id,
           date_of_birth: employeeDetails.date_of_birth

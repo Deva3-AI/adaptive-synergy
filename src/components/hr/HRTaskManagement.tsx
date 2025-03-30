@@ -1,480 +1,438 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Clock, 
-  Plus, 
-  CheckCircle2, 
-  Calendar, 
-  AlertCircle, 
-  ArrowUpRight,
-  FileText
-} from "lucide-react";
-import { format } from 'date-fns';
-import { HRTask } from "@/interfaces/hr";
-import { getInitials } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { Calendar, Check, Clock, Plus, User, CalendarClock, CheckCircle2, AlertCircle, ClipboardList } from "lucide-react";
+import { format, isToday, isPast, addHours } from 'date-fns';
+import hrServiceSupabase from '@/services/api/hrServiceSupabase';
+import { HRTask } from '@/interfaces/hr';
 
 const HRTaskManagement = () => {
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState("pending");
+  const [selectedTask, setSelectedTask] = useState<HRTask | null>(null);
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [isCompleteTaskOpen, setIsCompleteTaskOpen] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState("");
   
-  // Fetch HR tasks from API
-  const { data: tasks, isLoading } = useQuery({
+  // Fetch HR tasks
+  const { data: tasks, isLoading: isLoadingTasks, refetch: refetchTasks } = useQuery({
     queryKey: ['hr-tasks'],
-    queryFn: () => {
-      // This would normally call an API
-      return new Promise<HRTask[]>((resolve) => {
-        setTimeout(() => {
-          resolve([
-            {
-              id: 1,
-              title: "Review resume for Senior Developer position",
-              description: "Analyze skills, experience, and fit for the role",
-              assigned_to: 2,
-              assigned_to_name: "Emily Johnson",
-              due_date: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-              estimated_time: 1.5,
-              priority: "high",
-              status: "pending",
-              related_to: {
-                type: "candidate",
-                id: 101,
-                name: "Jacob Wilson"
-              }
-            },
-            {
-              id: 2,
-              title: "Schedule interview with Marketing Manager candidate",
-              description: "Coordinate with the marketing team for availability",
-              assigned_to: 2,
-              assigned_to_name: "Emily Johnson",
-              due_date: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
-              estimated_time: 0.5,
-              priority: "medium",
-              status: "in_progress",
-              related_to: {
-                type: "candidate",
-                id: 102,
-                name: "Sophia Martinez"
-              }
-            },
-            {
-              id: 3,
-              title: "Generate monthly payroll reports",
-              description: "Create and distribute payroll reports for all departments",
-              assigned_to: 3,
-              assigned_to_name: "Michael Brown",
-              due_date: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days from now
-              estimated_time: 3,
-              priority: "high",
-              status: "pending",
-              related_to: {
-                type: "payroll",
-                id: 201,
-                name: "March 2025 Payroll"
-              }
-            },
-            {
-              id: 4,
-              title: "Conduct performance review for Design team",
-              description: "Quarterly performance evaluation for the design department",
-              assigned_to: 1,
-              assigned_to_name: "Jessica Smith",
-              due_date: new Date(Date.now() + 86400000 * 5).toISOString(), // 5 days from now
-              estimated_time: 4,
-              priority: "medium",
-              status: "pending",
-              related_to: {
-                type: "employee",
-                id: 301,
-                name: "Design Department"
-              }
-            },
-            {
-              id: 5,
-              title: "Update employee handbook",
-              description: "Revise policies and procedures in the employee handbook",
-              assigned_to: 3,
-              assigned_to_name: "Michael Brown",
-              due_date: new Date(Date.now() - 86400000).toISOString(), // Yesterday (overdue)
-              estimated_time: 5,
-              priority: "low",
-              status: "in_progress"
-            },
-            {
-              id: 6,
-              title: "Finalize onboarding process for new hires",
-              description: "Complete documentation and checklist for onboarding",
-              assigned_to: 1,
-              assigned_to_name: "Jessica Smith",
-              due_date: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago (overdue)
-              estimated_time: 2,
-              priority: "high",
-              status: "completed",
-              completed_at: new Date(Date.now() - 86400000).toISOString()
-            }
-          ]);
-        }, 800);
-      });
-    }
+    queryFn: () => hrServiceSupabase.getHRTasks(),
   });
-
-  // Calculate task statistics
-  const taskStats = React.useMemo(() => {
-    if (!tasks) return { total: 0, completed: 0, pending: 0, inProgress: 0, overdue: 0 };
-    
-    const now = new Date();
-    
-    return {
-      total: tasks.length,
-      completed: tasks.filter(task => task.status === 'completed').length,
-      pending: tasks.filter(task => task.status === 'pending').length,
-      inProgress: tasks.filter(task => task.status === 'in_progress').length,
-      overdue: tasks.filter(task => {
-        const dueDate = new Date(task.due_date);
-        return task.status !== 'completed' && dueDate < now;
-      }).length
-    };
-  }, [tasks]);
   
-  // Filter tasks based on selected filter
-  const filteredTasks = React.useMemo(() => {
-    if (!tasks) return [];
-    
-    const now = new Date();
-    
-    switch (activeFilter) {
-      case 'pending':
-        return tasks.filter(task => task.status === 'pending');
-      case 'in_progress':
-        return tasks.filter(task => task.status === 'in_progress');
-      case 'completed':
-        return tasks.filter(task => task.status === 'completed');
-      case 'overdue':
-        return tasks.filter(task => {
-          const dueDate = new Date(task.due_date);
-          return task.status !== 'completed' && dueDate < now;
-        });
-      case 'high_priority':
-        return tasks.filter(task => task.priority === 'high');
-      default:
-        return tasks;
-    }
-  }, [tasks, activeFilter]);
+  // Get suggestions/improvements based on tasks and trends
+  const { data: trends } = useQuery({
+    queryKey: ['hr-trends'],
+    queryFn: () => hrServiceSupabase.getHRTrends(),
+  });
   
-  // Get badge color for task status
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'warning';
-      case 'pending':
-        return 'secondary';
-      case 'cancelled':
-        return 'destructive';
-      default:
-        return 'secondary';
+  // Mock task creation function
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    toast.success("Task created successfully!");
+    setIsAddTaskOpen(false);
+    refetchTasks();
+  };
+  
+  // Mock task completion function
+  const handleCompleteTask = async () => {
+    if (!selectedTask) return;
+    
+    try {
+      await hrServiceSupabase.completeHRTask(selectedTask.id, completionNotes);
+      toast.success("Task marked as completed");
+      setIsCompleteTaskOpen(false);
+      setCompletionNotes("");
+      setSelectedTask(null);
+      refetchTasks();
+    } catch (error) {
+      toast.error("Failed to complete task");
+      console.error("Error completing task:", error);
     }
   };
   
-  // Get badge color for task priority
-  const getPriorityColor = (priority: string) => {
+  // Filter tasks by status
+  const pendingTasks = tasks?.filter(task => task.status === 'pending' || task.status === 'in_progress') || [];
+  const completedTasks = tasks?.filter(task => task.status === 'completed') || [];
+  
+  // Sort tasks by priority and due date
+  const sortedPendingTasks = [...pendingTasks].sort((a, b) => {
+    // Sort by priority first (high > medium > low)
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    const priorityDiff = priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder];
+    
+    if (priorityDiff !== 0) return priorityDiff;
+    
+    // Then sort by due date (earliest first)
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  });
+  
+  // Get task badge color based on priority
+  const getTaskPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'warning';
-      case 'low':
-        return 'secondary';
-      default:
-        return 'secondary';
+      case 'high': return 'destructive';
+      case 'medium': return 'warning';
+      case 'low': return 'secondary';
+      default: return 'secondary';
     }
   };
   
-  // Calculate if a task is overdue
-  const isOverdue = (dueDate: string) => {
-    return new Date(dueDate) < new Date();
+  // Get task status color
+  const getTaskStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'in_progress': return 'success';
+      case 'pending': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'secondary';
+    }
+  };
+  
+  // Check if task is overdue
+  const isTaskOverdue = (dueDate: string) => {
+    return isPast(new Date(dueDate)) && !isToday(new Date(dueDate));
   };
   
   return (
-    <div className="space-y-4">
-      {/* Task Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold">{taskStats.total}</div>
-            <Progress
-              value={(taskStats.completed / taskStats.total) * 100}
-              className="h-1 mt-2"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              {Math.round((taskStats.completed / taskStats.total) * 100)}% completed
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold">
-              {taskStats.pending}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {taskStats.pending > 2 ? "Needs attention" : "On track"}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold">
-              {taskStats.inProgress}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Currently being worked on
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold">
-              {taskStats.completed}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Successfully finished
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-destructive">
-              {taskStats.overdue}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Past due date
-            </p>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">HR Task Management</h2>
+        <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Task
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Create New HR Task</DialogTitle>
+              <DialogDescription>
+                Add a new task for the HR team.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateTask} className="space-y-4 mt-2">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Task Title</Label>
+                <Input id="title" name="title" placeholder="Enter task title" required />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea id="description" name="description" placeholder="Task details" />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select name="priority" defaultValue="medium">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="assignee">Assign To</Label>
+                  <Select name="assignee">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4">Sarah Williams (HR Manager)</SelectItem>
+                      <SelectItem value="8">David Chen (HR Specialist)</SelectItem>
+                      <SelectItem value="12">Maria Rodriguez (Recruiter)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="due_date">Due Date</Label>
+                  <Input 
+                    id="due_date" 
+                    name="due_date" 
+                    type="date" 
+                    defaultValue={format(addHours(new Date(), 48), 'yyyy-MM-dd')} 
+                    required 
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="estimated_time">Estimated Hours</Label>
+                  <Input 
+                    id="estimated_time" 
+                    name="estimated_time" 
+                    type="number" 
+                    min="0.25" 
+                    step="0.25" 
+                    defaultValue="1" 
+                    required 
+                  />
+                </div>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="related_to">Related To</Label>
+                <Select name="related_to">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select related item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="employee:1">John Doe (Employee)</SelectItem>
+                      <SelectItem value="employee:2">Jane Smith (Employee)</SelectItem>
+                      <SelectItem value="candidate:5">Sarah Thompson (Candidate)</SelectItem>
+                      <SelectItem value="job:1">Senior React Developer (Job)</SelectItem>
+                      <SelectItem value="payroll:12">December 2023 Payroll</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <DialogFooter>
+                <Button type="submit">Create Task</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
       
-      {/* Filter and Add Task Button */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            variant={activeFilter === 'all' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setActiveFilter('all')}
-          >
-            All
-          </Button>
-          <Button 
-            variant={activeFilter === 'pending' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setActiveFilter('pending')}
-          >
-            Pending
-          </Button>
-          <Button 
-            variant={activeFilter === 'in_progress' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setActiveFilter('in_progress')}
-          >
-            In Progress
-          </Button>
-          <Button 
-            variant={activeFilter === 'completed' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setActiveFilter('completed')}
-          >
-            Completed
-          </Button>
-          <Button 
-            variant={activeFilter === 'overdue' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setActiveFilter('overdue')}
-          >
-            Overdue
-          </Button>
-          <Button 
-            variant={activeFilter === 'high_priority' ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setActiveFilter('high_priority')}
-          >
-            High Priority
-          </Button>
-        </div>
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card className="md:col-span-3">
+          <CardHeader className="pb-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-2">
+                <TabsTrigger value="pending" className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  <span>Pending Tasks</span>
+                  <Badge variant="secondary" className="ml-1">
+                    {pendingTasks.length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Completed Tasks</span>
+                  <Badge variant="secondary" className="ml-1">
+                    {completedTasks.length}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            <TabsContent value="pending" className="space-y-4 mt-0">
+              {isLoadingTasks ? (
+                <div className="text-center py-8">Loading tasks...</div>
+              ) : sortedPendingTasks.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No pending tasks found.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sortedPendingTasks.map((task) => (
+                    <Card key={task.id} className={`border-l-4 ${task.priority === 'high' ? 'border-l-destructive' : task.priority === 'medium' ? 'border-l-orange-400' : 'border-l-slate-400'}`}>
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="font-medium">{task.title}</div>
+                            <div className="text-sm text-muted-foreground">{task.description}</div>
+                            
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {task.assigned_to_name}
+                              </Badge>
+                              
+                              <Badge variant={getTaskPriorityColor(task.priority)} className="flex items-center gap-1 capitalize">
+                                {task.priority} Priority
+                              </Badge>
+                              
+                              <Badge variant={getTaskStatusColor(task.status)} className="flex items-center gap-1 capitalize">
+                                {task.status}
+                              </Badge>
+                              
+                              {task.related_to && (
+                                <Badge variant="outline" className="flex items-center gap-1">
+                                  Related: {task.related_to.name}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end space-y-1 min-w-[150px]">
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <CalendarClock className="h-3 w-3 mr-1" />
+                              <span className={isTaskOverdue(task.due_date) ? 'text-destructive' : ''}>
+                                Due: {format(new Date(task.due_date), 'MMM d, yyyy')}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {task.estimated_time} {task.estimated_time === 1 ? 'hour' : 'hours'}
+                            </div>
+                            
+                            <Button 
+                              className="mt-2"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedTask(task);
+                                setIsCompleteTaskOpen(true);
+                              }}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Complete
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="completed" className="space-y-4 mt-0">
+              {isLoadingTasks ? (
+                <div className="text-center py-8">Loading tasks...</div>
+              ) : completedTasks.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No completed tasks found.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {completedTasks.map((task) => (
+                    <Card key={task.id} className="border-l-4 border-l-green-500">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="font-medium">{task.title}</div>
+                            <div className="text-sm text-muted-foreground">{task.description}</div>
+                            
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {task.assigned_to_name}
+                              </Badge>
+                              
+                              <Badge variant={getTaskStatusColor(task.status)} className="flex items-center gap-1 capitalize">
+                                {task.status}
+                              </Badge>
+                              
+                              {task.related_to && (
+                                <Badge variant="outline" className="flex items-center gap-1">
+                                  Related: {task.related_to.name}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col items-end space-y-1 min-w-[150px]">
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <CalendarClock className="h-3 w-3 mr-1" />
+                              Completed: {task.completed_at ? format(new Date(task.completed_at), 'MMM d, yyyy') : 'Unknown'}
+                            </div>
+                            
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {task.estimated_time} {task.estimated_time === 1 ? 'hour' : 'hours'}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </CardContent>
+        </Card>
         
-        <Button className="sm:self-end">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </Button>
-      </div>
-      
-      {/* Tasks List */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner size="lg" />
-          </div>
-        ) : filteredTasks.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <FileText className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="font-medium text-lg">No tasks found</h3>
-              <p className="text-muted-foreground mt-1">
-                {activeFilter === 'all' 
-                  ? "There are no HR tasks. Create one to get started." 
-                  : `No ${activeFilter.replace('_', ' ')} tasks found.`}
-              </p>
-              <Button variant="outline" className="mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Task
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredTasks.map(task => (
-            <Card key={task.id} className={isOverdue(task.due_date) && task.status !== 'completed' ? 'border-destructive' : ''}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-10 w-10 border">
-                    <AvatarFallback>{getInitials(task.assigned_to_name || '')}</AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">{task.title}</h3>
-                      <div className="flex gap-2">
-                        <Badge variant={getPriorityColor(task.priority)}>
-                          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                        </Badge>
-                        <Badge variant={getStatusColor(task.status)}>
-                          {task.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground">
-                      {task.description}
-                    </p>
-                    
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                      <div className="flex items-center text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5 mr-1" />
-                        {task.estimated_time} {task.estimated_time === 1 ? 'hour' : 'hours'}
-                      </div>
-                      
-                      <div className={`flex items-center ${isOverdue(task.due_date) && task.status !== 'completed' ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        <Calendar className="h-3.5 w-3.5 mr-1" />
-                        Due {format(new Date(task.due_date), 'MMM dd, yyyy')}
-                        {isOverdue(task.due_date) && task.status !== 'completed' && (
-                          <AlertCircle className="h-3.5 w-3.5 ml-1" />
-                        )}
-                      </div>
-                      
-                      {task.related_to && (
-                        <div className="flex items-center text-muted-foreground">
-                          <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
-                          {task.related_to.type.charAt(0).toUpperCase() + task.related_to.type.slice(1)}: {task.related_to.name}
-                        </div>
-                      )}
-                      
-                      {task.status === 'completed' && task.completed_at && (
-                        <div className="flex items-center text-green-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          Completed {format(new Date(task.completed_at), 'MMM dd, yyyy')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {task.status !== 'completed' && (
-                      <Button variant="outline" size="sm">
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Complete
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm">
-                      View
+        <Card className="md:row-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg">Improvement Suggestions</CardTitle>
+            <CardDescription>AI-generated suggestions for HR processes</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {trends ? (
+              <div className="space-y-3">
+                {trends.map((trend) => (
+                  <div key={trend.id} className="space-y-1">
+                    <h4 className="font-medium text-sm">{trend.title}</h4>
+                    <p className="text-xs text-muted-foreground">{trend.description}</p>
+                    <div className="text-xs font-medium mt-1">Suggested Action:</div>
+                    <p className="text-xs text-muted-foreground">{trend.suggested_actions[0]}</p>
+                    <Button size="sm" variant="outline" className="w-full mt-1 text-xs">
+                      Create Task
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">Loading suggestions...</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
       
-      {/* AI-Generated Suggestions */}
-      <Card className="border-blue-200 bg-blue-50/40 dark:bg-blue-950/20">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            AI Suggestions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-1.5">
-                <AlertCircle className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm">
-                  <span className="font-medium">Hiring Process Bottleneck:</span> Resume reviews are taking 3 days on average. Consider using AI pre-screening to cut review time by 40%.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-1.5">
-                <CheckCircle2 className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm">
-                  <span className="font-medium">Task Optimization:</span> Similar payroll tasks are scheduled each month. Create a standardized template to reduce setup time by 25%.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-1.5">
-                <Clock className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm">
-                  <span className="font-medium">Workload Distribution:</span> HR team workload is uneven with 60% of tasks assigned to Emily. Consider redistributing for better efficiency.
-                </p>
-              </div>
-            </div>
+      {/* Complete Task Dialog */}
+      <Dialog open={isCompleteTaskOpen} onOpenChange={setIsCompleteTaskOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Complete Task</DialogTitle>
+            <DialogDescription>
+              Mark this task as completed and add any completion notes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {selectedTask && (
+              <>
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="font-medium">{selectedTask.title}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{selectedTask.description}</div>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="completion_notes">Completion Notes</Label>
+                  <Textarea 
+                    id="completion_notes" 
+                    placeholder="Add notes about task completion..."
+                    value={completionNotes}
+                    onChange={(e) => setCompletionNotes(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCompleteTaskOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCompleteTask}>
+              Mark as Completed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
