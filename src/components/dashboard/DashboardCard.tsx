@@ -1,51 +1,38 @@
 
-import React from "react";
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 
-interface DashboardCardProps {
+export interface DashboardCardProps {
   title: string;
+  value: string | number;
+  description: string;
   icon?: React.ReactNode;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-  badgeText?: string;
-  badgeVariant?: "default" | "secondary" | "destructive" | "outline" | "success" | "accent" | "warning" | "danger";
   className?: string;
-  isGlass?: boolean;
 }
 
 const DashboardCard = ({
   title,
+  value,
+  description,
   icon,
-  children,
-  footer,
-  badgeText,
-  badgeVariant,
   className,
-  isGlass = false,
 }: DashboardCardProps) => {
   return (
-    <Card 
-      className={cn(
-        "transition-all duration-300 hover-scale shadow-subtle border overflow-hidden",
-        isGlass && "glass-card",
-        className
-      )}
-    >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-semibold tracking-tight">
-          <div className="flex items-center space-x-2">
-            {icon && <span className="text-muted-foreground">{icon}</span>}
-            <span>{title}</span>
+    <Card className={className}>
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
-        </CardTitle>
-        {badgeText && (
-          <Badge variant={badgeVariant}>{badgeText}</Badge>
-        )}
-      </CardHeader>
-      <CardContent className="py-4">{children}</CardContent>
-      {footer && <CardFooter className="pt-0">{footer}</CardFooter>}
+          {icon && (
+            <div className="text-muted-foreground">
+              {icon}
+            </div>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 };

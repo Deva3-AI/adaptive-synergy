@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Brain, CheckCircle2, Clock, FileText, Lightbulb, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { clientService } from '@/services/api';
-import aiUtils from '@/utils/aiUtils';
+import { analyzeClientInput, generateSuggestedTasks } from '@/utils/aiUtils';
 
 interface ClientRequirementsAnalyzerProps {
   clientId: number;
@@ -49,10 +49,10 @@ const ClientRequirementsAnalyzer: React.FC<ClientRequirementsAnalyzerProps> = ({
       setIsAnalyzing(true);
       
       // First analyze the sentiment and overall requirements
-      const initialAnalysis = await aiUtils.analyzeClientInput(clientInput);
+      const initialAnalysis = await analyzeClientInput(clientInput);
       
       // Then generate suggested tasks based on the requirements
-      const tasksAnalysis = await aiUtils.generateSuggestedTasks(clientInput, clientId);
+      const tasksAnalysis = await generateSuggestedTasks(clientInput, clientId);
       
       // Combine the results
       const results = {

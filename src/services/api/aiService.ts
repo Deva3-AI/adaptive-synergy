@@ -1,245 +1,137 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { analyzeClientInput, generateSuggestedTasks, getManagerInsights, analyzeClientCommunication, getTaskInsights, getTaskRecommendations } from '@/utils/aiUtils';
 
-const aiService = {
-  // Get AI-generated task recommendations for a specific user
-  getTaskRecommendations: async (userId: number) => {
-    try {
-      // In a real implementation, this would use AI to generate personalized task recommendations
-      // For now, we'll return mock data that looks reasonable
-      
-      // First get the user's existing tasks to provide context
-      const { data: userTasks, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('assigned_to', userId)
-        .limit(5);
-        
-      if (error) throw error;
-      
-      // Mock recommendations based on existing tasks
-      const mockRecommendations = [
-        {
-          task_id: 10001, // Use high IDs to avoid conflicts with real tasks
-          title: "Follow up with recent clients",
-          description: "Based on your recent task completions, it's a good time to reach out to clients for feedback.",
-          priority: "medium",
-          estimated_time: 1.5,
-          status: "pending"
-        },
-        {
-          task_id: 10002,
-          title: "Prepare weekly progress report",
-          description: "Your task history shows you typically prepare reports on this day of the week.",
-          priority: "high",
-          estimated_time: 2,
-          status: "pending"
-        },
-        {
-          task_id: 10003,
-          title: "Update project documentation",
-          description: "Several tasks were recently completed without documentation updates.",
-          priority: "low",
-          estimated_time: 1,
-          status: "pending"
-        }
-      ];
-      
-      return mockRecommendations;
-    } catch (error) {
-      console.error('Error generating task recommendations:', error);
-      return [];
-    }
-  },
-  
-  // Get AI insights for a specific task
-  getTaskInsights: async (taskId: number) => {
-    try {
-      // In a real implementation, we would analyze the task and related data
-      // For demonstration, return mock insights
+// Get client preferences from Supabase
+export const getClientPreferences = async (clientId: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('client_preferences')
+      .select('*')
+      .eq('client_id', clientId)
+      .single();
+    
+    if (error) {
+      // Return mock data if no preferences found (for development)
+      console.warn('No client preferences found:', error.message);
       return {
-        efficiency_score: 85,
-        similar_tasks: [
-          { id: 123, title: "Similar task from last month", completion_time: 2.5 },
-          { id: 456, title: "Related task with same client", completion_time: 3.2 }
+        id: 0,
+        client_id: clientId,
+        preferred_contact_method: 'email',
+        communication_frequency: 'weekly',
+        design_preferences: {
+          colors: ['#3366FF', '#FF6633', '#FFFFFF'],
+          style: 'modern',
+          fonts: ['Roboto', 'Open Sans']
+        },
+        industry_specific_requirements: {
+          sector: 'Technology',
+          target_audience: 'B2B',
+          compliance: ['GDPR', 'CCPA']
+        },
+        dos: [
+          'Use high-contrast colors',
+          'Include multiple CTAs',
+          'Focus on data-driven features'
         ],
-        recommendations: [
-          "Based on historical data, this task may take 15% longer than estimated",
-          "Consider breaking this into smaller sub-tasks for better tracking",
-          "This client typically requires 2 rounds of revisions"
-        ]
+        donts: [
+          'Avoid complex animations',
+          'Don\'t use script fonts',
+          'Avoid stock photos when possible'
+        ],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
-    } catch (error) {
-      console.error(`Error getting insights for task ${taskId}:`, error);
-      return null;
     }
-  },
-  
-  // Analyze client communication to extract preferences
-  analyzeClientCommunication: async (clientId: number) => {
-    try {
-      // Get client preferences to provide context
-      const { data: preferences, error: preferencesError } = await supabase
-        .from('client_preferences')
-        .select('*')
-        .eq('client_id', clientId)
-        .single();
-        
-      if (preferencesError && preferencesError.code !== 'PGRST116') {
-        throw preferencesError;
-      }
-      
-      // Get recent communications
-      const { data: communications, error: communicationsError } = await supabase
-        .from('communication_logs')
-        .select('message, channel')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (communicationsError) throw communicationsError;
-      
-      // This would normally use NLP to analyze client communications
-      // Return mock data for demonstration
+
+    // If data.dos or data.donts don't exist (since they're not in the schema),
+    // add them from the design_preferences JSON field as a mock
+    if (data) {
+      const designPreferences = data.design_preferences || {};
       return {
-        communication_style: "Formal",
-        preferred_feedback_method: preferences?.preferred_contact_method || "Email",
-        response_time_expectation: "Within 24 hours",
-        key_priorities: ["Quality", "Timeliness", "Detail-oriented", "Mobile responsiveness"],
-        common_revisions: ["Logo size adjustments", "Color palette refinements", "Copy edits", "Font changes"],
-        sentiment: "Positive",
-        dos: preferences?.dos || ["Provide detailed progress reports", "Adhere to brand guidelines"],
-        donts: preferences?.donts || ["Make design decisions without approval", "Miss deadlines"]
-      };
-    } catch (error) {
-      console.error(`Error analyzing client communication for client ${clientId}:`, error);
-      
-      // Return fallback mock data in case of error
-      return {
-        communication_style: "Formal",
-        preferred_feedback_method: "Email",
-        response_time_expectation: "Within 24 hours",
-        key_priorities: ["Quality", "Timeliness"],
-        common_revisions: ["Logo size adjustments", "Copy edits"],
-        sentiment: "Neutral"
+        ...data,
+        dos: designPreferences.dos || [],
+        donts: designPreferences.donts || []
       };
     }
-  },
-  
-  // Get manager insights for an employee working on specific tasks
-  getManagerInsights: async ({ clientId, taskId }: { clientId?: number, taskId?: number }) => {
-    try {
-      let insights = [];
-      
-      if (clientId) {
-        // Get client-specific insights
-        const clientResult = await this.analyzeClientCommunication(clientId);
-        
-        if (clientResult) {
-          // Generate insights based on client preferences
-          insights = [
-            {
-              id: `client-style-${clientId}`,
-              type: 'preference',
-              content: `This client prefers a ${clientResult.communication_style.toLowerCase()} communication style. Keep your messages professional and structured.`,
-              priority: 'medium',
-              acknowledgable: true
-            },
-            {
-              id: `client-response-${clientId}`,
-              type: 'deadline',
-              content: `The client expects responses ${clientResult.response_time_expectation.toLowerCase()}. Make this a priority.`,
-              priority: 'high',
-              acknowledgable: true
-            }
-          ];
-          
-          // Add insights based on client dos and don'ts
-          if (clientResult.dos && clientResult.dos.length > 0) {
-            const randomDo = clientResult.dos[Math.floor(Math.random() * clientResult.dos.length)];
-            insights.push({
-              id: `client-do-${clientId}-${Date.now()}`,
-              type: 'tip',
-              content: `Remember to: ${randomDo}`,
-              priority: 'medium',
-              acknowledgable: true
-            });
-          }
-          
-          if (clientResult.donts && clientResult.donts.length > 0) {
-            const randomDont = clientResult.donts[Math.floor(Math.random() * clientResult.donts.length)];
-            insights.push({
-              id: `client-dont-${clientId}-${Date.now()}`,
-              type: 'warning',
-              content: `Avoid: ${randomDont}`,
-              priority: 'high',
-              acknowledgable: true
-            });
-          }
-        }
-      }
-      
-      if (taskId) {
-        // Add task-specific insights
-        const taskInsights = await this.getTaskInsights(taskId);
-        
-        if (taskInsights) {
-          // Add insights about task duration and complexity
-          insights.push({
-            id: `task-time-${taskId}`,
-            type: 'deadline',
-            content: taskInsights.recommendations[0] || "Monitor time spent on this task carefully based on past performance.",
-            priority: 'medium',
-            acknowledgable: false
-          });
-          
-          // Add task recommendation
-          if (taskInsights.recommendations.length > 1) {
-            insights.push({
-              id: `task-strategy-${taskId}`,
-              type: 'tip',
-              content: taskInsights.recommendations[1],
-              priority: 'low',
-              acknowledgable: true
-            });
-          }
-        }
-      }
-      
-      // Add some general insights if we don't have many
-      if (insights.length < 3) {
-        insights.push({
-          id: `general-tip-${Date.now()}`,
-          type: 'tip',
-          content: "Consider breaking your work into focused 90-minute sessions for optimal productivity.",
-          priority: 'low',
-          acknowledgable: false
-        });
-      }
-      
-      return insights;
-    } catch (error) {
-      console.error('Error generating manager insights:', error);
-      
-      // Return fallback insights in case of error
-      return [
-        {
-          id: `fallback-1`,
-          type: 'tip',
-          content: "Document your progress regularly to maintain clear communication with clients and team members.",
-          priority: 'medium',
-          acknowledgable: false
-        },
-        {
-          id: `fallback-2`,
-          type: 'deadline',
-          content: "Schedule regular breaks to maintain productivity throughout the day.",
-          priority: 'low',
-          acknowledgable: false
-        }
-      ];
-    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching client preferences:', error);
+    throw error;
   }
 };
 
-export default aiService;
+// Analyze client requirements
+export const analyzeRequirements = async (input: string) => {
+  try {
+    return await analyzeClientInput(input);
+  } catch (error) {
+    console.error('Error analyzing client requirements:', error);
+    throw error;
+  }
+};
+
+// Generate suggested tasks based on client requirements
+export const generateTasks = async (input: string, clientId: number) => {
+  try {
+    // Get client preferences for context
+    const preferences = await getClientPreferences(clientId);
+    
+    return await generateSuggestedTasks(input, clientId);
+  } catch (error) {
+    console.error('Error generating tasks:', error);
+    throw error;
+  }
+};
+
+// Get manager insights for a client or task
+export const getAIManagerInsights = async (params: { clientId: number, taskId?: number }) => {
+  try {
+    return await getManagerInsights(params);
+  } catch (error) {
+    console.error('Error getting manager insights:', error);
+    throw error;
+  }
+};
+
+// Analyze client communications
+export const analyzeClientCommunications = async (clientId: number) => {
+  try {
+    return await analyzeClientCommunication(clientId);
+  } catch (error) {
+    console.error('Error analyzing client communications:', error);
+    throw error;
+  }
+};
+
+// Get AI insights for a task
+export const getAITaskInsights = async (taskId: number) => {
+  try {
+    return await getTaskInsights(taskId);
+  } catch (error) {
+    console.error('Error getting task insights:', error);
+    throw error;
+  }
+};
+
+// Get AI task recommendations for a user
+export const getAITaskRecommendations = async (userId: number) => {
+  try {
+    return await getTaskRecommendations(userId);
+  } catch (error) {
+    console.error('Error getting task recommendations:', error);
+    throw error;
+  }
+};
+
+// Create a mock taskService file
+export default {
+  getClientPreferences,
+  analyzeRequirements,
+  generateTasks,
+  getAIManagerInsights,
+  analyzeClientCommunications,
+  getAITaskInsights,
+  getAITaskRecommendations
+};

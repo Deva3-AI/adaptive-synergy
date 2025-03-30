@@ -6,7 +6,7 @@ import { PlusCircle, Check, Clock, CalendarClock, Brain, Sparkles, User, RotateC
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { aiService, taskService } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -29,7 +29,7 @@ const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({
     queryKey: ['recommendedTasks', userId, clientId, refreshKey],
     queryFn: async () => {
       try {
-        return await aiService.getTaskRecommendations(userId);
+        return await aiService.getAITaskRecommendations(userId);
       } catch (error) {
         console.error('Error fetching task recommendations:', error);
         return [];

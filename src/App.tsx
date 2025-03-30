@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from 'sonner';
 
 // Import pages
@@ -38,14 +38,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>; // Or a more sophisticated loading indicator
-  }
-
   return (
-    <>
+    <Router>
+      <Toaster />
       <Routes>
         {/* Auth routes */}
         <Route path="/login" element={<Login />} />
@@ -165,7 +160,7 @@ function App() {
         {/* 404 - Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </Router>
   );
 }
 

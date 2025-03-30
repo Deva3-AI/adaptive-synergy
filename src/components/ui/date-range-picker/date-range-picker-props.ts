@@ -1,11 +1,26 @@
 
-import { Dispatch, SetStateAction } from 'react';
-import { DateRange } from 'react-day-picker';
+import { CalendarDate } from "@internationalized/date";
+
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
 
 export interface DateRangePickerProps {
-  value: DateRange;
-  onChange: Dispatch<SetStateAction<DateRange>>;
-  align?: 'start' | 'center' | 'end';
+  /** The selected date range. */
+  value?: DateRange;
+  /** Sets the selected date range. */
+  onChange?: (date: DateRange) => void;
+  /** Whether the date range picker should be disabled. */
+  disabled?: boolean;
+  /** The placeholder to show when no date is selected. */
+  placeholder?: string;
+  /** Alignment of the popover. */
+  align?: "start" | "center" | "end";
+  /** The locale to use for formatting dates. */
   locale?: string;
-  showCompare?: boolean;
+  /** The number of months to show at once. */
+  numberOfMonths?: number;
+  /** Custom CSS class name. */
+  className?: string;
 }

@@ -23,7 +23,6 @@ const MeetingAnalysisCard = () => {
 
     setIsAnalyzing(true);
     try {
-      // Fixed: removed the second argument
       const result = await analyzeMeetingTranscript(transcript);
       setAnalysisResult(result);
       toast.success('Meeting transcript analyzed successfully');
