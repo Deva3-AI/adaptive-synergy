@@ -16,15 +16,18 @@ const hrService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching employee attendance:', error);
-      return null;
+      return [];
     }
   },
 
   getPayroll: async (month?: string, year?: string) => {
     try {
       let url = '/hr/payroll';
-      if (month && year) {
-        url += `?month=${month}&year=${year}`;
+      const params = [];
+      if (month) params.push(`month=${month}`);
+      if (year) params.push(`year=${year}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
       }
       const response = await apiClient.get(url);
       return response.data;
@@ -53,12 +56,15 @@ const hrService = {
       throw error;
     }
   },
-  
-  getPayslips: async (month?: string, year?: string) => {
+
+  getPayslips: async (startDate?: string, endDate?: string) => {
     try {
       let url = '/hr/payslips';
-      if (month && year) {
-        url += `?month=${month}&year=${year}`;
+      const params = [];
+      if (startDate) params.push(`startDate=${startDate}`);
+      if (endDate) params.push(`endDate=${endDate}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
       }
       const response = await apiClient.get(url);
       return response.data;
@@ -67,21 +73,17 @@ const hrService = {
       return [];
     }
   },
-  
-  generatePayslip: async (employeeId: number, month: string, year: number) => {
+
+  generatePayslip: async (employeeId: number, month: string) => {
     try {
-      const response = await apiClient.post('/hr/payslips/generate', {
-        employeeId,
-        month,
-        year
-      });
+      const response = await apiClient.post('/hr/payslips/generate', { employeeId, month });
       return response.data;
     } catch (error) {
       console.error('Error generating payslip:', error);
       throw error;
     }
   },
-  
+
   getJobOpenings: async () => {
     try {
       const response = await apiClient.get('/hr/job-openings');
@@ -91,10 +93,13 @@ const hrService = {
       return [];
     }
   },
-  
+
   getCandidates: async (jobId?: number) => {
     try {
-      const url = jobId ? `/hr/candidates?jobId=${jobId}` : '/hr/candidates';
+      let url = '/hr/candidates';
+      if (jobId) {
+        url += `?jobId=${jobId}`;
+      }
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {

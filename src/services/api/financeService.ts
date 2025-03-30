@@ -1,12 +1,14 @@
+
 import apiClient from '@/utils/apiUtils';
 
 export interface Invoice {
   id: number;
   client_id: number;
+  client_name: string;
   invoice_number: string;
   amount: number;
   due_date: string;
-  status: 'pending' | 'paid' | 'overdue';
+  status: 'pending' | 'paid' | 'overdue' | 'sent';
   created_at: string;
 }
 

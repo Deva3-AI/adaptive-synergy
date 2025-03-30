@@ -55,7 +55,7 @@ const marketingService = {
       return null;
     }
   },
-  
+
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
@@ -65,7 +65,7 @@ const marketingService = {
       return [];
     }
   },
-  
+
   getEmailOutreach: async () => {
     try {
       const response = await apiClient.get('/marketing/email-outreach');
@@ -75,7 +75,7 @@ const marketingService = {
       return [];
     }
   },
-  
+
   getLeads: async () => {
     try {
       const response = await apiClient.get('/marketing/leads');
@@ -85,7 +85,7 @@ const marketingService = {
       return [];
     }
   },
-  
+
   getMarketingPlans: async () => {
     try {
       const response = await apiClient.get('/marketing/plans');
@@ -95,7 +95,7 @@ const marketingService = {
       return [];
     }
   },
-  
+
   getMarketingPlanById: async (planId: number) => {
     try {
       const response = await apiClient.get(`/marketing/plans/${planId}`);
@@ -105,37 +105,37 @@ const marketingService = {
       return null;
     }
   },
-  
+
   getMarketingTrends: async () => {
     try {
       const response = await apiClient.get('/marketing/trends');
       return response.data;
     } catch (error) {
       console.error('Error fetching marketing trends:', error);
-      return null;
+      return [];
     }
   },
-  
+
   getCompetitorInsights: async () => {
     try {
-      const response = await apiClient.get('/marketing/competitors');
+      const response = await apiClient.get('/marketing/competitor-insights');
       return response.data;
     } catch (error) {
       console.error('Error fetching competitor insights:', error);
       return [];
     }
   },
-  
+
   analyzeMeetingTranscript: async (transcript: string) => {
     try {
       const response = await apiClient.post('/marketing/analyze-transcript', { transcript });
       return response.data;
     } catch (error) {
       console.error('Error analyzing meeting transcript:', error);
-      return null;
+      throw error;
     }
   },
-  
+
   getMarketingMetrics: async () => {
     try {
       const response = await apiClient.get('/marketing/metrics');
