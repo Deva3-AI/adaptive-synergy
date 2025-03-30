@@ -103,7 +103,7 @@ const financeService = {
     }
   },
 
-  // Add financial methods
+  // Add missing methods
   getFinancialOverview: async () => {
     try {
       const response = await apiClient.get('/finance/overview');
@@ -223,6 +223,7 @@ const financeService = {
     }
   },
 
+  // Add sales-related methods
   getSalesMetrics: async (dateRange: string) => {
     try {
       const response = await apiClient.get(`/finance/sales-metrics?range=${dateRange}`);
@@ -243,7 +244,6 @@ const financeService = {
     }
   },
 
-  // Sales tracking methods
   getSalesTrends: async (dateRange: string) => {
     try {
       const response = await apiClient.get(`/finance/sales-trends?range=${dateRange}`);
@@ -274,7 +274,6 @@ const financeService = {
     }
   },
 
-  // Sales growth methods
   getSalesGrowthData: async (dateRange: string) => {
     try {
       const response = await apiClient.get(`/finance/sales-growth?range=${dateRange}`);
@@ -305,7 +304,6 @@ const financeService = {
     }
   },
 
-  // Sales reports methods
   getWeeklyReports: async (dateRange?: string) => {
     try {
       let url = '/finance/weekly-reports';
@@ -334,7 +332,6 @@ const financeService = {
     }
   },
 
-  // Sales follow-up methods
   getSalesFollowUps: async () => {
     try {
       const response = await apiClient.get('/finance/sales-follow-ups');
@@ -365,7 +362,6 @@ const financeService = {
     }
   },
 
-  // Financial plans
   getFinancialPlans: async () => {
     try {
       const response = await apiClient.get('/finance/plans');
@@ -376,7 +372,6 @@ const financeService = {
     }
   },
 
-  // Team costs analysis
   analyzeTeamCosts: async (period: string) => {
     try {
       const response = await apiClient.get(`/finance/team-costs?period=${period}`);
@@ -409,7 +404,6 @@ const financeService = {
     }
   },
 
-  // Invoice reminders
   sendInvoiceReminder: async (invoiceId: number) => {
     try {
       const response = await apiClient.post(`/finance/invoices/${invoiceId}/send-reminder`);

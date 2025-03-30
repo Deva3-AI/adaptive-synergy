@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/toaster";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
 // Form schemas
@@ -44,7 +43,6 @@ interface AuthFormProps {
 
 const AuthForm = ({ type }: AuthFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { login, signup } = useAuth();
 
@@ -77,11 +75,7 @@ const AuthForm = ({ type }: AuthFormProps) => {
       // Login will handle navigation in the hook
     } catch (error: any) {
       console.error('Login error:', error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "Something went wrong. Please try again.",
-      });
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -100,11 +94,7 @@ const AuthForm = ({ type }: AuthFormProps) => {
       // Signup will handle navigation in the hook
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: error.message || "Something went wrong. Please try again.",
-      });
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }

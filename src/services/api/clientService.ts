@@ -70,7 +70,7 @@ const clientService = {
     }
   },
 
-  // Adding missing methods that are causing TypeScript errors
+  // Add the missing methods
   getClientBrands: async (clientId: number) => {
     try {
       const response = await apiClient.get(`/clients/${clientId}/brands`);
@@ -97,22 +97,31 @@ const clientService = {
     }
   },
 
-  getBrandTasks: async (clientId: number, brandId: number) => {
+  getBrandTasks: async (clientId: number, brandId?: number) => {
     try {
-      const response = await apiClient.get(`/clients/${clientId}/brands/${brandId}/tasks`);
+      // Handle both function signatures
+      let url;
+      if (brandId) {
+        url = `/clients/${clientId}/brands/${brandId}/tasks`;
+      } else {
+        // If brandId is not provided, assume clientId is the brandId
+        url = `/brands/${clientId}/tasks`;
+      }
+      
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching tasks for brand ${brandId}:`, error);
+      console.error(`Error fetching tasks for brand:`, error);
       return [];
     }
   },
 
-  createBrand: async (clientData: any) => {
+  createBrand: async (brandData: any) => {
     try {
-      const response = await apiClient.post(`/clients/${clientData.client_id}/brands`, clientData);
+      const response = await apiClient.post(`/clients/${brandData.client_id}/brands`, brandData);
       return response.data;
     } catch (error) {
-      console.error(`Error creating brand for client ${clientData.client_id}:`, error);
+      console.error(`Error creating brand for client ${brandData.client_id}:`, error);
       throw error;
     }
   },
@@ -125,12 +134,38 @@ const clientService = {
       console.error(`Error fetching preferences for client ${clientId}:`, error);
       // Return mock data for development
       return {
-        communication_channels: ["email", "slack"],
-        preferred_meeting_times: "afternoons",
-        design_preferences: "Minimalistic, modern design with bold typography",
-        color_preferences: ["#2563EB", "#F59E0B", "#10B981"],
-        feedback_style: "Direct and detailed",
-        notes: "Client prefers weekly updates via email. Very responsive to questions."
+        designPreferences: {
+          colorScheme: "Blue, White, Gray",
+          typography: "Sans-serif, minimalist",
+          layoutStyle: "Clean grid system with whitespace"
+        },
+        communicationPreferences: {
+          preferredChannel: "Slack",
+          responseTime: "Within 24 hours",
+          meetingFrequency: "Weekly"
+        },
+        projectPreferences: {
+          revisionCycles: "Maximum of 3 rounds",
+          deliveryFormat: "PDF and source files",
+          feedbackStyle: "Direct and constructive"
+        },
+        history: [
+          {
+            project: "Website Redesign",
+            date: "Mar 2023",
+            feedback: "Excellent work on the minimalist approach. Really captures our brand essence."
+          },
+          {
+            project: "Logo Update",
+            date: "Jan 2023",
+            feedback: "The colors were perfect, but we'd prefer bolder typography in future projects."
+          },
+          {
+            project: "Marketing Campaign",
+            date: "Nov 2022",
+            feedback: "Loved the creative direction. Would like more variety in social media formats next time."
+          }
+        ]
       };
     }
   }
