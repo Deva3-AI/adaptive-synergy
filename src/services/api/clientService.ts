@@ -1,6 +1,14 @@
 
 import apiClient from '@/utils/apiUtils';
 
+export interface Brand {
+  id: number;
+  name: string;
+  description?: string;
+  logo?: string;
+  client_id: number;
+}
+
 const clientService = {
   getClients: async () => {
     try {
@@ -62,7 +70,7 @@ const clientService = {
     }
   },
 
-  // New methods for ClientBrandsList and ClientRequirementsPanel
+  // Methods for ClientBrandsList and ClientRequirementsPanel
   getClientBrands: async (clientId: number) => {
     try {
       const response = await apiClient.get(`/clients/${clientId}/brands`);
@@ -83,12 +91,12 @@ const clientService = {
     }
   },
 
-  createBrand: async (clientId: number, brandData: any) => {
+  createBrand: async (clientData: any) => {
     try {
-      const response = await apiClient.post(`/clients/${clientId}/brands`, brandData);
+      const response = await apiClient.post(`/clients/${clientData.client_id}/brands`, clientData);
       return response.data;
     } catch (error) {
-      console.error(`Error creating brand for client ${clientId}:`, error);
+      console.error(`Error creating brand for client ${clientData.client_id}:`, error);
       throw error;
     }
   },

@@ -59,7 +59,7 @@ const marketingService = {
     }
   },
 
-  // New methods for various marketing components
+  // Methods for various marketing components
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
