@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -37,7 +37,6 @@ const FinanceDashboard = () => {
     queryFn: financeService.getUpsellOpportunities
   });
 
-  // Type safe handling of financial overview data
   const formatFinancialOverview = (data: any) => {
     return {
       monthly_revenue: data?.monthly_revenue || 0,
@@ -48,7 +47,7 @@ const FinanceDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Finance Dashboard</h1>
@@ -204,8 +203,8 @@ const FinanceDashboard = () => {
             <TabsContent value="expenses" className="pt-4">
               <ExpensesDashboard />
             </TabsContent>
-            <TabsContent value="team-costs" className="pt-4">
-              <TeamCostsAnalysis period="month" />
+            <TabsContent value="team-costs" className="space-y-6">
+              <TeamCostsAnalysis period={timeframe} />
             </TabsContent>
           </Tabs>
         </div>

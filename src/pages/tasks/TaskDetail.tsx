@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { MessageSquare, Paperclip } from "lucide-react";
-import { taskService } from '@/services/api';
+import taskService from '@/services/api/taskService';
 import { useQuery } from '@tanstack/react-query';
 
 const TaskDetail = () => {

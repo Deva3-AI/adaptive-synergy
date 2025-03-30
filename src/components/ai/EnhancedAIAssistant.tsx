@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { aiService } from "@/services/api/aiService";
+import aiService from "@/services/api/aiService";
 import { useAuth } from "@/hooks/use-auth";
 import { useClients, useTasks, useEmployees } from "@/utils/apiUtils";
 import { toast } from "sonner";

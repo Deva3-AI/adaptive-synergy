@@ -87,6 +87,35 @@ const aiService = {
         suggestions: []
       };
     }
+  },
+  
+  getAssistantResponse: async (message: string, context: any) => {
+    try {
+      const response = await apiClient.post('/ai/assistant', { message, context });
+      return response.data;
+    } catch (error) {
+      console.error('Get AI assistant response error:', error);
+      return { message: "I'm having trouble processing your request. Please try again later." };
+    }
+  },
+  
+  generateSuggestedTasks: async (projectDescription: string, clientId?: number) => {
+    try {
+      let url = '/ai/suggested-tasks';
+      const params = [];
+      if (projectDescription) params.push(`description=${encodeURIComponent(projectDescription)}`);
+      if (clientId) params.push(`clientId=${clientId}`);
+      
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Generate suggested tasks error:', error);
+      return { suggested_tasks: [] };
+    }
   }
 };
 

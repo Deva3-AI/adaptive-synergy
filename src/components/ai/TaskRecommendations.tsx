@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Clock, RotateCw, ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { aiService } from "@/services/api/aiService";
+import aiService from "@/services/api/aiService";
 import { toast } from "sonner";
 
 interface TaskRecommendationsProps {

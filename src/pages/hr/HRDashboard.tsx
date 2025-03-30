@@ -1,5 +1,7 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import hrService from '@/services/api/hrService';
 
-import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,9 +11,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useQuery } from "@tanstack/react-query";
 import { format, subDays } from "date-fns";
-import { hrService } from "@/services/api/hrService";
 import DashboardCard from "@/components/dashboard/DashboardCard";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import AttendanceTracker from "@/components/hr/AttendanceTracker";
@@ -19,7 +19,6 @@ import RecruitmentTracker from "@/components/hr/RecruitmentTracker";
 import PayrollManagement from "@/components/hr/PayrollManagement";
 import TasksManagement from "@/components/hr/TasksManagement";
 
-// Sample chart data
 const attendanceData = [
   { name: "Mon", present: 48, late: 3, absent: 1 },
   { name: "Tue", present: 50, late: 1, absent: 1 },
@@ -40,24 +39,20 @@ const departmentData = [
 const HrDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   
-  // For the overview tab
   const startDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
   const endDate = format(new Date(), 'yyyy-MM-dd');
   
-  // Get HR metrics
   const { data: hrMetrics } = useQuery({
     queryKey: ['hr-metrics', 'month'],
     queryFn: () => hrService.getHRMetrics('month'),
   });
   
-  // Get attendance stats
   const { data: attendanceStats } = useQuery({
     queryKey: ['hr-attendance-stats', startDate, endDate],
     queryFn: () => hrService.getAttendanceStats(startDate, endDate),
     enabled: activeTab === 'overview',
   });
   
-  // Get HR trends
   const { data: hrTrends } = useQuery({
     queryKey: ['hr-trends'],
     queryFn: () => hrService.getHRTrends(),

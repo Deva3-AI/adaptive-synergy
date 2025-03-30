@@ -2,37 +2,19 @@
 import apiClient from '@/utils/apiUtils';
 
 const userService = {
-  getCurrentUser: async () => {
+  getUserProfile: async () => {
     try {
-      const response = await apiClient.get('/users/me');
-      return response.data;
-    } catch (error) {
-      console.error('Get current user error:', error);
-      // Return mock data for preview
-      return {
-        id: 1,
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        role: 'Employee',
-        department: 'Development',
-        avatar: null
-      };
-    }
-  },
-  
-  getUserProfile: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/users/${userId}`);
+      const response = await apiClient.get('/users/profile');
       return response.data;
     } catch (error) {
       console.error('Get user profile error:', error);
-      throw error;
+      return null;
     }
   },
   
   updateUserProfile: async (userData: any) => {
     try {
-      const response = await apiClient.put('/users/me', userData);
+      const response = await apiClient.put('/users/profile', userData);
       return response.data;
     } catch (error) {
       console.error('Update user profile error:', error);
@@ -40,43 +22,19 @@ const userService = {
     }
   },
   
-  uploadAvatar: async (formData: FormData) => {
+  getNotifications: async () => {
     try {
-      const response = await apiClient.post('/users/me/avatar', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await apiClient.get('/users/notifications');
       return response.data;
     } catch (error) {
-      console.error('Upload avatar error:', error);
-      throw error;
-    }
-  },
-  
-  changePassword: async (data: { current_password: string; new_password: string }) => {
-    try {
-      const response = await apiClient.put('/users/me/password', data);
-      return response.data;
-    } catch (error) {
-      console.error('Change password error:', error);
-      throw error;
-    }
-  },
-  
-  getUserNotifications: async () => {
-    try {
-      const response = await apiClient.get('/users/me/notifications');
-      return response.data;
-    } catch (error) {
-      console.error('Get user notifications error:', error);
+      console.error('Get notifications error:', error);
       return [];
     }
   },
   
   markNotificationAsRead: async (notificationId: number) => {
     try {
-      const response = await apiClient.put(`/users/me/notifications/${notificationId}/read`);
+      const response = await apiClient.put(`/users/notifications/${notificationId}/read`);
       return response.data;
     } catch (error) {
       console.error('Mark notification as read error:', error);
@@ -84,32 +42,23 @@ const userService = {
     }
   },
   
-  getUserTasks: async (status?: string) => {
+  getUserPreferences: async () => {
     try {
-      let url = '/users/me/tasks';
-      if (status) {
-        url += `?status=${status}`;
-      }
-      const response = await apiClient.get(url);
+      const response = await apiClient.get('/users/preferences');
       return response.data;
     } catch (error) {
-      console.error('Get user tasks error:', error);
-      return [];
+      console.error('Get user preferences error:', error);
+      return {};
     }
   },
   
-  getUserPerformance: async (period: string = 'month') => {
+  updateUserPreferences: async (preferences: any) => {
     try {
-      const response = await apiClient.get(`/users/me/performance?period=${period}`);
+      const response = await apiClient.put('/users/preferences', preferences);
       return response.data;
     } catch (error) {
-      console.error('Get user performance error:', error);
-      return {
-        tasks_completed: 0,
-        on_time_completion: 0,
-        average_rating: 0,
-        performance_trend: []
-      };
+      console.error('Update user preferences error:', error);
+      throw error;
     }
   }
 };

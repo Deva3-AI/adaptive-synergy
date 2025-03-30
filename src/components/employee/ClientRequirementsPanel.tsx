@@ -24,7 +24,7 @@ interface ClientRequirementsPanelProps {
 const ClientRequirementsPanel = ({ clientId, taskId }: ClientRequirementsPanelProps) => {
   const { data: clientDetails, isLoading: isLoadingClient } = useQuery({
     queryKey: ['client', clientId],
-    queryFn: () => clientId ? clientService.getClientById(clientId) : Promise.resolve(null),
+    queryFn: () => clientId ? clientService.getClientDetails(clientId) : Promise.resolve(null),
     enabled: !!clientId,
   });
 

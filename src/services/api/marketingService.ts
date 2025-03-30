@@ -2,7 +2,6 @@
 import apiClient from '@/utils/apiUtils';
 
 const marketingService = {
-  // Campaign management
   getCampaigns: async () => {
     try {
       const response = await apiClient.get('/marketing/campaigns');
@@ -23,7 +22,6 @@ const marketingService = {
     }
   },
   
-  // Meeting management
   getMeetings: async () => {
     try {
       const response = await apiClient.get('/marketing/meetings');
@@ -44,22 +42,25 @@ const marketingService = {
     }
   },
   
-  // Analytics
   getAnalytics: async (startDate?: string, endDate?: string) => {
     try {
-      const params = new URLSearchParams();
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
+      let url = '/marketing/analytics';
+      const params = [];
+      if (startDate) params.push(`startDate=${startDate}`);
+      if (endDate) params.push(`endDate=${endDate}`);
       
-      const response = await apiClient.get(`/marketing/analytics?${params.toString()}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get analytics error:', error);
-      return { data: [] };
+      return {};
     }
   },
   
-  // Email templates
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');
@@ -70,13 +71,9 @@ const marketingService = {
     }
   },
   
-  // Email outreach
-  getEmailOutreach: async (status?: string) => {
+  getEmailOutreach: async () => {
     try {
-      const params = new URLSearchParams();
-      if (status) params.append('status', status);
-      
-      const response = await apiClient.get(`/marketing/email-outreach?${params.toString()}`);
+      const response = await apiClient.get('/marketing/email-outreach');
       return response.data;
     } catch (error) {
       console.error('Get email outreach error:', error);
@@ -84,13 +81,10 @@ const marketingService = {
     }
   },
   
-  // Leads management
   getLeads: async (status?: string) => {
     try {
-      const params = new URLSearchParams();
-      if (status) params.append('status', status);
-      
-      const response = await apiClient.get(`/marketing/leads?${params.toString()}`);
+      const url = status ? `/marketing/leads?status=${status}` : '/marketing/leads';
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error('Get leads error:', error);
@@ -98,7 +92,6 @@ const marketingService = {
     }
   },
   
-  // Marketing plans
   getMarketingPlans: async () => {
     try {
       const response = await apiClient.get('/marketing/plans');
@@ -114,12 +107,11 @@ const marketingService = {
       const response = await apiClient.get(`/marketing/plans/${planId}`);
       return response.data;
     } catch (error) {
-      console.error('Get marketing plan error:', error);
-      throw error;
+      console.error('Get marketing plan by ID error:', error);
+      return null;
     }
   },
   
-  // Trends and insights
   getMarketingTrends: async () => {
     try {
       const response = await apiClient.get('/marketing/trends');
@@ -146,17 +138,13 @@ const marketingService = {
       return response.data;
     } catch (error) {
       console.error('Analyze meeting transcript error:', error);
-      return {
-        key_points: [],
-        action_items: [],
-        sentiment: 'neutral'
-      };
+      return { key_points: [], action_items: [], sentiment: {} };
     }
   },
   
-  getMarketingMetrics: async (period: string = 'month') => {
+  getMarketingMetrics: async () => {
     try {
-      const response = await apiClient.get(`/marketing/metrics?period=${period}`);
+      const response = await apiClient.get('/marketing/metrics');
       return response.data;
     } catch (error) {
       console.error('Get marketing metrics error:', error);
