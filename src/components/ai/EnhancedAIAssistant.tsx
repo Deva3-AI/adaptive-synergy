@@ -86,13 +86,13 @@ const EnhancedAIAssistant = () => {
     try {
       // Include client context in the query
       const enhancedQuery = `${query}\n\nClient Context:\n${clientContext}`;
-      const response = await aiService.getResponse(enhancedQuery);
+      const result = await aiService.getResponse(enhancedQuery);
 
-      if (response && response.response) {
+      if (result && result.response) {
         const aiMessage: ChatMessage = {
           id: Date.now().toString(),
           sender: 'ai',
-          message: response.response,
+          message: result.response,
           timestamp: new Date().toLocaleTimeString(),
         };
         setMessages(prevMessages => [...prevMessages, aiMessage]);
@@ -124,9 +124,9 @@ const EnhancedAIAssistant = () => {
     try {
       // Re-submit the last user query with client context
       const enhancedQuery = `${lastUserMessage.message}\n\nClient Context:\n${clientContext}`;
-      const response = await aiService.getResponse(enhancedQuery);
+      const result = await aiService.getResponse(enhancedQuery);
 
-      if (response && response.response) {
+      if (result && result.response) {
         // Replace the last AI response with the new one
         setMessages(prevMessages => {
           const newMessages = prevMessages.slice();
@@ -135,7 +135,7 @@ const EnhancedAIAssistant = () => {
             newMessages[newMessages.length - 1 - lastAiIndex] = {
               id: Date.now().toString(),
               sender: 'ai',
-              message: response.response,
+              message: result.response,
               timestamp: new Date().toLocaleTimeString(),
             };
             return newMessages;
@@ -144,7 +144,7 @@ const EnhancedAIAssistant = () => {
             const aiMessage: ChatMessage = {
               id: Date.now().toString(),
               sender: 'ai',
-              message: response.response,
+              message: result.response,
               timestamp: new Date().toLocaleTimeString(),
             };
             return [...newMessages, aiMessage];

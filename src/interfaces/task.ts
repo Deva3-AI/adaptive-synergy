@@ -3,67 +3,74 @@ export interface Task {
   task_id: number;
   title: string;
   description?: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  priority?: 'low' | 'medium' | 'high';
+  client_id?: number;
+  assigned_to?: number;
+  status: "pending" | "in_progress" | "completed" | "cancelled";
   estimated_time?: number;
   actual_time?: number;
   start_time?: string;
   end_time?: string;
-  due_date?: string;
-  created_at: string | Date;
-  updated_at: string | Date;
-  assigned_to?: number;
-  client_id?: number;
-  client_name?: string;
-  progress?: number;
-}
-
-export interface TaskAttachment {
-  id: number;
-  task_id: number;
-  filename: string;
-  url: string;
-  type: string;
-  size?: number;
-  uploaded_at: string | Date;
-  uploaded_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  clients?: {
+    client_id?: number;
+    client_name?: string;
+  };
+  users?: {
+    user_id?: number;
+    name?: string;
+    email?: string;
+  };
 }
 
 export interface TaskComment {
   id: number;
   task_id: number;
   user_id: number;
-  user_name: string;
   comment: string;
   created_at: string;
+  user: {
+    name: string;
+  };
+}
+
+export interface TaskAttachment {
+  id: number;
+  task_id: number;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  url: string;
+  uploaded_by: string;
+  uploaded_at: string;
 }
 
 export interface TaskStatistics {
+  total: number;
   completed: number;
-  inProgress: number;
+  in_progress: number;
   pending: number;
   cancelled: number;
-  totalTasks: number;
-  completionRate: number;
-  averageCompletionTime: number;
-  tasksByDay: {
-    date: string;
+  completion_rate: number;
+  avg_completion_time: string;
+  by_client: {
+    client_id: number;
+    client_name: string;
+    count: number;
+    completed: number;
+  }[];
+  by_status: {
+    status: string;
     count: number;
   }[];
-  tasksByPriority: {
+  by_priority: {
     priority: string;
     count: number;
   }[];
-}
-
-export interface TaskWithDetails extends Task {
-  attachments?: TaskAttachment[];
-  comments?: TaskComment[];
-  history?: {
-    id: number;
-    user: string;
-    action: string;
-    timestamp: string;
-    details?: string;
-  }[];
+  time_tracking: {
+    estimated: number;
+    actual: number;
+    efficiency: number;
+  };
+  recent_tasks: Task[];
 }

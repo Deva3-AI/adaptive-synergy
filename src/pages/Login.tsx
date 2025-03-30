@@ -1,34 +1,23 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
-import AuthForm from "@/components/auth/AuthForm";
+import React from 'react';
+import AuthForm from '@/components/auth/AuthForm';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Login = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center animate-fade-in">
-          <div className="mx-auto h-12 w-12 rounded-full bg-accent flex items-center justify-center">
-            <span className="text-white font-bold text-xl">AI</span>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-5xl flex flex-col lg:flex-row shadow-lg rounded-lg overflow-hidden">
+        <div className="lg:w-1/2 bg-primary p-12 text-white flex flex-col justify-center">
+          <h1 className="text-3xl font-bold mb-4">Welcome Back!</h1>
+          <p className="mb-6">Log in to access your dashboard, manage your tasks, and collaborate with your team.</p>
+          <div className="mt-auto">
+            <p className="text-sm opacity-80">Powered by HyperFlow AI</p>
           </div>
-          <h1 className="mt-6 text-3xl font-display font-bold tracking-tight text-foreground">
-            <span className="text-gradient">Hive</span>
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Sign in to the AI-powered workflow platform
-          </p>
         </div>
         
-        <div className="mt-8 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <AuthForm type="login" />
+        <div className="lg:w-1/2 p-12 bg-card flex items-center justify-center">
+          <AuthForm mode="login" />
         </div>
-        
-        <p className="mt-6 text-center text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "300ms" }}>
-          Don't have an account?{" "}
-          <Link to="/signup" className="font-medium text-accent hover:text-accent/80">
-            Sign up
-          </Link>
-        </p>
       </div>
     </div>
   );

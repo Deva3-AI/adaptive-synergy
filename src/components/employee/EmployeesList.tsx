@@ -1,35 +1,40 @@
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, Plus, Filter, MoreHorizontal, Mail, UserRound } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Eye, Edit, PlusCircle } from "lucide-react";
 
 interface Employee {
   user_id: number;
   name: string;
   email: string;
-  roles: {
-    role_name: string;
-  };
+  role: string;
+  joiningDate?: string;
+  employeeId?: string;
+  dateOfBirth?: string;
 }
 
 const EmployeesList = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Fetch employees directly from Supabase
-  const { data: employees, isLoading, error, refetch } = useQuery({
+
+  const { data: employees = [], isLoading, isError } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
       try {
-        console.log('Fetching employees from Supabase...');
-        // Query employees from users table joined with roles
         const { data, error } = await supabase
           .from('users')
           .select(`
@@ -38,152 +43,141 @@ const EmployeesList = () => {
             email,
             roles (
               role_name
+            ),
+            employee_details (
+              joining_date,
+              employee_id,
+              date_of_birth
             )
-          `)
-          .order('name');
-        
+          `);
+
         if (error) throw error;
         
-        console.log('Fetched employees:', data);
-        
-        // Format data to match our expected structure
-        return data.map((employee: Employee) => ({
+        return data.map((employee) => ({
           user_id: employee.user_id,
           name: employee.name,
           email: employee.email,
-          role_name: employee.roles?.role_name || 'Unknown Role'
+          role: employee.roles?.role_name || 'Unknown',
+          joiningDate: employee.employee_details?.joining_date || null,
+          employeeId: employee.employee_details?.employee_id || null,
+          dateOfBirth: employee.employee_details?.date_of_birth || null
         }));
       } catch (error) {
-        console.error('Error fetching employees from Supabase:', error);
+        console.error('Error fetching employees:', error);
         throw error;
       }
     }
   });
 
-  useEffect(() => {
-    // Force refetch on mount to ensure latest data
-    refetch();
-  }, [refetch]);
-
   // Filter employees based on search term
-  const filteredEmployees = employees?.filter((employee) => 
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.role_name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = employees.filter(
+    (employee) =>
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get role color
-  const getRoleColor = (role: string): string => {
-    if (role.includes('CEO') || role.includes('Chief')) return 'bg-red-100 text-red-800';
-    if (role.includes('Sr.')) return 'bg-blue-100 text-blue-800';
-    if (role.includes('Jr.')) return 'bg-green-100 text-green-800';
-    if (role.includes('HR')) return 'bg-purple-100 text-purple-800';
-    if (role.includes('Design')) return 'bg-yellow-100 text-yellow-800';
-    if (role.includes('Development')) return 'bg-orange-100 text-orange-800';
-    return 'bg-gray-100 text-gray-800';
-  };
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Employees</CardTitle>
-          <CardDescription>Something went wrong loading employee data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md">
-            Error loading employees: {(error as Error).message}
-          </div>
-          <Button onClick={() => refetch()} className="mt-4">
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Employees</CardTitle>
-            <CardDescription>View and manage your team members</CardDescription>
-          </div>
-          <Button className="gap-1">
-            <PlusCircle className="h-4 w-4" />
-            New Employee
-          </Button>
-        </div>
-        <div className="mt-2">
-          <Input 
-            placeholder="Search employees..." 
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row justify-between gap-4 md:items-center">
+        <div className="relative w-full md:max-w-sm">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search employees..."
+            className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
           />
         </div>
-      </CardHeader>
-      <CardContent>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Filter className="h-4 w-4 mr-1" />
+            Filter
+          </Button>
+          <Button size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Employee
+          </Button>
+        </div>
+      </div>
+      
+      <div className="rounded-md border">
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="p-4 space-y-4">
             {Array(5).fill(0).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+              <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
+        ) : isError ? (
+          <div className="p-4 text-center text-red-500">
+            Error loading employees. Please try again later.
+          </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[300px]">Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="hidden md:table-cell">ID</TableHead>
+                <TableHead className="hidden md:table-cell">Joining Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    No employees found.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees?.length > 0 ? (
-                  filteredEmployees.map((employee) => (
-                    <TableRow key={employee.user_id}>
-                      <TableCell className="font-medium">
-                        <Link to={`/employee/profile/${employee.user_id}`} className="hover:underline">
-                          {employee.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{employee.email}</TableCell>
-                      <TableCell>
-                        <Badge className={`${getRoleColor(employee.role_name)}`}>
-                          {employee.role_name}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-3.5 w-3.5 mr-1" />
-                            Edit
-                          </Button>
+              ) : (
+                filteredEmployees.map((employee) => (
+                  <TableRow key={employee.user_id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div>{employee.name}</div>
+                          <div className="text-sm text-muted-foreground">{employee.email}</div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                      {employees?.length === 0 ? 'No employees found. Add your first employee to get started.' : 'No employees match your search term.'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{employee.role}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {employee.employeeId || '-'}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {employee.joiningDate 
+                        ? new Date(employee.joiningDate).toLocaleDateString()
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon">
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                        <Link to={`/employee/profile/${employee.user_id}`}>
+                          <Button variant="ghost" size="icon">
+                            <UserRound className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

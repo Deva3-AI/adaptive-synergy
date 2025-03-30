@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PieChart as RechartsPieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 export interface DonutChartProps {
   data: any[];
@@ -28,6 +28,12 @@ const DonutChart: React.FC<DonutChartProps> = ({
   className,
   showLegend = true,
 }) => {
+  // Check if required props are provided
+  if (!data || !nameKey || !dataKey) {
+    console.error('DonutChart requires data, nameKey, and dataKey props');
+    return <div className="bg-muted p-4 rounded-md">Chart configuration error: Missing required properties</div>;
+  }
+
   return (
     <div className={cn("w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">

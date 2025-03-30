@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import aiService from "@/services/api/aiService";
 import { useAuth } from "@/hooks/use-auth";
-import { useTasks, useEmployees, useClients } from "@/utils/apiUtils";
+import { useTasks } from "@/utils/apiUtils";
 import { toast } from "sonner";
 
 type Message = {
@@ -38,9 +39,8 @@ export const AIAssistant = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
   
-  const { data: clients } = useClients();
+  // Use custom hooks to fetch data for context
   const { data: tasks } = useTasks();
-  const { data: employees } = useEmployees();
 
   const suggestionCategories: SuggestionCategory[] = [
     {
@@ -112,18 +112,11 @@ export const AIAssistant = () => {
     setIsLoading(true);
     
     try {
-      const context = {
-        clients: clients || [],
-        tasks: tasks || [],
-        employees: employees || [],
-        user: user || { name: 'Guest' }
-      };
-      
-      const response = await aiService.getResponse(inputValue);
+      const result = await aiService.getResponse(inputValue);
       
       const assistantMessage: Message = {
         id: generateId(),
-        content: response.response || "I'm sorry, I couldn't process your request at the moment.",
+        content: result.response,
         role: 'assistant',
         timestamp: new Date()
       };

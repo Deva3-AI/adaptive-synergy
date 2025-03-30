@@ -8,6 +8,10 @@ interface AIRequest {
   input?: string;
 }
 
+interface AIResponse {
+  response: string;
+}
+
 /**
  * Service for AI-related API calls
  */
@@ -201,21 +205,25 @@ const aiService = {
   /**
    * Get response from AI Assistant
    */
-  getResponse: async (input: string) => {
+  getResponse: async (input: string): Promise<AIResponse> => {
     try {
       // Mock implementation
       await new Promise(resolve => setTimeout(resolve, 600));
       
       // Simple response logic based on input keywords
+      let responseText = "";
+      
       if (input.includes("deadline") || input.includes("due date")) {
-        return "I recommend setting a clear timeline with buffer days for revisions. Based on similar tasks, you'll likely need 3-5 business days.";
+        responseText = "I recommend setting a clear timeline with buffer days for revisions. Based on similar tasks, you'll likely need 3-5 business days.";
       } else if (input.includes("budget") || input.includes("cost")) {
-        return "Looking at similar projects, the estimated cost would be $1,500-2,000. I suggest breaking this down into design, development, and testing phases in your proposal.";
+        responseText = "Looking at similar projects, the estimated cost would be $1,500-2,000. I suggest breaking this down into design, development, and testing phases in your proposal.";
       } else if (input.includes("client") || input.includes("feedback")) {
-        return "This client typically provides detailed feedback within 24 hours. Their primary concerns tend to be mobile responsiveness and load times.";
+        responseText = "This client typically provides detailed feedback within 24 hours. Their primary concerns tend to be mobile responsiveness and load times.";
       } else {
-        return "I need more specific information to provide helpful guidance. Could you clarify what aspect of the project you need assistance with?";
+        responseText = "I need more specific information to provide helpful guidance. Could you clarify what aspect of the project you need assistance with?";
       }
+      
+      return { response: responseText };
     } catch (error) {
       console.error('Error getting AI response:', error);
       throw error;

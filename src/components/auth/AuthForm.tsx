@@ -1,102 +1,106 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/use-auth';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import useAuth from '@/hooks/useAuth';
 
-interface AuthFormProps {
-  mode: 'login' | 'signup' | 'recovery';
+export interface AuthFormProps {
+  mode?: 'login' | 'signup' | 'recover';
 }
 
-const formSchema = z.object({
-  name: mode => mode === 'signup' ? z.string().min(3, 'Name must be at least 3 characters') : z.string().optional(),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string().optional(),
-}).refine(data => {
-  if (data.confirmPassword !== undefined && data.password !== data.confirmPassword) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
-  const [loading, setLoading] = useState(false);
+const AuthForm = ({ mode = 'login' }: AuthFormProps) => {
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, register, signup } = useAuth();
-  
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const { login, signup, requestPasswordReset } = useAuth();
+
+  // Dynamic schema based on mode
+  const getSchema = (mode: 'login' | 'signup' | 'recover') => {
+    const emailSchema = z.string().email('Please enter a valid email');
+    const passwordSchema = mode === 'recover' 
+      ? z.string().optional()
+      : z.string().min(8, 'Password must be at least 8 characters');
+    
+    const baseSchema = {
+      email: emailSchema,
+      password: passwordSchema,
+    };
+    
+    if (mode === 'signup') {
+      return z.object({
+        ...baseSchema,
+        name: z.string().min(2, 'Name must be at least 2 characters'),
+        confirmPassword: z.string(),
+      }).refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ["confirmPassword"],
+      });
+    }
+    
+    return z.object(baseSchema);
+  };
+
+  const schema = getSchema(mode);
+
+  type FormValues = z.infer<typeof schema>;
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
-      name: '',
       email: '',
       password: '',
-      confirmPassword: '',
+      ...(mode === 'signup' ? { name: '', confirmPassword: '' } : {}),
     },
   });
 
-  const handleSubmit = async (data: z.infer<typeof formSchema>) => {
-    setLoading(true);
+  const onSubmit = async (values: FormValues) => {
+    setIsLoading(true);
+    
     try {
       if (mode === 'login') {
-        const result = await login(data.email, data.password);
-        if (result.success) {
-          toast.success('Login successful!');
-          navigate('/dashboard');
-        } else {
-          toast.error(result.error || 'Login failed');
-        }
+        await login(values.email, values.password);
+        navigate('/dashboard');
       } else if (mode === 'signup') {
-        const result = await signup({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-        });
-        if (result.success) {
-          toast.success('Account created successfully!');
-          navigate('/login');
-        } else {
-          toast.error(result.error || 'Signup failed');
-        }
-      } else if (mode === 'recovery') {
-        toast.success('Password recovery email sent!');
+        await signup(values.email, values.password, values.name as string);
+        toast.success('Account created! Please verify your email to continue.');
+        navigate('/verify-email', { state: { email: values.email } });
+      } else if (mode === 'recover') {
+        await requestPasswordReset(values.email);
+        toast.success('If your email exists in our system, you will receive a reset link shortly.');
         navigate('/login');
       }
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred');
+      console.error('Authentication error:', error);
+      toast.error(error.message || 'Authentication failed. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>
-          {mode === 'login' ? 'Login' : mode === 'signup' ? 'Create an Account' : 'Password Recovery'}
+          {mode === 'login' ? 'Sign In' : 
+           mode === 'signup' ? 'Create Account' : 
+           'Reset Password'}
         </CardTitle>
         <CardDescription>
-          {mode === 'login' 
-            ? 'Enter your credentials to access your account.' 
-            : mode === 'signup' 
-              ? 'Fill in the details to create your account.' 
-              : 'Enter your email to receive a password reset link.'}
+          {mode === 'login' ? 'Enter your credentials to access your account' : 
+           mode === 'signup' ? 'Fill in your details to get started' : 
+           'Enter your email to receive a reset link'}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            
             {mode === 'signup' && (
               <FormField
                 control={form.control}
@@ -105,7 +109,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your name" {...field} />
+                      <Input placeholder="John Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -120,14 +124,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="Email address" {...field} />
+                    <Input type="email" placeholder="user@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            {mode !== 'recovery' && (
+            {mode !== 'recover' && (
               <FormField
                 control={form.control}
                 name="password"
@@ -135,7 +139,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Password" {...field} />
+                      <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -151,11 +155,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="Confirm password" 
-                        {...field} 
-                      />
+                      <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,50 +163,45 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
               />
             )}
             
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading 
-                ? 'Processing...' 
-                : mode === 'login' 
-                  ? 'Login' 
-                  : mode === 'signup' 
-                    ? 'Create Account' 
-                    : 'Reset Password'}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Processing...' : 
+               mode === 'login' ? 'Sign In' : 
+               mode === 'signup' ? 'Create Account' : 
+               'Send Reset Link'}
             </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
+      <CardFooter className="flex flex-col items-center justify-center space-y-2">
         {mode === 'login' && (
           <>
-            <div className="text-sm text-center">
-              <Link to="/password-recovery" className="text-primary hover:underline">
-                Forgot your password?
-              </Link>
-            </div>
-            <div className="text-sm text-center">
+            <Button variant="link" onClick={() => navigate('/password-recovery')}>
+              Forgot your password?
+            </Button>
+            <div className="text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-primary hover:underline">
+              <Button variant="link" className="p-0" onClick={() => navigate('/signup')}>
                 Sign up
-              </Link>
+              </Button>
             </div>
           </>
         )}
         
         {mode === 'signup' && (
-          <div className="text-sm text-center">
+          <div className="text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              Login
-            </Link>
+            <Button variant="link" className="p-0" onClick={() => navigate('/login')}>
+              Sign in
+            </Button>
           </div>
         )}
         
-        {mode === 'recovery' && (
-          <div className="text-sm text-center">
+        {mode === 'recover' && (
+          <div className="text-sm text-muted-foreground">
             Remember your password?{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              Login
-            </Link>
+            <Button variant="link" className="p-0" onClick={() => navigate('/login')}>
+              Sign in
+            </Button>
           </div>
         )}
       </CardFooter>
