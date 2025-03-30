@@ -54,9 +54,9 @@ const ClientRequirementsPanel = ({ clientId }: { clientId: number }) => {
             <h3 className="text-sm font-medium mb-1">Communication Preferences</h3>
             <div className="flex items-center space-x-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{preferences.communication_channel || 'Email'}</span>
+              <span className="text-sm">{preferences.communication_channel || preferences.preferred_contact_method || 'Email'}</span>
               <span className="text-xs text-muted-foreground">
-                ({preferences.feedback_frequency || 'As needed'} feedback)
+                ({preferences.feedback_frequency || preferences.communication_frequency || 'As needed'} feedback)
               </span>
             </div>
           </div>

@@ -1,31 +1,21 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  User, Mail, Phone, MapPin, Calendar, Clock, FileText, 
-  Briefcase, GraduationCap, Award, Heart, Activity,
-  BarChart, LineChart as LineChartIcon, PieChart as PieChartIcon
-} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { BarChart as BarChartIcon, PieChart, Calendar, Clock, FileText, Mail, Phone, MapPin, User, Building, Briefcase } from "lucide-react";
 import { 
-  BarChart, 
-  LineChart, 
-  PieChart 
-} from '@/components/ui/charts';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  LineChart,
+  BarChart
+} from "@/components/ui/charts";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { format, subDays } from 'date-fns';
+import { employeeService } from '@/services/api';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 
 interface DateRange {
   from: Date;
@@ -40,7 +30,6 @@ const EmployeeProfile = () => {
     to: new Date()
   });
   
-  // Fetch employee details
   const { data: employee, isLoading: isLoadingEmployee } = useQuery({
     queryKey: ['employee', employeeId],
     enabled: !!employeeId,
@@ -65,7 +54,6 @@ const EmployeeProfile = () => {
     }
   });
   
-  // Fetch employee details
   const { data: employeeDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['employee-details', employeeId],
     enabled: !!employeeId,
@@ -84,7 +72,6 @@ const EmployeeProfile = () => {
           joining_date: data.joining_date,
           employee_id: data.employee_id,
           date_of_birth: data.date_of_birth,
-          // Default values for fields that might not exist yet
           phone: "Not provided",
           address: "Not provided",
           emergency_contact: "Not provided"
@@ -104,7 +91,6 @@ const EmployeeProfile = () => {
     }
   });
   
-  // Fetch employee attendance
   const { data: attendance, isLoading: isLoadingAttendance } = useQuery({
     queryKey: ['employee-attendance', employeeId, dateRange],
     enabled: !!employeeId,
@@ -128,7 +114,6 @@ const EmployeeProfile = () => {
     }
   });
   
-  // Fetch employee tasks
   const { data: tasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['employee-tasks', employeeId],
     enabled: !!employeeId,
@@ -176,12 +161,10 @@ const EmployeeProfile = () => {
     );
   }
   
-  // Task statistics
   const completedTasks = tasks?.filter(task => task.status === 'completed').length || 0;
   const pendingTasks = tasks?.filter(task => task.status === 'pending').length || 0;
   const inProgressTasks = tasks?.filter(task => task.status === 'in_progress').length || 0;
   
-  // Attendance statistics
   const totalDays = attendance?.length || 0;
   const totalHours = attendance?.reduce((total, day) => {
     if (day.login_time && day.logout_time) {
@@ -195,7 +178,6 @@ const EmployeeProfile = () => {
   
   const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
   
-  // Mock data for charts
   const taskDistributionData = [
     { name: 'Completed', value: completedTasks },
     { name: 'In Progress', value: inProgressTasks },
@@ -220,7 +202,6 @@ const EmployeeProfile = () => {
   return (
     <div className="container mx-auto py-8">
       <div className="w-full max-w-6xl mx-auto">
-        {/* Employee Header */}
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center">
@@ -255,7 +236,6 @@ const EmployeeProfile = () => {
           </CardContent>
         </Card>
         
-        {/* Employee Details Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -264,10 +244,8 @@ const EmployeeProfile = () => {
             <TabsTrigger value="performance">Performance</TabsTrigger>
           </TabsList>
           
-          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Personal Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Personal Information</CardTitle>
@@ -313,7 +291,6 @@ const EmployeeProfile = () => {
                 </CardContent>
               </Card>
               
-              {/* Task Statistics */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Task Statistics</CardTitle>
@@ -344,7 +321,6 @@ const EmployeeProfile = () => {
                 </CardContent>
               </Card>
               
-              {/* Attendance Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Attendance Summary</CardTitle>
@@ -374,7 +350,6 @@ const EmployeeProfile = () => {
               </Card>
             </div>
             
-            {/* Recent Activity */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Recent Activity</CardTitle>
@@ -411,7 +386,6 @@ const EmployeeProfile = () => {
             </Card>
           </TabsContent>
           
-          {/* Tasks Tab */}
           <TabsContent value="tasks" className="space-y-6">
             <Card>
               <CardHeader>
@@ -500,7 +474,6 @@ const EmployeeProfile = () => {
             </Card>
           </TabsContent>
           
-          {/* Attendance Tab */}
           <TabsContent value="attendance" className="space-y-6">
             <Card>
               <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -592,7 +565,6 @@ const EmployeeProfile = () => {
             </Card>
           </TabsContent>
           
-          {/* Performance Tab */}
           <TabsContent value="performance" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>

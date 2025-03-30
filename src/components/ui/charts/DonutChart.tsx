@@ -8,6 +8,7 @@ export interface DonutChartProps {
   innerRadius?: number;
   outerRadius?: number;
   showLegend?: boolean;
+  className?: string;
 }
 
 const DEFAULT_COLORS = [
@@ -26,10 +27,11 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   colors = DEFAULT_COLORS,
   innerRadius = 60,
   outerRadius = 80,
-  showLegend = true
+  showLegend = true,
+  className
 }) => {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" className={className}>
       <RechartsDonutChart>
         <Pie
           data={data}

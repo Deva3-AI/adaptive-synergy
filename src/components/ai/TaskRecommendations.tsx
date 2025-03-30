@@ -24,7 +24,7 @@ const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ userId, class
   // Fetch user's current tasks for context
   const { data: userTasks = [] } = useQuery({
     queryKey: ['userTasks', userId],
-    queryFn: () => taskService.getTasks({ assignedTo: Number(userId) }),
+    queryFn: () => taskService.getTasks({ assignedTo: userId }),
   });
 
   const calculateTaskCompletion = (taskId: number) => {

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { apiRequest } from '@/utils/apiUtils';
 
@@ -6,24 +5,23 @@ import { apiRequest } from '@/utils/apiUtils';
 export interface Brand {
   id: number;
   name: string;
-  description?: string;
-  logo?: string;
   client_id: number;
+  logo?: string;
+  description?: string;
   website?: string;
   industry?: string;
   created_at?: string;
 }
 
 export interface ClientPreferences {
-  id?: number;
-  client_id?: number;
-  preferred_contact_method?: string;
-  communication_frequency?: string;
-  design_preferences?: Record<string, any>;
-  industry_specific_requirements?: Record<string, any>;
-  created_at?: string;
-  updated_at?: string;
-  // Additional properties used in components
+  id: number;
+  client_id: number | null;
+  communication_frequency: string | null;
+  preferred_contact_method: string | null;
+  design_preferences: Record<string, any> | any;
+  industry_specific_requirements: Record<string, any> | any;
+  created_at: string | null;
+  updated_at: string | null;
   communication_channel?: string;
   feedback_frequency?: string;
   dos?: string[];
@@ -234,7 +232,7 @@ const clientService = {
   },
   
   // Get client brands
-  getClientBrands: async (clientId: number): Promise<Brand[]> => {
+  getClientBrands: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('brands')
@@ -242,23 +240,26 @@ const clientService = {
         .eq('client_id', clientId);
       
       if (error) throw error;
-      return data;
+      return data as Brand[];
     } catch (error) {
       console.error('Error fetching client brands:', error);
-      return sampleBrands.filter(brand => brand.client_id === clientId);
+      return apiRequest(`/clients/${clientId}/brands`, 'get', undefined, []);
     }
   },
   
-  // Get brand tasks
   getBrandTasks: async (brandId: number) => {
-    try {
-      // In a real application, this would query tasks associated with specific brands
-      // For now, we'll return mock data
-      return [];
-    } catch (error) {
-      console.error('Error fetching brand tasks:', error);
-      return [];
-    }
+    return apiRequest(`/brands/${brandId}/tasks`, 'get', undefined, [
+      // Mock brand tasks
+      {
+        task_id: 1,
+        title: 'Website Redesign',
+        description: 'Redesign the brand website with new brand guidelines',
+        status: 'in_progress',
+        assigned_to: 2,
+        created_at: '2023-06-01T10:00:00'
+      },
+      // More mock tasks
+    ]);
   },
   
   // Create a new brand
@@ -270,10 +271,14 @@ const clientService = {
         .select();
       
       if (error) throw error;
-      return data[0];
+      return data[0] as Brand;
     } catch (error) {
       console.error('Error creating brand:', error);
-      return { ...brandData, id: Date.now(), created_at: new Date().toISOString() };
+      return apiRequest('/brands', 'post', brandData, {
+        id: Date.now(),
+        ...brandData,
+        created_at: new Date().toISOString()
+      });
     }
   }
 };

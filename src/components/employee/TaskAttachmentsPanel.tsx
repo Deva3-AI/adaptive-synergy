@@ -1,10 +1,11 @@
+
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UploadCloud, File, Download, FileText, Image, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useDropzone } from 'react-dropzone';
-import { TaskAttachment } from '@/services/api';
+import { TaskAttachment } from '@/services/api/taskService';
 import taskService from '@/services/api/taskService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from "sonner";

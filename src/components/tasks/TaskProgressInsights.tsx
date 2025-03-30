@@ -1,175 +1,132 @@
-
 import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BarChart, LineChart, PieChart, DonutChart } from "@/components/ui/charts";
-import { BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Check, Clock, CalendarClock, BarChart3, TrendingUp } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import taskService from '@/services/api/taskService';
-import { TaskStatistics } from '@/services/api/taskService';
-import { formatPercentage, formatDuration } from '@/utils/formatters';
+import { LineChart, BarChart } from "@/components/ui/charts";
+import DonutChart from "@/components/ui/charts/DonutChart";
+import { Skeleton } from "@/components/ui/skeleton";
+import taskService, { TaskStatistics } from '@/services/api/taskService';
 
 interface TaskProgressInsightsProps {
-  userId?: number;
+  userId: number;
+  className?: string;
 }
 
-export const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ userId }) => {
-  const { data: statistics, isLoading } = useQuery({
+const TaskProgressInsights: React.FC<TaskProgressInsightsProps> = ({ userId, className }) => {
+  const { data: stats, isLoading } = useQuery({
     queryKey: ['task-statistics', userId],
-    queryFn: () => taskService.getTaskStatistics(userId)
+    queryFn: () => taskService.getTaskStatistics(userId),
   });
 
-  // Handle loading state
   if (isLoading) {
     return (
-      <Card className="w-full">
+      <Card className={className}>
         <CardHeader>
-          <CardTitle className="text-lg animate-pulse">Loading insights...</CardTitle>
+          <CardTitle>Task Progress Insights</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="bg-muted rounded-lg p-4 animate-pulse">
-                <div className="h-4 w-1/2 bg-muted-foreground/20 rounded mb-2"></div>
-                <div className="h-6 w-3/4 bg-muted-foreground/20 rounded"></div>
-              </div>
-            ))}
-          </div>
-          <div className="h-64 bg-muted rounded-lg animate-pulse"></div>
+        <CardContent className="grid gap-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  // Handle no data state
-  if (!statistics) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-lg">No task insights available</CardTitle>
-          <CardDescription>Complete some tasks to see performance insights</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  // Prepare data for charts
-  const taskStatusData = [
-    { name: 'Completed', value: statistics.completed_tasks },
-    { name: 'In Progress', value: statistics.in_progress_tasks },
-    { name: 'Pending', value: statistics.pending_tasks },
-    { name: 'Overdue', value: statistics.overdue_tasks }
-  ];
-
-  const taskDistributionData = statistics.task_distribution.map(item => ({
-    name: item.name,
-    value: item.value
-  }));
-
-  const monthlyTrendsForChart = statistics.monthly_trends.map(item => ({
-    name: item.month,
-    Completed: item.completed,
-    Assigned: item.assigned
-  }));
-
   return (
-    <Card className="w-full">
+    <Card className={className}>
       <CardHeader>
-        <CardTitle className="text-lg">Task Performance Insights</CardTitle>
-        <CardDescription>Analytics on task completion and efficiency</CardDescription>
+        <CardTitle>Task Progress Insights</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-background rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground mb-1">Completion Rate</div>
-            <div className="text-2xl font-bold">{formatPercentage(statistics.completion_rate)}</div>
-            <Progress value={statistics.completion_rate} className="mt-2" />
-          </div>
-          
-          <div className="bg-background rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground mb-1">On-Time Completion</div>
-            <div className="text-2xl font-bold">{formatPercentage(statistics.on_time_completion)}</div>
-            <Progress value={statistics.on_time_completion} className="mt-2" />
-          </div>
-          
-          <div className="bg-background rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground mb-1">Avg. Completion Time</div>
-            <div className="text-2xl font-bold">{formatDuration(statistics.average_task_duration)}</div>
-            <div className="text-xs text-muted-foreground mt-2 flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
-              Per completed task
-            </div>
-          </div>
-          
-          <div className="bg-background rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground mb-1">Recent Completions</div>
-            <div className="text-2xl font-bold">{statistics.recent_completions?.length || 0}</div>
-            <div className="text-xs text-muted-foreground mt-2 flex items-center">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              In the last 30 days
-            </div>
-          </div>
-        </div>
-        
-        <Tabs defaultValue="distribution" className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="distribution" className="flex items-center gap-2">
-              <PieChartIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Task Distribution</span>
-            </TabsTrigger>
-            <TabsTrigger value="status" className="flex items-center gap-2">
-              <DonutChart className="h-4 w-4" />
-              <span className="hidden sm:inline">Task Status</span>
-            </TabsTrigger>
-            <TabsTrigger value="trends" className="flex items-center gap-2">
-              <LineChartIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Monthly Trends</span>
-            </TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsTrigger value="distribution">Distribution</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="distribution" className="mt-0">
-            <div className="h-80">
-              <PieChart 
-                data={taskDistributionData}
-                nameKey="name"
-                dataKey="value"
-              />
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Completed Tasks</CardTitle>
+                  <CardDescription>Total tasks completed</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats?.completed_tasks || 0}</div>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4" />
+                    <span>Since last month</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pending Tasks</CardTitle>
+                  <CardDescription>Tasks yet to be started</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats?.pending_tasks || 0}</div>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>Awaiting assignment</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Task Completion Rate</CardTitle>
+                <CardDescription>Percentage of tasks completed on time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats?.completion_rate || 0}%</div>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <CalendarClock className="h-4 w-4" />
+                  <span>Compared to the previous period</span>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
-          
-          <TabsContent value="status" className="mt-0">
-            <div className="h-80">
-              <DonutChart data={taskStatusData} />
-            </div>
+          <TabsContent value="trends" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Task Trends</CardTitle>
+                <CardDescription>Tasks completed and assigned over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Update LineChart usage */}
+                <LineChart
+                  data={stats?.monthly_trends || []}
+                  xAxisKey="month"
+                  yAxisKey="completed"
+                  series={[
+                    { key: "completed", label: "Completed", color: "hsl(var(--primary))" },
+                    { key: "assigned", label: "Assigned", color: "hsl(var(--muted-foreground))" }
+                  ]}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
-          
-          <TabsContent value="trends" className="mt-0">
-            <div className="h-80">
-              <LineChart 
-                data={monthlyTrendsForChart} 
-                xAxisKey="name"
-                yAxisKey="Completed"
-                categories={["Completed", "Assigned"]}
-                colors={["hsl(var(--primary))", "hsl(var(--muted-foreground))"]}
-              />
-            </div>
+          <TabsContent value="distribution" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Task Distribution by Category</CardTitle>
+                <CardDescription>Tasks divided by category</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Update the DonutChart usage */}
+                <DonutChart
+                  data={stats?.task_distribution || []}
+                  innerRadius={50}
+                  outerRadius={70}
+                  showLegend={true}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-        
-        {statistics.overdue_tasks > 0 && (
-          <div className="mt-6 bg-destructive/10 rounded-lg p-4 border border-destructive/20">
-            <div className="flex items-center gap-2 text-destructive font-medium mb-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span>Attention Required</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              You have {statistics.overdue_tasks} overdue {statistics.overdue_tasks === 1 ? 'task' : 'tasks'} that require immediate attention.
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
