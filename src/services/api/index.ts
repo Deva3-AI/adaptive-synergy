@@ -9,12 +9,13 @@ import aiService from './aiService';
 import authService from './authService';
 import reportService from './reportService';
 
-// Re-export types
-import type { Brand, ClientPreferences } from './clientService';
-import type { Invoice, FinancialRecord } from './financeService';
-import type { TaskAttachment, TaskStatistics } from './taskService';
-import type { EmailOutreach, MarketingMeeting, LeadProfile } from './marketingService';
+// Export types from service files
+export type { TaskAttachment, TaskStatistics } from './taskService';
+export type { Brand, ClientPreferences } from './clientService';
+export type { Invoice, FinancialRecord } from './financeService';
+export type { EmailOutreach, MarketingMeeting, LeadProfile } from './marketingService';
 
+// Export services
 export {
   employeeService,
   clientService,
@@ -25,14 +26,4 @@ export {
   aiService,
   authService,
   reportService,
-  // Types
-  type Brand,
-  type ClientPreferences,
-  type Invoice,
-  type FinancialRecord,
-  type TaskAttachment,
-  type TaskStatistics,
-  type EmailOutreach,
-  type MarketingMeeting,
-  type LeadProfile
 };

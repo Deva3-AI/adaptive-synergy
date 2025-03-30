@@ -1,276 +1,346 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientService } from '@/services/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertCircle, Globe, Plus, ExternalLink, Share2, Briefcase, CheckCircle } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Image, ArrowLeft, Clock, Filter, MoreHorizontal, ArrowRight } from "lucide-react";
-
-// Import Brand type from clientService
-interface Brand {
-  id: number;
-  name: string;
-  description?: string;
-  logo?: string;
-  client_id: number;
-}
 
 const BrandsDashboard = () => {
-  const navigate = useNavigate();
-  const { clientId } = useParams();
-
-  const [isAddBrandDialogOpen, setIsAddBrandDialogOpen] = useState(false);
-  const [newBrandName, setNewBrandName] = useState('');
-  const [newBrandDescription, setNewBrandDescription] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
-
-  // Fetch client details
-  const { data: client, isLoading: isClientLoading } = useQuery({
-    queryKey: ['client', clientId],
-    queryFn: () => clientService.getClientDetails(Number(clientId)),
-    enabled: !!clientId,
+  const [newBrand, setNewBrand] = useState({
+    name: '',
+    client_id: 0,
+    description: '',
+    website: '',
+    industry: ''
   });
-
-  // Fetch client brands
-  const { data: brands = [], isLoading: isBrandsLoading, refetch: refetchBrands } = useQuery({
-    queryKey: ['clientBrands', clientId],
-    queryFn: () => clientService.getClientBrands(Number(clientId)),
-    enabled: !!clientId,
+  
+  const queryClient = useQueryClient();
+  
+  // Fetch clients
+  const { data: clients } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientService.getClients()
   });
-
-  // Fetch brand tasks if a brand is selected
-  const { data: brandTasks = [], isLoading: isTasksLoading } = useQuery({
-    queryKey: ['brandTasks', selectedBrandId],
-    queryFn: () => selectedBrandId ? clientService.getBrandTasks(selectedBrandId) : Promise.resolve([]),
-    enabled: !!selectedBrandId,
+  
+  // Fetch brands based on selected client
+  const { data: brands, isLoading: brandsLoading } = useQuery({
+    queryKey: ['client-brands', selectedClientId],
+    queryFn: () => clientService.getClientBrands(selectedClientId || undefined),
+    enabled: true
   });
-
-  const handleAddBrand = async () => {
-    if (!newBrandName.trim()) {
-      toast.error('Brand name is required');
+  
+  // Fetch brand tasks when a brand is selected
+  const { data: brandTasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ['brand-tasks', selectedBrandId],
+    queryFn: () => clientService.getBrandTasks(selectedBrandId as number),
+    enabled: !!selectedBrandId
+  });
+  
+  // Create brand mutation
+  const createBrandMutation = useMutation({
+    mutationFn: (data: typeof newBrand) => clientService.createBrand(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-brands'] });
+      setOpenDialog(false);
+      setNewBrand({
+        name: '',
+        client_id: 0,
+        description: '',
+        website: '',
+        industry: ''
+      });
+      toast.success('Brand created successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to create brand.');
+    }
+  });
+  
+  const handleCreateBrand = () => {
+    if (!newBrand.name || !newBrand.client_id) {
+      toast.error('Brand name and client are required.');
       return;
     }
-
-    try {
-      await clientService.createBrand({
-        name: newBrandName,
-        description: newBrandDescription,
-        client_id: Number(clientId)
-      });
-      
-      toast.success('Brand added successfully');
-      setIsAddBrandDialogOpen(false);
-      setNewBrandName('');
-      setNewBrandDescription('');
-      refetchBrands();
-    } catch (error) {
-      console.error('Error adding brand:', error);
-      toast.error('Failed to add brand');
-    }
+    
+    createBrandMutation.mutate(newBrand);
   };
-
-  const handleBrandSelect = (brandId: number) => {
+  
+  // Select a client and set as active
+  const handleSelectClient = (clientId: number) => {
+    setSelectedClientId(clientId);
+    setSelectedBrandId(null);
+  };
+  
+  // Select a brand and load its tasks
+  const handleSelectBrand = (brandId: number) => {
     setSelectedBrandId(brandId);
   };
-
-  if (isClientLoading || isBrandsLoading) {
-    return (
-      <div className="container mx-auto py-6 space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      </div>
-    );
-  }
-
+  
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate(-1)}
-              className="h-8 w-8 p-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold">{client?.client_name}'s Brands</h1>
-          </div>
-          <p className="text-muted-foreground">Manage brands and their related tasks</p>
-        </div>
-        
-        <Button onClick={() => setIsAddBrandDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Brand
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {brands.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="rounded-full bg-muted p-3">
-                <Image className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">No brands found</h3>
-              <p className="mt-2 text-sm text-muted-foreground text-center max-w-sm">
-                This client doesn't have any brands yet. Create a new brand to get started.
-              </p>
-              <Button 
-                onClick={() => setIsAddBrandDialogOpen(true)}
-                className="mt-4"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Brand
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          brands.map((brand: Brand) => (
-            <Card 
-              key={brand.id} 
-              className={`overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${selectedBrandId === brand.id ? 'ring-2 ring-primary' : ''}`}
-              onClick={() => handleBrandSelect(brand.id)}
-            >
-              <div className="h-28 bg-gradient-to-r from-primary/20 to-primary/5 flex items-center justify-center">
-                {brand.logo ? (
-                  <img src={brand.logo} alt={brand.name} className="max-h-20 max-w-[80%]" />
-                ) : (
-                  <div className="font-bold text-2xl text-primary/60">
-                    {brand.name.substring(0, 2).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle>{brand.name}</CardTitle>
-                {brand.description && (
-                  <CardDescription>{brand.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{brandTasks?.length || 0} tasks</span>
-                  <Button variant="ghost" size="sm" className="h-6 px-2">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-      
-      {selectedBrandId && (
-        <div className="mt-10">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              Brand Tasks
-            </h2>
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Brand Management</h1>
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              New Task
-            </Button>
-          </div>
-          
-          <Separator className="my-4" />
-          
-          {isTasksLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : brandTasks.length === 0 ? (
-            <div className="text-center py-12 bg-muted/20 rounded-lg">
-              <p className="text-muted-foreground">No tasks found for this brand</p>
-              <Button variant="outline" className="mt-4">
-                <Plus className="mr-2 h-4 w-4" />
-                Create First Task
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {brandTasks.map((task: any) => (
-                <Card key={task.id} className="overflow-hidden hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">{task.title}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
-                          {task.status}
-                        </span>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Add Brand Dialog */}
-      <Dialog open={isAddBrandDialogOpen} onOpenChange={setIsAddBrandDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Brand</DialogTitle>
-            <DialogDescription>
-              Create a new brand for {client?.client_name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="brand-name">Brand Name</Label>
-              <Input
-                id="brand-name"
-                placeholder="Enter brand name"
-                value={newBrandName}
-                onChange={(e) => setNewBrandName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="brand-description">Description (Optional)</Label>
-              <Textarea
-                id="brand-description"
-                placeholder="Enter brand description"
-                value={newBrandDescription}
-                onChange={(e) => setNewBrandDescription(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddBrandDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddBrand}>
+              <Plus className="h-4 w-4 mr-2" />
               Add Brand
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Brand</DialogTitle>
+              <DialogDescription>
+                Add a new brand to your client portfolio.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="client">Client</Label>
+                <select 
+                  id="client"
+                  className="w-full p-2 border rounded-md"
+                  value={newBrand.client_id}
+                  onChange={(e) => setNewBrand({...newBrand, client_id: Number(e.target.value)})}
+                >
+                  <option value={0}>Select a client</option>
+                  {clients?.map((client: any) => (
+                    <option key={client.client_id} value={client.client_id}>
+                      {client.client_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Brand Name</Label>
+                <Input 
+                  id="name"
+                  value={newBrand.name}
+                  onChange={(e) => setNewBrand({...newBrand, name: e.target.value})}
+                  placeholder="Brand name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Input 
+                  id="industry"
+                  value={newBrand.industry}
+                  onChange={(e) => setNewBrand({...newBrand, industry: e.target.value})}
+                  placeholder="e.g. Technology, Healthcare"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input 
+                  id="website"
+                  value={newBrand.website}
+                  onChange={(e) => setNewBrand({...newBrand, website: e.target.value})}
+                  placeholder="https://example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description"
+                  value={newBrand.description}
+                  onChange={(e) => setNewBrand({...newBrand, description: e.target.value})}
+                  placeholder="Brief description of the brand"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
+              <Button onClick={handleCreateBrand}>Create Brand</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Clients</CardTitle>
+              <CardDescription>Select a client to view brands</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Button 
+                  variant="ghost" 
+                  className={`w-full justify-start ${!selectedClientId ? 'bg-accent' : ''}`}
+                  onClick={() => setSelectedClientId(null)}
+                >
+                  All Clients
+                </Button>
+                {clients?.map((client: any) => (
+                  <Button 
+                    key={client.client_id}
+                    variant="ghost" 
+                    className={`w-full justify-start ${selectedClientId === client.client_id ? 'bg-accent' : ''}`}
+                    onClick={() => handleSelectClient(client.client_id)}
+                  >
+                    {client.client_name}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="md:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Brands</CardTitle>
+              <CardDescription>
+                {selectedClientId 
+                  ? `Brands for ${clients?.find((c: any) => c.client_id === selectedClientId)?.client_name}` 
+                  : 'All brands'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {brandsLoading ? (
+                <div>Loading brands...</div>
+              ) : brands?.length === 0 ? (
+                <div className="text-center py-12">
+                  <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No brands found</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {selectedClientId 
+                      ? 'This client doesn\'t have any brands yet. Add one to get started.'
+                      : 'No brands found. Select a client or add a brand.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {brands?.map((brand: any) => (
+                    <Card 
+                      key={brand.id} 
+                      className={`cursor-pointer hover:border-primary transition-all ${selectedBrandId === brand.id ? 'border-primary' : ''}`}
+                      onClick={() => handleSelectBrand(brand.id)}
+                    >
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex justify-between items-center">
+                          <span>{brand.name}</span>
+                          {brand.logo && <img src={brand.logo} alt={brand.name} className="h-6" />}
+                        </CardTitle>
+                        <CardDescription>
+                          {brand.industry || 'No industry specified'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pb-2 text-sm">
+                        {brand.description ? (
+                          <p className="line-clamp-2">{brand.description}</p>
+                        ) : (
+                          <p className="text-muted-foreground italic">No description available</p>
+                        )}
+                      </CardContent>
+                      <CardFooter className="pt-0 text-xs text-muted-foreground flex justify-between">
+                        <div>
+                          Created: {new Date(brand.created_at).toLocaleDateString()}
+                        </div>
+                        {brand.website && (
+                          <a 
+                            href={brand.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center text-xs hover:text-primary"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Globe className="h-3 w-3 mr-1" />
+                            Website
+                          </a>
+                        )}
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {selectedBrandId && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>
+                  Brand Tasks & Activities
+                </CardTitle>
+                <CardDescription>
+                  {brands?.find((b: any) => b.id === selectedBrandId)?.name}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="tasks">
+                  <TabsList>
+                    <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                    <TabsTrigger value="assets">Brand Assets</TabsTrigger>
+                    <TabsTrigger value="guidelines">Brand Guidelines</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="tasks" className="pt-4">
+                    {tasksLoading ? (
+                      <div>Loading tasks...</div>
+                    ) : brandTasks?.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Briefcase className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                        <p>No tasks found for this brand</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {brandTasks?.map((task: any) => (
+                          <div key={task.task_id} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-medium">{task.title}</h3>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                task.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                'bg-amber-100 text-amber-700'
+                              }`}>
+                                {task.status.replace('_', ' ')}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3">{task.description}</p>
+                            <div className="flex justify-between items-center text-xs text-muted-foreground">
+                              <div>Due: {new Date(task.due_date).toLocaleDateString()}</div>
+                              <div className={`${
+                                task.priority === 'high' ? 'text-red-500' : 
+                                task.priority === 'medium' ? 'text-amber-500' : 'text-green-500'
+                              }`}>
+                                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="assets" className="pt-4">
+                    <div className="text-center py-8">
+                      <Share2 className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                      <p>No brand assets available yet</p>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="guidelines" className="pt-4">
+                    <div className="text-center py-8">
+                      <CheckCircle className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                      <p>No brand guidelines available yet</p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
