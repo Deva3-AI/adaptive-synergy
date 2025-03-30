@@ -108,7 +108,6 @@ const clientService = {
     }
   },
 
-  // Add missing methods
   getClientBrands: async (clientId: number) => {
     try {
       const response = await apiClient.get(`/clients/${clientId}/brands`);

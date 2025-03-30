@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Brand } from '@/services/api/clientService';
 import { Plus, FileText, CheckCircle, Clock, AlertCircle, XCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import clientService from '@/services/api/clientService';
+import { clientService } from '@/services/api';
 import { toast } from 'sonner';
 
 interface ClientBrandsListProps {
@@ -75,9 +75,10 @@ const ClientBrandsList: React.FC<ClientBrandsListProps> = ({
     }
 
     try {
-      await clientService.createBrand(clientId, {
+      await clientService.createBrand({
         name: newBrandName,
         description: newBrandDescription,
+        client_id: clientId
       });
       
       toast.success('Brand added successfully');
@@ -129,139 +130,147 @@ const ClientBrandsList: React.FC<ClientBrandsListProps> = ({
             <Button 
               onClick={() => setIsAddBrandDialogOpen(true)}
               variant="outline"
-              className="mt-4"
+              className="mt-2"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Your First Brand
+              Add First Brand
             </Button>
           </div>
         ) : (
-          <Tabs defaultValue="list" className="p-4">
-            <TabsList className="mb-4">
-              <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="tasks">Brand Tasks</TabsTrigger>
+          <Tabs defaultValue="list">
+            <TabsList className="w-full">
+              <TabsTrigger value="list" className="flex-1">List View</TabsTrigger>
+              <TabsTrigger value="grid" className="flex-1">Grid View</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="list">
+            <TabsContent value="list" className="p-4">
               <div className="space-y-3">
                 {brands.map((brand) => (
                   <div 
                     key={brand.id}
-                    className={`p-3 rounded-md border hover:bg-muted/50 transition-colors cursor-pointer ${selectedBrandId === brand.id ? 'bg-muted border-primary' : ''}`}
+                    className={`p-3 border rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors ${selectedBrandId === brand.id ? 'bg-accent text-accent-foreground' : ''}`}
                     onClick={() => handleBrandSelect(brand.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={brand.logo} alt={brand.name} />
-                        <AvatarFallback>{brand.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-medium">{brand.name}</h3>
-                        {brand.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">{brand.description}</p>
-                        )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={brand.logo} alt={brand.name} />
+                          <AvatarFallback>{brand.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">{brand.name}</h3>
+                          {brand.description && (
+                            <p className="text-sm text-muted-foreground">{brand.description}</p>
+                          )}
+                        </div>
                       </div>
+                      <FileText className="h-5 w-5 text-muted-foreground" />
                     </div>
                   </div>
                 ))}
               </div>
             </TabsContent>
             
-            <TabsContent value="tasks">
-              {!selectedBrandId ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <p>Select a brand to view its tasks</p>
-                </div>
-              ) : isTasksLoading ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="h-16 bg-muted rounded-md"></div>
-                  <div className="h-16 bg-muted rounded-md"></div>
-                </div>
-              ) : brandTasks.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <p>No tasks found for this brand.</p>
-                  <Button variant="outline" className="mt-4">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Task
-                  </Button>
-                </div>
-              ) : (
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-3">
-                    {brandTasks.map((task: any) => (
-                      <div 
-                        key={task.task_id}
-                        className="p-3 rounded-md border hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium">{task.title}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
-                          </div>
-                          <div>
-                            {getStatusBadge(task.status)}
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center mt-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            <span>Est: {task.estimated_time || 'N/A'} hrs</span>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <FileText className="h-4 w-4 mr-1" />
-                            Details
-                          </Button>
+            <TabsContent value="grid" className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {brands.map((brand) => (
+                  <Card 
+                    key={brand.id} 
+                    className={`cursor-pointer hover:shadow-md transition-shadow ${selectedBrandId === brand.id ? 'border-primary' : ''}`}
+                    onClick={() => handleBrandSelect(brand.id)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage src={brand.logo} alt={brand.name} />
+                          <AvatarFallback className="text-lg">{brand.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">{brand.name}</h3>
+                          {brand.description && (
+                            <p className="text-sm text-muted-foreground">{brand.description}</p>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </TabsContent>
           </Tabs>
         )}
-
-        {/* Add Brand Dialog */}
-        <Dialog open={isAddBrandDialogOpen} onOpenChange={setIsAddBrandDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Brand</DialogTitle>
-              <DialogDescription>
-                Add a new brand for {clientName}. You can organize tasks and projects under each brand.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="brand-name">Brand Name</Label>
-                <Input
-                  id="brand-name"
-                  placeholder="e.g. Brand X"
-                  value={newBrandName}
-                  onChange={(e) => setNewBrandName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="brand-description">Description (Optional)</Label>
-                <Textarea
-                  id="brand-description"
-                  placeholder="Brief description of the brand"
-                  value={newBrandDescription}
-                  onChange={(e) => setNewBrandDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddBrandDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddBrand}>
-                Add Brand
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
+
+      {/* Brand tasks section */}
+      {selectedBrandId && (
+        <div className="mt-4 p-4 border-t">
+          <h3 className="font-medium mb-3">Brand Tasks</h3>
+          {isTasksLoading ? (
+            <div className="animate-pulse space-y-3">
+              <div className="h-8 bg-muted rounded-md"></div>
+              <div className="h-8 bg-muted rounded-md"></div>
+            </div>
+          ) : brandTasks.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No tasks found for this brand</p>
+          ) : (
+            <ScrollArea className="h-[200px]">
+              <div className="space-y-2">
+                {brandTasks.map((task: any) => (
+                  <div key={task.id} className="flex items-center justify-between p-2 border rounded-md">
+                    <div>
+                      <h4 className="font-medium">{task.title}</h4>
+                      <p className="text-sm text-muted-foreground">Due: {new Date(task.due_date).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm">{task.assigned_to}</span>
+                      {getStatusBadge(task.status)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
+      )}
+
+      {/* Add Brand Dialog */}
+      <Dialog open={isAddBrandDialogOpen} onOpenChange={setIsAddBrandDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Brand</DialogTitle>
+            <DialogDescription>
+              Create a new brand for {clientName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="brand-name">Brand Name</Label>
+              <Input
+                id="brand-name"
+                placeholder="Enter brand name"
+                value={newBrandName}
+                onChange={(e) => setNewBrandName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="brand-description">Description (Optional)</Label>
+              <Textarea
+                id="brand-description"
+                placeholder="Enter brand description"
+                value={newBrandDescription}
+                onChange={(e) => setNewBrandDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddBrandDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddBrand}>
+              Add Brand
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

@@ -4,11 +4,12 @@ import apiClient from '@/utils/apiUtils';
 export interface TaskAttachment {
   id: number;
   task_id: number;
-  filename: string;
+  file_name: string;
   file_url: string;
   file_type: string;
-  uploaded_at: string;
+  file_size: number;
   uploaded_by: number;
+  uploaded_at: string;
 }
 
 const taskService = {
@@ -62,37 +63,13 @@ const taskService = {
     }
   },
 
-  getTaskAttachments: async (taskId: number) => {
+  getTasksByEmployee: async (employeeId: number) => {
     try {
-      const response = await apiClient.get(`/tasks/${taskId}/attachments`);
+      const response = await apiClient.get(`/employees/${employeeId}/tasks`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching attachments for task ${taskId}:`, error);
+      console.error(`Error fetching tasks for employee ${employeeId}:`, error);
       return [];
-    }
-  },
-
-  uploadTaskAttachment: async (taskId: number, fileData: FormData) => {
-    try {
-      const response = await apiClient.post(`/tasks/${taskId}/attachments`, fileData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error(`Error uploading attachment for task ${taskId}:`, error);
-      throw error;
-    }
-  },
-
-  deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
-    try {
-      const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error deleting attachment ${attachmentId} for task ${taskId}:`, error);
-      throw error;
     }
   },
 
@@ -116,12 +93,36 @@ const taskService = {
     }
   },
 
-  updateTaskComment: async (taskId: number, commentId: number, commentData: any) => {
+  getTaskAttachments: async (taskId: number) => {
     try {
-      const response = await apiClient.put(`/tasks/${taskId}/comments/${commentId}`, commentData);
+      const response = await apiClient.get(`/tasks/${taskId}/attachments`);
       return response.data;
     } catch (error) {
-      console.error(`Error updating comment ${commentId} for task ${taskId}:`, error);
+      console.error(`Error fetching attachments for task ${taskId}:`, error);
+      return [];
+    }
+  },
+
+  uploadTaskAttachment: async (taskId: number, formData: FormData) => {
+    try {
+      const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Error uploading attachment to task ${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
+    try {
+      const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting attachment ${attachmentId} from task ${taskId}:`, error);
       throw error;
     }
   },
@@ -131,50 +132,8 @@ const taskService = {
       const response = await apiClient.delete(`/tasks/${taskId}/comments/${commentId}`);
       return response.data;
     } catch (error) {
-      console.error(`Error deleting comment ${commentId} for task ${taskId}:`, error);
+      console.error(`Error deleting comment ${commentId} from task ${taskId}:`, error);
       throw error;
-    }
-  },
-
-  // Add missing methods
-  getTasksByEmployee: async (employeeId: number) => {
-    try {
-      const response = await apiClient.get(`/employees/${employeeId}/tasks`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching tasks for employee ${employeeId}:`, error);
-      return {
-        active: [
-          {
-            id: 123,
-            title: "Design homepage mockup",
-            status: "in_progress",
-            due_date: "2023-11-15",
-            client: "Acme Inc.",
-            priority: "high"
-          }
-        ],
-        upcoming: [
-          {
-            id: 124,
-            title: "Create social media assets",
-            status: "planned",
-            due_date: "2023-11-20",
-            client: "TechCorp",
-            priority: "medium"
-          }
-        ],
-        completed: [
-          {
-            id: 120,
-            title: "Brand style guide",
-            status: "completed",
-            completed_date: "2023-11-05",
-            client: "Global Solutions",
-            priority: "high"
-          }
-        ]
-      };
     }
   }
 };

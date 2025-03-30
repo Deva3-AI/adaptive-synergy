@@ -1,155 +1,144 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ThumbsUp, ThumbsDown, AlertCircle, History, User, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaletteIcon, LayoutGrid, MessageCircle, ClipboardList, History } from "lucide-react";
 import { clientService } from '@/services/api';
 
-interface ClientPreference {
-  id: number;
-  description: string;
-  type: 'like' | 'dislike' | 'requirement';
-  source: string;
-  date: string;
-}
-
-interface ClientRequirementsPanelProps {
-  clientId?: number;
-  taskId?: number;
-}
-
-const ClientRequirementsPanel = ({ clientId, taskId }: ClientRequirementsPanelProps) => {
-  const { data: clientDetails, isLoading: isLoadingClient } = useQuery({
-    queryKey: ['client', clientId],
-    queryFn: () => clientId ? clientService.getClientDetails(clientId) : Promise.resolve(null),
+const ClientRequirementsPanel = ({ clientId }: { clientId: number }) => {
+  // Fetch client preferences
+  const { data: preferences, isLoading: isPreferencesLoading } = useQuery({
+    queryKey: ['client-preferences', clientId],
+    queryFn: () => clientService.getClientPreferences(clientId),
     enabled: !!clientId,
   });
 
-  const { data: clientPreferences = [], isLoading: isLoadingPreferences } = useQuery({
-    queryKey: ['clientPreferences', clientId],
-    queryFn: () => clientId 
-      ? clientService.getClientPreferences(clientId)
-      : Promise.resolve([]),
-    enabled: !!clientId,
-  });
-
-  // Organize preferences by type
-  const requirements = clientPreferences.filter(pref => pref.type === 'requirement');
-  const likes = clientPreferences.filter(pref => pref.type === 'like');
-  const dislikes = clientPreferences.filter(pref => pref.type === 'dislike');
-
-  const renderPreferenceItem = (preference: ClientPreference) => (
-    <div key={preference.id} className="flex items-start gap-2 py-2 border-b last:border-0">
-      {preference.type === 'like' && <ThumbsUp className="h-4 w-4 text-green-500 mt-1 flex-shrink-0" />}
-      {preference.type === 'dislike' && <ThumbsDown className="h-4 w-4 text-red-500 mt-1 flex-shrink-0" />}
-      {preference.type === 'requirement' && <AlertCircle className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />}
-      <div className="flex-1">
-        <p className="text-sm">{preference.description}</p>
-        <div className="flex items-center gap-1 mt-1">
-          <Badge variant="outline" className="text-xs px-1 py-0 h-5">
-            {preference.source === 'email' && <MessageSquare className="h-3 w-3 mr-1" />}
-            {preference.source === 'meeting' && <User className="h-3 w-3 mr-1" />}
-            {preference.source === 'feedback' && <History className="h-3 w-3 mr-1" />}
-            {preference.source}
-          </Badge>
-          <span className="text-xs text-muted-foreground">{new Date(preference.date).toLocaleDateString()}</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (isLoadingClient || isLoadingPreferences) {
+  if (isPreferencesLoading) {
     return (
       <Card>
-        <CardHeader className="pb-2">
-          <Skeleton className="h-6 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
+        <CardHeader>
+          <CardTitle>Client Requirements</CardTitle>
+          <CardDescription>Loading...</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex gap-2">
-                <Skeleton className="h-4 w-4 rounded-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ))}
-          </div>
+          <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  if (!clientId || !clientDetails) {
+  if (!preferences) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Client Requirements</CardTitle>
-          <CardDescription>No client selected</CardDescription>
+          <CardDescription>No client preferences found</CardDescription>
         </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground py-6">
+            No preference data available for this client.
+          </p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <span>Client Requirements</span>
-          {clientDetails.logo && (
-            <img 
-              src={clientDetails.logo} 
-              alt={clientDetails.client_name} 
-              className="h-6 w-6 rounded-full object-cover" 
-            />
-          )}
-        </CardTitle>
-        <CardDescription>{clientDetails.client_name}</CardDescription>
+      <CardHeader>
+        <CardTitle>Client Requirements</CardTitle>
+        <CardDescription>Key preferences and past project history</CardDescription>
       </CardHeader>
-      <CardContent className="p-4">
-        <ScrollArea className="h-[300px]">
-          {requirements.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium mb-1">Requirements</h4>
-              <div className="space-y-1">
-                {requirements.map(renderPreferenceItem)}
+      <CardContent>
+        <Tabs defaultValue="design">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="design" className="flex items-center">
+              <PaletteIcon className="h-4 w-4 mr-2" />
+              <span>Design</span>
+            </TabsTrigger>
+            <TabsTrigger value="communication">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              <span>Communication</span>
+            </TabsTrigger>
+            <TabsTrigger value="project">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              <span>Project</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="design" className="pt-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Color Scheme</h4>
+                <p className="text-sm">{preferences.designPreferences.colorScheme}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">Typography</h4>
+                <p className="text-sm">{preferences.designPreferences.typography}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">Layout Style</h4>
+                <p className="text-sm">{preferences.designPreferences.layoutStyle}</p>
               </div>
             </div>
-          )}
-
-          {likes.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium mb-1 flex items-center">
-                <ThumbsUp className="h-3.5 w-3.5 text-green-500 mr-1" />
-                <span>Preferences</span>
-              </h4>
-              <div className="space-y-1">
-                {likes.map(renderPreferenceItem)}
+          </TabsContent>
+          
+          <TabsContent value="communication" className="pt-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Preferred Channel</h4>
+                <Badge variant="outline">{preferences.communicationPreferences.preferredChannel}</Badge>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">Response Time</h4>
+                <p className="text-sm">{preferences.communicationPreferences.responseTime}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">Meeting Frequency</h4>
+                <p className="text-sm">{preferences.communicationPreferences.meetingFrequency}</p>
               </div>
             </div>
-          )}
-
-          {dislikes.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium mb-1 flex items-center">
-                <ThumbsDown className="h-3.5 w-3.5 text-red-500 mr-1" />
-                <span>Avoid</span>
-              </h4>
-              <div className="space-y-1">
-                {dislikes.map(renderPreferenceItem)}
+          </TabsContent>
+          
+          <TabsContent value="project" className="pt-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Revision Cycles</h4>
+                <p className="text-sm">{preferences.projectPreferences.revisionCycles}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">Delivery Format</h4>
+                <p className="text-sm">{preferences.projectPreferences.deliveryFormat}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">Feedback Style</h4>
+                <p className="text-sm">{preferences.projectPreferences.feedbackStyle}</p>
               </div>
             </div>
-          )}
-
-          {clientPreferences.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No specific requirements found for this client.</p>
-              <p className="text-xs mt-1">Requirements are gathered from previous interactions and feedback.</p>
-            </div>
-          )}
-        </ScrollArea>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="mt-8">
+          <div className="flex items-center mb-4">
+            <History className="h-4 w-4 mr-2" />
+            <h3 className="font-medium">Project History</h3>
+          </div>
+          
+          <div className="space-y-3">
+            {preferences.history.map((item, index) => (
+              <div key={index} className="border rounded-md p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-medium text-sm">{item.project}</h4>
+                  <span className="text-xs text-muted-foreground">{item.date}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">"{item.feedback}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

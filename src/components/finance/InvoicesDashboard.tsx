@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from '@/services/api';
@@ -23,6 +24,8 @@ import { toast } from 'sonner';
 const InvoiceStatusBadge = ({ status }: { status: string }) => {
   const statusStyles = {
     pending: 'bg-amber-100 text-amber-800 border-amber-200',
+    draft: 'bg-gray-100 text-gray-800 border-gray-200',
+    sent: 'bg-blue-100 text-blue-800 border-blue-200',
     paid: 'bg-green-100 text-green-800 border-green-200',
     overdue: 'bg-red-100 text-red-800 border-red-200',
   };
@@ -72,11 +75,11 @@ const InvoicesDashboard = () => {
   };
 
   const filteredInvoices = invoices?.filter((invoice: Invoice) => {
-    const matchesSearch = invoice.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = invoice.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesDate = selectedDate ? 
-      new Date(invoice.dueDate).toDateString() === selectedDate.toDateString() : 
+      new Date(invoice.due_date).toDateString() === selectedDate.toDateString() : 
       true;
     
     return matchesSearch && matchesDate;
@@ -103,7 +106,8 @@ const InvoicesDashboard = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="overdue">Overdue</SelectItem>
             </SelectContent>
@@ -166,10 +170,10 @@ const InvoicesDashboard = () => {
                   <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                       <h3 className="font-medium">
-                        {invoice.clientName || `Client #${invoice.clientId}`}
+                        {invoice.client_name || `Client #${invoice.client_id}`}
                       </h3>
                       <div className="text-sm text-muted-foreground">
-                        Invoice #{invoice.invoiceNumber}
+                        Invoice #{invoice.invoice_number}
                       </div>
                     </div>
                     
@@ -180,13 +184,13 @@ const InvoicesDashboard = () => {
                       
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Clock className="h-3.5 w-3.5 mr-1" />
-                        {new Date(invoice.dueDate).toLocaleDateString()}
+                        {new Date(invoice.due_date).toLocaleDateString()}
                       </div>
                       
                       <InvoiceStatusBadge status={invoice.status} />
                       
                       <div className="flex gap-2">
-                        {invoice.status === 'pending' && (
+                        {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -202,7 +206,7 @@ const InvoicesDashboard = () => {
                           PDF
                         </Button>
                         
-                        {invoice.status === 'pending' && (
+                        {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                           <Button 
                             size="sm"
                             onClick={() => handleUpdateStatus(invoice.id, 'paid')}

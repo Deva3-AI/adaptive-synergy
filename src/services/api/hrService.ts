@@ -47,7 +47,6 @@ const hrService = {
     }
   },
 
-  // Add missing methods
   getPayslips: async (startDate?: string, endDate?: string) => {
     try {
       const params = { start_date: startDate, end_date: endDate };

@@ -1,461 +1,342 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  BarChart4, 
-  Calendar, 
-  CheckCircle, 
-  Clock, 
-  FileText, 
-  Lightbulb,
-  MoreHorizontal, 
-  PlusCircle, 
-  Timer, 
-  TrendingUp, 
-  User 
-} from "lucide-react";
+import { BarChart3, BarChart4, Clock, Lightbulb, AlertCircle, CheckCircle } from "lucide-react";
+import { ProgressCircle } from "@/components/ui/progress-circle";
+import { Separator } from "@/components/ui/separator";
 import { userService, taskService, aiService } from '@/services/api';
-import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 const EmployeeDashboard = () => {
-  const [selectedTab, setSelectedTab] = useState('overview');
-  
-  // Fetch user profile
-  const { data: userProfile, isLoading: loadingProfile } = useQuery({
+  // Fetch user profile 
+  const { data: userProfile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['userProfile'],
     queryFn: () => {
       const currentUser = userService.getCurrentUser();
-      return currentUser ? userService.getUserProfile(currentUser.id) : Promise.resolve(null);
-    }
+      return userService.getUserProfile(currentUser?.id);
+    },
   });
   
   // Fetch user tasks
-  const { data: userTasks, isLoading: loadingTasks } = useQuery({
+  const { data: tasks = [], isLoading: isTasksLoading } = useQuery({
     queryKey: ['userTasks'],
     queryFn: () => {
       const currentUser = userService.getCurrentUser();
-      return currentUser ? taskService.getTasksByEmployee(currentUser.id) : Promise.resolve(null);
-    }
+      return taskService.getTasksByEmployee(currentUser?.id);
+    },
   });
   
   // Fetch productivity insights
-  const { data: productivityInsights, isLoading: loadingInsights } = useQuery({
+  const { data: productivityInsights, isLoading: isInsightsLoading } = useQuery({
     queryKey: ['productivityInsights'],
     queryFn: () => {
       const currentUser = userService.getCurrentUser();
-      return currentUser ? aiService.getProductivityInsights(currentUser.id) : Promise.resolve(null);
+      return aiService.getProductivityInsights(currentUser?.id);
     },
-    enabled: selectedTab === 'productivity'
   });
   
-  // Fetch AI suggested tasks
-  const { data: suggestedTasks, isLoading: loadingSuggestions } = useQuery({
+  // Fetch AI task suggestions
+  const { data: suggestedTasks = [], isLoading: isSuggestionsLoading } = useQuery({
     queryKey: ['suggestedTasks'],
     queryFn: () => {
       const currentUser = userService.getCurrentUser();
-      return currentUser ? aiService.getSuggestedTasks(currentUser.id) : Promise.resolve(null);
+      return aiService.getSuggestedTasks(currentUser?.id);
     },
-    enabled: selectedTab === 'suggestions'
   });
   
-  // Toggle work status (start/stop)
-  const [isWorking, setIsWorking] = useState(false);
-  const [workStartTime, setWorkStartTime] = useState<Date | null>(null);
+  const handleStartWork = () => {
+    toast.success('Work session started');
+  };
   
-  const handleToggleWork = () => {
-    if (!isWorking) {
-      setIsWorking(true);
-      setWorkStartTime(new Date());
-      // Would call a service to log start time
-    } else {
-      setIsWorking(false);
-      // Would call a service to log end time
-    }
+  const handleStopWork = () => {
+    toast.success('Work session ended');
   };
   
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex items-center space-x-4">
-          {loadingProfile ? (
-            <div className="flex items-center">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="ml-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-16 mt-1" />
-              </div>
-            </div>
-          ) : userProfile ? (
-            <div className="flex items-center">
-              <Avatar>
-                <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                <AvatarFallback>{userProfile.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="ml-2">
-                <p className="text-sm font-medium">{userProfile.name}</p>
-                <p className="text-xs text-muted-foreground">{userProfile.role}</p>
-              </div>
-            </div>
-          ) : null}
-          
-          <Button 
-            variant={isWorking ? "destructive" : "default"} 
-            onClick={handleToggleWork}
-          >
-            {isWorking ? (
-              <>
-                <Timer className="mr-2 h-4 w-4" /> Stop Work
-              </>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4">
+          {isProfileLoading ? (
+            <Skeleton className="h-16 w-16 rounded-full" />
+          ) : (
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={userProfile?.avatar} alt={userProfile?.name} />
+              <AvatarFallback>{userProfile?.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          )}
+          <div>
+            {isProfileLoading ? (
+              <Skeleton className="h-8 w-48 mb-1" />
             ) : (
-              <>
-                <Timer className="mr-2 h-4 w-4" /> Start Work
-              </>
+              <h1 className="text-2xl font-bold">Welcome, {userProfile?.name}</h1>
             )}
+            <p className="text-muted-foreground">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Button onClick={handleStartWork}>
+            <Clock className="mr-2 h-4 w-4" />
+            Start Work
+          </Button>
+          <Button variant="outline" onClick={handleStopWork}>
+            <Clock className="mr-2 h-4 w-4" />
+            Stop Work
           </Button>
         </div>
       </div>
       
-      {isWorking && workStartTime && (
-        <Card className="bg-muted">
-          <CardContent className="py-3 flex items-center justify-between">
-            <div className="flex items-center">
-              <Clock className="h-5 w-5 mr-2 text-primary" />
-              <span className="font-medium">Working since {format(workStartTime, 'h:mm a')}</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Productivity Score</CardTitle>
+          </CardHeader>
+          <CardContent className="flex justify-between items-center pt-2">
+            {isInsightsLoading ? (
+              <Skeleton className="h-24 w-24 rounded-full" />
+            ) : (
+              <ProgressCircle 
+                value={productivityInsights?.productivityScore || 0} 
+                size="large"
+                strokeWidth={8}
+              />
+            )}
+            <div className="space-y-1">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm">Completed: {tasks?.filter(t => t.status === 'completed').length || 0}</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-amber-500 mr-2"></div>
+                <span className="text-sm">In Progress: {tasks?.filter(t => t.status === 'in_progress').length || 0}</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
+                <span className="text-sm">Pending: {tasks?.filter(t => t.status === 'pending').length || 0}</span>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Time tracked today: {workStartTime ? '0h 30m' : '0h 0m'}
-            </p>
           </CardContent>
         </Card>
-      )}
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Time Tracked Today</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            {isProfileLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : (
+              <div>
+                <div className="text-3xl font-bold">{userProfile?.hoursToday || '0.0'} hrs</div>
+                <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  <span>vs. {userProfile?.averageHours || '0.0'} hrs daily average</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">AI Insights</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            {isInsightsLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : (
+              <div className="space-y-2">
+                {productivityInsights?.insights?.map((insight: string, index: number) => (
+                  <div key={index} className="flex items-start">
+                    <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <p className="text-sm">{insight}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
       
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="productivity">Productivity</TabsTrigger>
-          <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
+      <Tabs defaultValue="tasks">
+        <TabsList>
+          <TabsTrigger value="tasks">Current Tasks</TabsTrigger>
+          <TabsTrigger value="suggested">Suggested Tasks</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Task Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingTasks ? (
-                  <Skeleton className="h-4 w-full" />
-                ) : (
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {userTasks?.active?.length || 0} Active Tasks
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <BarChart4 className="mr-1 h-3 w-3" />
-                      {userTasks?.completed?.length || 0} completed this week
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Productivity Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingInsights ? (
-                  <Skeleton className="h-4 w-full" />
-                ) : (
-                  <div>
-                    <div className="text-2xl font-bold">
-                      85% <span className="text-xs text-green-500 font-normal">↑ 4%</span>
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <TrendingUp className="mr-1 h-3 w-3" />
-                      Better than last week
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Upcoming Deadlines</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingTasks ? (
-                  <Skeleton className="h-4 w-full" />
-                ) : (
-                  <div>
-                    <div className="text-2xl font-bold">
-                      3 <span className="text-xs text-amber-500 font-normal">Due this week</span>
-                    </div>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <Calendar className="mr-1 h-3 w-3" />
-                      Next: Website Design (Tomorrow)
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          
+        <TabsContent value="tasks" className="mt-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Active Tasks</CardTitle>
-                <Button variant="outline" size="sm">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Task
-                </Button>
-              </div>
-              <CardDescription>Your current active tasks and progress</CardDescription>
+              <CardTitle>My Tasks</CardTitle>
+              <CardDescription>Tasks assigned to you or created by you</CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingTasks ? (
-                <Skeleton className="h-[200px] w-full" />
-              ) : userTasks?.active && userTasks.active.length > 0 ? (
-                <div className="space-y-5">
-                  {userTasks.active.map((task: any) => (
-                    <div key={task.id} className="border-b pb-5 last:border-0 last:pb-0">
-                      <div className="flex justify-between mb-1">
-                        <h3 className="font-medium">{task.title}</h3>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Client: {task.client}</span>
-                          <span className={`${task.priority === 'high' ? 'text-red-500' : task.priority === 'medium' ? 'text-amber-500' : 'text-green-500'}`}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
-                          </span>
+              {isTasksLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : tasks.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">You don't have any active tasks</p>
+                  <Button className="mt-4">Create New Task</Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {tasks.slice(0, 5).map((task) => (
+                    <div key={task.id} className="border rounded-lg p-4 hover:bg-accent/5 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">{task.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Due: {new Date(task.due_date).toLocaleDateString()}
+                          </p>
                         </div>
-                        <Progress value={45} className="h-2" />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span className="flex items-center">
-                            <Clock className="mr-1 h-3 w-3" />
-                            Due: {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'Not set'}
-                          </span>
-                          <span>45% complete</span>
+                        <div className="flex items-center space-x-2">
+                          {task.status === 'completed' && (
+                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Completed
+                            </span>
+                          )}
+                          {task.status === 'in_progress' && (
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex items-center">
+                              <Clock className="h-3 w-3 mr-1" />
+                              In Progress
+                            </span>
+                          )}
+                          {task.status === 'pending' && (
+                            <span className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full flex items-center">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Pending
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {task.description && (
+                        <p className="text-sm mt-2">{task.description}</p>
+                      )}
+                      <div className="flex justify-between items-center mt-4">
+                        <div className="flex items-center">
+                          <Avatar className="h-6 w-6 mr-2">
+                            <AvatarFallback>{task.client?.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-xs text-muted-foreground">{task.client?.name}</span>
+                        </div>
+                        <Button size="sm" variant="outline">View Details</Button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {tasks.length > 5 && (
+                    <div className="text-center mt-4">
+                      <Button variant="outline">View All Tasks</Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="suggested" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Suggested Tasks</CardTitle>
+              <CardDescription>AI-generated task suggestions based on your work patterns</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isSuggestionsLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : suggestedTasks.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No task suggestions available</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {suggestedTasks.map((task) => (
+                    <div key={task.id} className="border rounded-lg p-4 hover:bg-accent/5 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center">
+                            <Lightbulb className="h-4 w-4 text-amber-500 mr-2" />
+                            <h3 className="font-medium">{task.title}</h3>
+                          </div>
+                          <p className="text-sm mt-1">{task.description}</p>
+                          <div className="flex items-center mt-2">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                            <span className="text-sm text-muted-foreground">
+                              Estimated: {task.estimated_hours} hours
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <Button size="sm">Add Task</Button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p>No active tasks found.</p>
-                  <p className="text-sm">Start working on a new task by clicking "Add Task" above.</p>
-                </div>
               )}
             </CardContent>
           </Card>
-          
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Tasks</CardTitle>
-                <CardDescription>Tasks scheduled to start soon</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loadingTasks ? (
-                  <Skeleton className="h-32 w-full" />
-                ) : userTasks?.upcoming && userTasks.upcoming.length > 0 ? (
-                  <ul className="space-y-2">
-                    {userTasks.upcoming.map((task: any) => (
-                      <li key={task.id} className="flex justify-between p-2 border rounded-md">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{task.title}</span>
-                          <span className="text-xs text-muted-foreground">{task.client}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {task.due_date ? format(new Date(task.due_date), 'MMM d') : 'No date'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted-foreground text-center py-5">No upcoming tasks</p>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Recently Completed</CardTitle>
-                <CardDescription>Tasks you've finished</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loadingTasks ? (
-                  <Skeleton className="h-32 w-full" />
-                ) : userTasks?.completed && userTasks.completed.length > 0 ? (
-                  <ul className="space-y-2">
-                    {userTasks.completed.map((task: any) => (
-                      <li key={task.id} className="flex justify-between p-2 border rounded-md">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{task.title}</span>
-                          <span className="text-xs text-muted-foreground">{task.client}</span>
-                        </div>
-                        <div className="flex items-center text-green-500 text-sm">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Done
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted-foreground text-center py-5">No completed tasks yet</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
         
-        <TabsContent value="productivity" className="space-y-5">
+        <TabsContent value="performance" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Productivity Insights</CardTitle>
-              <CardDescription>AI-powered analysis of your work patterns</CardDescription>
+              <CardTitle>Performance Insights</CardTitle>
+              <CardDescription>Your productivity patterns and improvement areas</CardDescription>
             </CardHeader>
-            <CardContent>
-              {loadingInsights ? (
-                <Skeleton className="h-[300px] w-full" />
-              ) : productivityInsights ? (
-                <div className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="border rounded-lg p-4">
-                      <h3 className="text-sm font-medium mb-2">Productivity Score</h3>
-                      <div className="text-3xl font-bold mb-1">{productivityInsights.productivity_score}%</div>
-                      <Progress value={productivityInsights.productivity_score} className="h-2 mb-2" />
-                    </div>
-                    
-                    <div className="border rounded-lg p-4">
-                      <h3 className="text-sm font-medium mb-2">Task Completion</h3>
-                      <div className="text-3xl font-bold mb-1">
-                        {productivityInsights.time_management.average_task_completion_time}
+            <ScrollArea className="h-[400px]">
+              <CardContent>
+                {isInsightsLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-medium mb-3">Productivity by Time of Day</h3>
+                      <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
+                        <p className="text-muted-foreground">Productivity chart will appear here</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">Average completion time</p>
                     </div>
-                    
-                    <div className="border rounded-lg p-4">
-                      <h3 className="text-sm font-medium mb-2">Focus Areas</h3>
-                      <div className="space-y-1">
-                        {productivityInsights.focus_areas.map((area: any) => (
-                          <div key={area.area} className="flex justify-between items-center">
-                            <span className="text-sm">{area.area}</span>
-                            <span className="text-sm font-medium">{area.score}%</span>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="font-medium mb-3">Strengths</h3>
+                      <div className="space-y-2">
+                        {productivityInsights?.strengths?.map((strength: string, index: number) => (
+                          <div key={index} className="flex items-start">
+                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <p className="text-sm">{strength}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="font-medium mb-3">Improvement Areas</h3>
+                      <div className="space-y-2">
+                        {productivityInsights?.improvementAreas?.map((area: string, index: number) => (
+                          <div key={index} className="flex items-start">
+                            <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <p className="text-sm">{area}</p>
                           </div>
                         ))}
                       </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Improvement Highlights</h3>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {productivityInsights.improvements.map((improvement: string, index: number) => (
-                        <div key={index} className="flex items-start border rounded-md p-3">
-                          <TrendingUp className="h-4 w-4 mr-2 text-green-500 mt-0.5" />
-                          <span className="text-sm">{improvement}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">AI Recommendations</h3>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {productivityInsights.suggestions.map((suggestion: string, index: number) => (
-                        <div key={index} className="flex items-start border rounded-md p-3">
-                          <Lightbulb className="h-4 w-4 mr-2 text-amber-500 mt-0.5" />
-                          <span className="text-sm">{suggestion}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Productivity data not available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="suggestions" className="space-y-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Suggested Tasks</CardTitle>
-              <CardDescription>Smart recommendations based on your current workload and priorities</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingSuggestions ? (
-                <Skeleton className="h-[300px] w-full" />
-              ) : suggestedTasks?.tasks && suggestedTasks.tasks.length > 0 ? (
-                <ScrollArea className="h-[400px] pr-4">
-                  <div className="space-y-4">
-                    {suggestedTasks.tasks.map((task: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-medium">{task.title}</h3>
-                          <div className={`px-2 py-1 rounded-full text-xs ${
-                            task.priority === 'high' ? 'bg-red-100 text-red-800' : 
-                            task.priority === 'medium' ? 'bg-amber-100 text-amber-800' : 
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center text-sm text-muted-foreground mb-3">
-                          <Clock className="h-3.5 w-3.5 mr-1.5" />
-                          Estimated: {task.estimated_time} hours
-                          
-                          <span className="mx-2">•</span>
-                          
-                          <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                          Due: {task.deadline}
-                        </div>
-                        
-                        <p className="text-sm mb-3">{task.benefit}</p>
-                        
-                        <div className="flex justify-end">
-                          <Button variant="outline" size="sm" className="mr-2">Remind Later</Button>
-                          <Button size="sm">Add to Tasks</Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="text-center py-12">
-                  <Lightbulb className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-muted-foreground">No task suggestions available.</p>
-                  <p className="text-sm text-muted-foreground">
-                    Work on more tasks to help the AI learn your preferences.
-                  </p>
-                </div>
-              )}
-            </CardContent>
+                )}
+              </CardContent>
+            </ScrollArea>
           </Card>
         </TabsContent>
       </Tabs>

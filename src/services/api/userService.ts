@@ -5,9 +5,7 @@ const userService = {
   login: async (email: string, password: string) => {
     try {
       const response = await apiClient.post('/auth/login', { email, password });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      return response.data.user;
+      return response.data;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -37,16 +35,6 @@ const userService = {
   updateProfile: async (userId: number, profileData: any) => {
     try {
       const response = await apiClient.put(`/users/${userId}/profile`, profileData);
-      
-      // Update stored user data if it exists
-      const currentUser = userService.getCurrentUser();
-      if (currentUser && currentUser.id === userId) {
-        localStorage.setItem('user', JSON.stringify({
-          ...currentUser,
-          ...response.data
-        }));
-      }
-      
       return response.data;
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -54,29 +42,19 @@ const userService = {
     }
   },
 
-  changePassword: async (userId: number, passwordData: any) => {
+  getUserProfile: async (userId: number) => {
     try {
-      const response = await apiClient.put(`/users/${userId}/password`, passwordData);
+      const response = await apiClient.get(`/users/${userId}/profile`);
       return response.data;
     } catch (error) {
-      console.error('Error changing password:', error);
-      throw error;
+      console.error(`Error fetching profile for user ${userId}:`, error);
+      return null;
     }
   },
 
-  forgotPassword: async (email: string) => {
+  resetPassword: async (email: string) => {
     try {
-      const response = await apiClient.post('/auth/forgot-password', { email });
-      return response.data;
-    } catch (error) {
-      console.error('Error with forgot password:', error);
-      throw error;
-    }
-  },
-
-  resetPassword: async (token: string, newPassword: string) => {
-    try {
-      const response = await apiClient.post('/auth/reset-password', { token, password: newPassword });
+      const response = await apiClient.post('/auth/reset-password', { email });
       return response.data;
     } catch (error) {
       console.error('Error resetting password:', error);
@@ -84,48 +62,33 @@ const userService = {
     }
   },
 
-  getNotifications: async (userId: number) => {
+  confirmPasswordReset: async (token: string, newPassword: string) => {
     try {
-      const response = await apiClient.get(`/users/${userId}/notifications`);
+      const response = await apiClient.post('/auth/confirm-reset', { token, newPassword });
       return response.data;
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      return [];
+      console.error('Error confirming password reset:', error);
+      throw error;
+    }
+  },
+
+  verifyEmail: async (token: string) => {
+    try {
+      const response = await apiClient.post('/auth/verify-email', { token });
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      throw error;
     }
   },
 
   updateNotificationPreferences: async (userId: number, preferences: any) => {
     try {
-      const response = await apiClient.put(`/users/${userId}/notification-preferences`, preferences);
+      const response = await apiClient.put(`/users/${userId}/notifications`, preferences);
       return response.data;
     } catch (error) {
       console.error('Error updating notification preferences:', error);
       throw error;
-    }
-  },
-
-  // Add missing method
-  getUserProfile: async (userId: number) => {
-    try {
-      const response = await apiClient.get(`/users/${userId}/profile`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return {
-        id: userId,
-        name: "John Doe",
-        email: "john.doe@example.com",
-        role: "Employee",
-        department: "Design",
-        avatar: "/avatars/default.png",
-        joinDate: "2023-01-15",
-        bio: "Experienced designer with a passion for user-centered design",
-        skills: ["UI Design", "UX Research", "Prototyping"],
-        recentActivity: [
-          { type: "task_completed", timestamp: "2023-11-05T14:30:00Z", description: "Completed Website Redesign task" },
-          { type: "comment_added", timestamp: "2023-11-05T11:15:00Z", description: "Added comment on Mobile App Design task" }
-        ]
-      };
     }
   }
 };

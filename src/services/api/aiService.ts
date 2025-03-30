@@ -4,85 +4,41 @@ import apiClient from '@/utils/apiUtils';
 const aiService = {
   generateTaskSuggestions: async (clientId: number) => {
     try {
-      const response = await apiClient.post('/ai/task-suggestions', { client_id: clientId });
+      const response = await apiClient.get(`/ai/task-suggestions/${clientId}`);
       return response.data;
     } catch (error) {
-      console.error('Error generating task suggestions:', error);
-      return [
-        { title: "Website Redesign", description: "Modernize client's website with fresh design", estimated_time: 40, priority: "high" },
-        { title: "Content Strategy", description: "Develop Q4 content calendar and themes", estimated_time: 12, priority: "medium" },
-        { title: "SEO Optimization", description: "Improve search ranking for main keywords", estimated_time: 20, priority: "medium" }
-      ];
+      console.error(`Error generating task suggestions for client ${clientId}:`, error);
+      return [];
     }
   },
 
   analyzeClientFeedback: async (feedbackText: string) => {
     try {
-      const response = await apiClient.post('/ai/analyze-feedback', { text: feedbackText });
+      const response = await apiClient.post('/ai/analyze-feedback', { feedbackText });
       return response.data;
     } catch (error) {
-      console.error('Error analyzing feedback:', error);
-      return {
-        sentiment: "positive",
-        key_points: [
-          "Satisfied with overall design direction",
-          "Wants bolder color contrast in the header",
-          "Prefers simplified navigation menu"
-        ],
-        action_items: [
-          "Increase color contrast in header section",
-          "Simplify navigation from 7 items to 4-5 items",
-          "Keep the minimalist layout approach"
-        ],
-        recommendations: "Focus on the navigation redesign while maintaining the overall aesthetic that the client appreciates."
-      };
+      console.error('Error analyzing client feedback:', error);
+      return null;
     }
   },
 
   predictTaskDuration: async (taskDescription: string, taskType: string) => {
     try {
-      const response = await apiClient.post('/ai/predict-duration', { 
-        description: taskDescription,
-        type: taskType
-      });
+      const response = await apiClient.post('/ai/predict-duration', { taskDescription, taskType });
       return response.data;
     } catch (error) {
       console.error('Error predicting task duration:', error);
-      return {
-        estimated_hours: 12,
-        confidence: "high",
-        similar_tasks: [
-          { title: "Previous Website Redesign", actual_hours: 38 },
-          { title: "E-commerce Site Refresh", actual_hours: 42 }
-        ]
-      };
+      return { hours: 0, confidence: 0 };
     }
   },
 
   generateMeetingInsights: async (meetingNotes: string) => {
     try {
-      const response = await apiClient.post('/ai/meeting-insights', { text: meetingNotes });
+      const response = await apiClient.post('/ai/meeting-insights', { meetingNotes });
       return response.data;
     } catch (error) {
       console.error('Error generating meeting insights:', error);
-      return {
-        summary: "Client wants to expand their digital presence with focus on social media and content marketing.",
-        action_items: [
-          { description: "Prepare social media strategy proposal", assigned_to: "Marketing Team", deadline: "Next Friday" },
-          { description: "Research competitor content strategies", assigned_to: "Content Team", deadline: "Wednesday" },
-          { description: "Create budget estimate for expanded services", assigned_to: "Finance Team", deadline: "Monday" }
-        ],
-        key_concerns: [
-          "Budget constraints for Q3",
-          "Timeline for implementation before holiday season",
-          "Integration with existing marketing efforts"
-        ],
-        followup_questions: [
-          "What is the exact budget range for the expanded services?",
-          "Which social platforms are priority for initial focus?",
-          "Who will be the internal point of contact for content approvals?"
-        ]
-      };
+      return { actionItems: [], keyPoints: [], sentimentAnalysis: {} };
     }
   },
 
@@ -91,131 +47,32 @@ const aiService = {
       const response = await apiClient.get(`/ai/project-trends/${clientId}`);
       return response.data;
     } catch (error) {
-      console.error('Error analyzing project trends:', error);
-      return {
-        completion_trend: {
-          average_completion_time: "3.2 days ahead of schedule",
-          trend_direction: "improving",
-          data: [
-            { month: "Jan", value: -1 },
-            { month: "Feb", value: -2 },
-            { month: "Mar", value: -2.5 },
-            { month: "Apr", value: -3 },
-            { month: "May", value: -3.2 }
-          ]
-        },
-        revision_requests: {
-          average_revisions: 1.8,
-          trend_direction: "decreasing",
-          data: [
-            { month: "Jan", value: 3.2 },
-            { month: "Feb", value: 2.8 },
-            { month: "Mar", value: 2.3 },
-            { month: "Apr", value: 1.9 },
-            { month: "May", value: 1.8 }
-          ]
-        },
-        client_satisfaction: {
-          average_score: 4.7,
-          trend_direction: "stable",
-          data: [
-            { month: "Jan", value: 4.5 },
-            { month: "Feb", value: 4.6 },
-            { month: "Mar", value: 4.7 },
-            { month: "Apr", value: 4.7 },
-            { month: "May", value: 4.7 }
-          ]
-        },
-        insights: [
-          "Project delivery times have consistently improved quarter over quarter",
-          "Revision requests have decreased by 44% since January",
-          "Client satisfaction scores are stable and high, indicating good relationship quality"
-        ],
-        recommendations: [
-          "Continue current approach to project planning and execution",
-          "Document successful workflows that have led to fewer revisions",
-          "Consider slight adjustments to initial client briefs to improve clarity"
-        ]
-      };
+      console.error(`Error analyzing project trends for client ${clientId}:`, error);
+      return { trends: [], predictions: [], recommendations: [] };
     }
   },
 
-  // Add missing methods needed by components
-  getAssistantResponse: async (message: string, context: any = {}) => {
+  getAssistantResponse: async (query: string) => {
     try {
-      const response = await apiClient.post('/ai/assistant', { message, context });
+      const response = await apiClient.post('/ai/assistant', { query });
       return response.data;
     } catch (error) {
       console.error('Error getting AI assistant response:', error);
-      return {
-        message: "I'd be happy to help with that! Based on the available data, I can provide some insights on your question. Would you like more specific information on any particular aspect?",
-        suggested_actions: [
-          "View related tasks",
-          "Schedule a follow-up",
-          "Generate a report"
-        ]
-      };
-    }
-  },
-
-  generateSuggestedTasks: async (projectDescription: string, clientId?: number) => {
-    try {
-      const payload = clientId ? { description: projectDescription, client_id: clientId } : { description: projectDescription };
-      const response = await apiClient.post('/ai/generate-tasks', payload);
-      return response.data;
-    } catch (error) {
-      console.error('Error generating suggested tasks:', error);
-      return {
-        suggested_tasks: [
-          { 
-            title: "Create wireframes", 
-            description: "Design initial wireframes for the project", 
-            estimated_time: 8, 
-            priority_level: "high" 
-          },
-          { 
-            title: "Content strategy", 
-            description: "Develop content strategy based on user personas", 
-            estimated_time: 10, 
-            priority_level: "medium" 
-          },
-          { 
-            title: "Research competitors", 
-            description: "Analyze top competitors in the market", 
-            estimated_time: 6, 
-            priority_level: "medium" 
-          }
-        ]
-      };
+      return { response: "I couldn't process your request at this time." };
     }
   },
 
   getProductivityInsights: async (userId: number) => {
     try {
-      const response = await apiClient.get(`/ai/productivity/${userId}`);
+      const response = await apiClient.get(`/ai/productivity-insights/${userId}`);
       return response.data;
     } catch (error) {
-      console.error('Error getting productivity insights:', error);
+      console.error(`Error getting productivity insights for user ${userId}:`, error);
       return {
-        productivity_score: 85,
-        time_management: {
-          average_task_completion_time: "2.3 days",
-          trend: "improving",
-          recommendation: "Continue to break large tasks into smaller chunks"
-        },
-        focus_areas: [
-          { area: "Documentation", score: 92 },
-          { area: "Code Reviews", score: 78 },
-          { area: "Meeting Participation", score: 88 }
-        ],
-        improvements: [
-          "Task switching has decreased by 15%",
-          "Deep work sessions increased by 22%"
-        ],
-        suggestions: [
-          "Consider blocking 2-hour focus periods in the morning",
-          "Reduce meeting time by 10% for more individual work"
-        ]
+        averageTaskCompletion: 0,
+        productiveHours: [],
+        improvementAreas: [],
+        strengths: []
       };
     }
   },
@@ -225,32 +82,19 @@ const aiService = {
       const response = await apiClient.get(`/ai/suggested-tasks/${userId}`);
       return response.data;
     } catch (error) {
-      console.error('Error getting suggested tasks:', error);
-      return {
-        tasks: [
-          {
-            title: "Review client feedback",
-            priority: "high",
-            estimated_time: 0.5,
-            deadline: "Today",
-            benefit: "Address recent client concerns quickly"
-          },
-          {
-            title: "Plan Q4 marketing strategy",
-            priority: "medium",
-            estimated_time: 3,
-            deadline: "This week",
-            benefit: "Stay ahead of quarterly planning"
-          },
-          {
-            title: "Update documentation",
-            priority: "low",
-            estimated_time: 1.5,
-            deadline: "Next week",
-            benefit: "Improve onboarding for new team members"
-          }
-        ]
-      };
+      console.error(`Error getting suggested tasks for user ${userId}:`, error);
+      return [];
+    }
+  },
+
+  generateSuggestedTasks: async (clientId: number, taskType?: string) => {
+    try {
+      const params = taskType ? { taskType } : {};
+      const response = await apiClient.get(`/ai/generate-tasks/${clientId}`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error generating suggested tasks:', error);
+      return [];
     }
   }
 };

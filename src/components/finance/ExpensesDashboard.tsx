@@ -70,7 +70,7 @@ const ExpensesTrendChart = ({ data }: { data: any[] }) => {
   // Group expenses by month
   const expensesByMonth: Record<string, number> = {};
   data.forEach(record => {
-    const date = new Date(record.recordDate);
+    const date = new Date(record.date);
     const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     expensesByMonth[monthYear] = (expensesByMonth[monthYear] || 0) + record.amount;
   });
@@ -245,7 +245,7 @@ const ExpensesDashboard = () => {
                         <div>
                           <h3 className="font-medium">{record.description}</h3>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(record.recordDate).toLocaleDateString()}
+                            {new Date(record.date).toLocaleDateString()}
                           </div>
                         </div>
                         
