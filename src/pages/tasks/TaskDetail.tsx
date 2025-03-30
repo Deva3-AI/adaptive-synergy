@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,10 @@ const TaskDetail = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const [comment, setComment] = useState('');
 
-  const { data: task, isLoading, error } = useQuery(
-    ['task', taskId],
-    () => taskService.getTaskDetails(taskId ? parseInt(taskId) : 0)
-  );
+  const { data: task, isLoading, error } = useQuery({
+    queryKey: ['task', taskId],
+    queryFn: () => taskService.getTaskDetails(taskId ? parseInt(taskId) : 0)
+  });
 
   if (isLoading) {
     return <div>Loading task details...</div>;
@@ -69,7 +70,7 @@ const TaskDetail = () => {
           <div>
             <h4 className="text-lg font-semibold mb-2">Comments</h4>
             <div className="space-y-4">
-              {task.comments.map((comment, index) => (
+              {task.comments && task.comments.map((comment, index) => (
                 <div key={index} className="flex items-start text-sm">
                   <Avatar className="mr-2 h-8 w-8">
                     <AvatarFallback>{comment.user.charAt(0)}</AvatarFallback>

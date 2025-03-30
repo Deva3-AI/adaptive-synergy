@@ -1,34 +1,18 @@
 
 import apiClient from '@/utils/apiUtils';
 
-export const aiService = {
-  generateSuggestedTasks: async (projectDescription: string, clientId?: number) => {
-    try {
-      const response = await apiClient.post('/ai/tasks/suggest', {
-        project_description: projectDescription,
-        client_id: clientId,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Generate suggested tasks error:', error);
-      // Return empty array to prevent UI errors
-      return { suggested_tasks: [] };
-    }
-  },
-  
+const aiService = {
   analyzeTaskPerformance: async (taskId: number) => {
     try {
-      const response = await apiClient.get(`/ai/tasks/${taskId}/analyze`);
+      const response = await apiClient.get(`/ai/tasks/${taskId}/performance`);
       return response.data;
     } catch (error) {
       console.error('Analyze task performance error:', error);
-      // Return default data to prevent UI errors
       return {
         key_points: [],
-        suggested_approach: "No suggestions available.",
-        estimated_complexity: "Unknown",
-        risks: [],
-        suggestedTasks: [] // Adding this for compatibility
+        suggested_approach: '',
+        estimated_complexity: 'medium',
+        risks: []
       };
     }
   },
@@ -43,27 +27,64 @@ export const aiService = {
     }
   },
   
-  analyzeClientCommunication: async (clientId: number) => {
+  analyzeClientFeedback: async (clientId: number) => {
     try {
-      const response = await apiClient.get(`/ai/clients/${clientId}/communication`);
+      const response = await apiClient.get(`/ai/clients/${clientId}/feedback-analysis`);
       return response.data;
     } catch (error) {
-      console.error('Analyze client communication error:', error);
-      return { insights: [] };
+      console.error('Analyze client feedback error:', error);
+      return {
+        sentiment: 'neutral',
+        key_points: [],
+        suggestions: []
+      };
     }
   },
-
-  getAssistantResponse: async (message: string, context: any) => {
+  
+  generateContentSuggestions: async (data: any) => {
     try {
-      const response = await apiClient.post('/ai/assistant', {
-        message,
-        context
-      });
+      const response = await apiClient.post('/ai/content-suggestions', data);
       return response.data;
     } catch (error) {
-      console.error('Get AI assistant response error:', error);
-      return { 
-        message: "I apologize, but I'm having trouble processing your request right now."
+      console.error('Generate content suggestions error:', error);
+      return [];
+    }
+  },
+  
+  generateTaskDescription: async (taskTitle: string, clientId?: number) => {
+    try {
+      let url = `/ai/generate-task-description?title=${encodeURIComponent(taskTitle)}`;
+      if (clientId) {
+        url += `&client_id=${clientId}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Generate task description error:', error);
+      return '';
+    }
+  },
+  
+  getSuggestedTasks: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/ai/users/${userId}/suggested-tasks`);
+      return response.data;
+    } catch (error) {
+      console.error('Get suggested tasks error:', error);
+      return [];
+    }
+  },
+  
+  getProductivityInsights: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/ai/users/${userId}/productivity-insights`);
+      return response.data;
+    } catch (error) {
+      console.error('Get productivity insights error:', error);
+      return {
+        productivity_score: 0,
+        trends: [],
+        suggestions: []
       };
     }
   }

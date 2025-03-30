@@ -205,7 +205,7 @@ const FinanceDashboard = () => {
               <ExpensesDashboard />
             </TabsContent>
             <TabsContent value="team-costs" className="pt-4">
-              <TeamCostsAnalysis />
+              <TeamCostsAnalysis period="month" />
             </TabsContent>
           </Tabs>
         </div>

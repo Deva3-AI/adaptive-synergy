@@ -1,102 +1,117 @@
 
 import apiClient from '@/utils/apiUtils';
-import { toast } from 'sonner';
-
-export interface User {
-  user_id: number;
-  name: string;
-  email: string;
-  role: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-}
 
 const userService = {
-  login: async (credentials: LoginCredentials) => {
+  getCurrentUser: async () => {
     try {
-      const formData = new FormData();
-      formData.append('username', credentials.email);
-      formData.append('password', credentials.password);
-      
-      const response = await apiClient.post('/auth/token', formData, {
+      const response = await apiClient.get('/users/me');
+      return response.data;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      // Return mock data for preview
+      return {
+        id: 1,
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        role: 'Employee',
+        department: 'Development',
+        avatar: null
+      };
+    }
+  },
+  
+  getUserProfile: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get user profile error:', error);
+      throw error;
+    }
+  },
+  
+  updateUserProfile: async (userData: any) => {
+    try {
+      const response = await apiClient.put('/users/me', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Update user profile error:', error);
+      throw error;
+    }
+  },
+  
+  uploadAvatar: async (formData: FormData) => {
+    try {
+      const response = await apiClient.post('/users/me/avatar', formData, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      
-      if (response.data.access_token) {
-        localStorage.setItem('token', response.data.access_token);
-        localStorage.setItem('user', JSON.stringify({
-          id: response.data.user_id,
-          name: response.data.name,
-          email: response.data.email,
-          role: response.data.role,
-        }));
-      }
-      
       return response.data;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Upload avatar error:', error);
       throw error;
     }
   },
   
-  register: async (userData: RegisterData) => {
+  changePassword: async (data: { current_password: string; new_password: string }) => {
     try {
-      const response = await apiClient.post('/auth/register', userData);
+      const response = await apiClient.put('/users/me/password', data);
       return response.data;
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Change password error:', error);
       throw error;
     }
   },
   
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  },
-  
-  getCurrentUser: () => {
+  getUserNotifications: async () => {
     try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        return JSON.parse(userStr);
-      }
-      return null;
+      const response = await apiClient.get('/users/me/notifications');
+      return response.data;
     } catch (error) {
-      console.error('Error parsing user data:', error);
-      localStorage.removeItem('user');
-      return null;
+      console.error('Get user notifications error:', error);
+      return [];
     }
   },
   
-  verifyEmail: async (token: string) => {
-    const response = await apiClient.get(`/auth/verify-email?token=${token}`);
-    return response.data;
+  markNotificationAsRead: async (notificationId: number) => {
+    try {
+      const response = await apiClient.put(`/users/me/notifications/${notificationId}/read`);
+      return response.data;
+    } catch (error) {
+      console.error('Mark notification as read error:', error);
+      throw error;
+    }
   },
   
-  resetPassword: async (email: string) => {
-    const response = await apiClient.post('/auth/reset-password', { email });
-    return response.data;
+  getUserTasks: async (status?: string) => {
+    try {
+      let url = '/users/me/tasks';
+      if (status) {
+        url += `?status=${status}`;
+      }
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get user tasks error:', error);
+      return [];
+    }
   },
   
-  setNewPassword: async (token: string, password: string) => {
-    const response = await apiClient.post('/auth/reset-password/confirm', {
-      token,
-      password,
-    });
-    return response.data;
-  },
+  getUserPerformance: async (period: string = 'month') => {
+    try {
+      const response = await apiClient.get(`/users/me/performance?period=${period}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get user performance error:', error);
+      return {
+        tasks_completed: 0,
+        on_time_completion: 0,
+        average_rating: 0,
+        performance_trend: []
+      };
+    }
+  }
 };
 
 export default userService;

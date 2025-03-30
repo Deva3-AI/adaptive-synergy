@@ -87,7 +87,7 @@ export interface HRTask {
   due_date?: string;
 }
 
-export const hrService = {
+const hrService = {
   // Attendance
   getAttendance: async (startDate?: string, endDate?: string) => {
     try {
@@ -392,6 +392,68 @@ export const hrService = {
     } catch (error) {
       console.error('Get HR trends error:', error);
       return {};
+    }
+  },
+
+  // Adding missing methods that were flagged in errors
+  getJobOpenings: async () => {
+    try {
+      const response = await apiClient.get('/hr/job-openings');
+      return response.data;
+    } catch (error) {
+      console.error('Get job openings error:', error);
+      return [];
+    }
+  },
+  
+  getEmployeeAttendance: async (userId?: number, startDate?: string, endDate?: string) => {
+    try {
+      let url = '/hr/employee-attendance';
+      const params = new URLSearchParams();
+      
+      if (userId) params.append('user_id', userId.toString());
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get employee attendance error:', error);
+      return [];
+    }
+  },
+  
+  getPayroll: async (month?: string, year?: string) => {
+    try {
+      let url = '/hr/payroll';
+      const params = new URLSearchParams();
+      
+      if (month) params.append('month', month);
+      if (year) params.append('year', year);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get payroll error:', error);
+      return [];
+    }
+  },
+  
+  getRecruitment: async () => {
+    try {
+      const response = await apiClient.get('/hr/recruitment');
+      return response.data;
+    } catch (error) {
+      console.error('Get recruitment error:', error);
+      return [];
     }
   }
 };

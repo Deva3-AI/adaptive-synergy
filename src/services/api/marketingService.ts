@@ -1,7 +1,7 @@
 
 import apiClient from '@/utils/apiUtils';
 
-export const marketingService = {
+const marketingService = {
   // Campaign management
   getCampaigns: async () => {
     try {
