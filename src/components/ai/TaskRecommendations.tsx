@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ userId, class
   // Fetch user's current tasks for context
   const { data: userTasks = [] } = useQuery({
     queryKey: ['userTasks', userId],
-    queryFn: () => taskService.getUserTasks(Number(userId)),
+    queryFn: () => taskService.getTasks({ assigned_to: Number(userId) }),
   });
 
   const calculateTaskCompletion = (taskId: number) => {

@@ -1,130 +1,74 @@
 
-import apiClient from '@/utils/apiUtils';
+import { apiRequest } from "@/utils/apiUtils";
+import { mockUserTasks, mockTaskStatistics, mockTaskAttachments } from "@/utils/mockData";
 
+// Type for task attachments
 export interface TaskAttachment {
   id: number;
   task_id: number;
   file_name: string;
-  file_url: string;
   file_type: string;
-  uploaded_at: string;
-  uploaded_by: number;
-}
-
-export interface Task {
-  task_id: number;
-  title: string;
+  file_size: number;
   description?: string;
-  client_id?: number;
-  assigned_to?: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  estimated_time?: number;
-  actual_time?: number;
-  start_time?: string;
-  end_time?: string;
-  created_at: string;
-  updated_at: string;
-  progress?: number; // Add progress field
-  priority?: 'High' | 'Medium' | 'Low'; // Add priority field
+  uploaded_by: number;
+  upload_date: string;
+  url: string;
 }
 
 const taskService = {
+  // Get all tasks or filter by criteria
   getTasks: async (filters?: any) => {
-    try {
-      let url = '/tasks';
-      if (filters) {
-        const params = new URLSearchParams();
-        Object.entries(filters).forEach(([key, value]) => {
-          if (value) params.append(key, value as string);
-        });
-        if (params.toString()) {
-          url += `?${params.toString()}`;
-        }
-      }
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      return [];
-    }
+    return apiRequest('/tasks', 'get', undefined, []);
   },
 
+  // Get a specific task by ID
   getTaskById: async (taskId: number) => {
-    try {
-      const response = await apiClient.get(`/tasks/${taskId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching task ${taskId}:`, error);
-      return null;
-    }
+    return apiRequest(`/tasks/${taskId}`, 'get', undefined, {});
   },
 
+  // Get tasks assigned to a specific user
+  getUserTasks: async (userId: number) => {
+    return apiRequest(`/tasks/user/${userId}`, 'get', undefined, mockUserTasks);
+  },
+
+  // Create a new task
   createTask: async (taskData: any) => {
-    try {
-      const response = await apiClient.post('/tasks', taskData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
-    }
+    return apiRequest('/tasks', 'post', taskData, {});
   },
 
+  // Update an existing task
   updateTask: async (taskId: number, taskData: any) => {
-    try {
-      const response = await apiClient.put(`/tasks/${taskId}`, taskData);
-      return response.data;
-    } catch (error) {
-      console.error(`Error updating task ${taskId}:`, error);
-      throw error;
-    }
+    return apiRequest(`/tasks/${taskId}`, 'put', taskData, {});
   },
 
+  // Delete a task
   deleteTask: async (taskId: number) => {
-    try {
-      const response = await apiClient.delete(`/tasks/${taskId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error deleting task ${taskId}:`, error);
-      throw error;
-    }
+    return apiRequest(`/tasks/${taskId}`, 'delete', undefined, {});
   },
 
+  // Get task attachments
   getTaskAttachments: async (taskId: number) => {
-    try {
-      const response = await apiClient.get(`/tasks/${taskId}/attachments`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching attachments for task ${taskId}:`, error);
-      return [];
-    }
+    return apiRequest(`/tasks/${taskId}/attachments`, 'get', undefined, mockTaskAttachments);
   },
 
-  uploadTaskAttachment: async (taskId: number, file: File) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await apiClient.post(`/tasks/${taskId}/attachments`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      return response.data;
-    } catch (error) {
-      console.error(`Error uploading attachment for task ${taskId}:`, error);
-      throw error;
+  // Upload task attachment
+  uploadTaskAttachment: async (taskId: number, file: File, description?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) {
+      formData.append('description', description);
     }
+    
+    return apiRequest(`/tasks/${taskId}/attachments`, 'post', formData, {});
   },
 
-  deleteTaskAttachment: async (taskId: number, attachmentId: number) => {
-    try {
-      const response = await apiClient.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error deleting attachment ${attachmentId} for task ${taskId}:`, error);
-      throw error;
-    }
+  // Get task statistics
+  getTaskStatistics: async (userId?: number, timeRange?: string) => {
+    const url = userId 
+      ? `/tasks/statistics?userId=${userId}${timeRange ? `&timeRange=${timeRange}` : ''}`
+      : '/tasks/statistics';
+    
+    return apiRequest(url, 'get', undefined, mockTaskStatistics);
   }
 };
 

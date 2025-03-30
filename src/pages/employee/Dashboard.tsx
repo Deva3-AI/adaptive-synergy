@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, BarChart, PieChart } from "@/components/ui/charts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Calendar, 
   Clock, 
@@ -22,7 +23,6 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useUser } from '@/hooks/useUser';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const taskCompletionData = [
   { name: 'Jan', value: 10 },

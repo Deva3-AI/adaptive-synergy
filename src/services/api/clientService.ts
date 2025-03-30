@@ -1,173 +1,79 @@
 
-import apiClient from '@/utils/apiUtils';
+import { apiRequest } from "@/utils/apiUtils";
+import { mockClientBrands, mockBrandTasks, mockClientPreferences } from "@/utils/mockData";
 
+// Brand type definition
 export interface Brand {
   id: number;
+  client_id: number;
   name: string;
   description?: string;
-  logo?: string;
-  client_id: number;
+  logo_url?: string;
+  created_at: string;
 }
 
 const clientService = {
+  // Get all clients
   getClients: async () => {
-    try {
-      const response = await apiClient.get('/clients');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      return [];
-    }
+    return apiRequest('/clients', 'get', undefined, []);
   },
 
+  // Get client details
   getClientDetails: async (clientId: number) => {
-    try {
-      const response = await apiClient.get(`/clients/${clientId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching client ${clientId}:`, error);
-      return null;
-    }
+    return apiRequest(`/clients/${clientId}`, 'get', undefined, {});
   },
 
+  // Create a new client
   createClient: async (clientData: any) => {
-    try {
-      const response = await apiClient.post('/clients', clientData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating client:', error);
-      throw error;
-    }
+    return apiRequest('/clients', 'post', clientData, {});
   },
 
+  // Update an existing client
   updateClient: async (clientId: number, clientData: any) => {
-    try {
-      const response = await apiClient.put(`/clients/${clientId}`, clientData);
-      return response.data;
-    } catch (error) {
-      console.error(`Error updating client ${clientId}:`, error);
-      throw error;
-    }
+    return apiRequest(`/clients/${clientId}`, 'put', clientData, {});
   },
 
+  // Get tasks associated with a client
   getClientTasks: async (clientId: number) => {
-    try {
-      const response = await apiClient.get(`/clients/${clientId}/tasks`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching tasks for client ${clientId}:`, error);
-      return [];
-    }
+    return apiRequest(`/clients/${clientId}/tasks`, 'get', undefined, []);
   },
 
+  // Create a task for a client
   createTask: async (taskData: any) => {
-    try {
-      const response = await apiClient.post('/tasks', taskData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
-    }
+    return apiRequest('/tasks', 'post', taskData, {});
   },
 
-  // Add the missing methods
+  // Get brands associated with a client
   getClientBrands: async (clientId: number) => {
-    try {
-      const response = await apiClient.get(`/clients/${clientId}/brands`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching brands for client ${clientId}:`, error);
-      // Return mock data for development
-      return [
-        {
-          id: 1,
-          name: "Brand Alpha",
-          description: "Main brand identity",
-          logo: "/brands/alpha-logo.png",
-          client_id: clientId
-        },
-        {
-          id: 2,
-          name: "Brand Beta",
-          description: "Secondary product line",
-          logo: "/brands/beta-logo.png",
-          client_id: clientId
-        }
-      ];
-    }
+    return apiRequest(`/clients/${clientId}/brands`, 'get', undefined, mockClientBrands.filter(brand => brand.client_id === clientId));
   },
 
-  getBrandTasks: async (clientId: number, brandId?: number) => {
-    try {
-      // Handle both function signatures
-      let url;
-      if (brandId) {
-        url = `/clients/${clientId}/brands/${brandId}/tasks`;
-      } else {
-        // If brandId is not provided, assume clientId is the brandId
-        url = `/brands/${clientId}/tasks`;
-      }
-      
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching tasks for brand:`, error);
-      return [];
-    }
+  // Get tasks associated with a brand
+  getBrandTasks: async (brandId: number) => {
+    return apiRequest(`/brands/${brandId}/tasks`, 'get', undefined, mockBrandTasks.filter(task => task.brand_id === brandId));
   },
 
+  // Create a new brand for a client
   createBrand: async (brandData: any) => {
-    try {
-      const response = await apiClient.post(`/clients/${brandData.client_id}/brands`, brandData);
-      return response.data;
-    } catch (error) {
-      console.error(`Error creating brand for client ${brandData.client_id}:`, error);
-      throw error;
-    }
+    return apiRequest('/brands', 'post', brandData, {
+      id: Math.floor(Math.random() * 1000),
+      ...brandData,
+      created_at: new Date().toISOString()
+    });
   },
 
+  // Get client preferences
   getClientPreferences: async (clientId: number) => {
-    try {
-      const response = await apiClient.get(`/clients/${clientId}/preferences`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching preferences for client ${clientId}:`, error);
-      // Return mock data for development
-      return {
-        designPreferences: {
-          colorScheme: "Blue, White, Gray",
-          typography: "Sans-serif, minimalist",
-          layoutStyle: "Clean grid system with whitespace"
-        },
-        communicationPreferences: {
-          preferredChannel: "Slack",
-          responseTime: "Within 24 hours",
-          meetingFrequency: "Weekly"
-        },
-        projectPreferences: {
-          revisionCycles: "Maximum of 3 rounds",
-          deliveryFormat: "PDF and source files",
-          feedbackStyle: "Direct and constructive"
-        },
-        history: [
-          {
-            project: "Website Redesign",
-            date: "Mar 2023",
-            feedback: "Excellent work on the minimalist approach. Really captures our brand essence."
-          },
-          {
-            project: "Logo Update",
-            date: "Jan 2023",
-            feedback: "The colors were perfect, but we'd prefer bolder typography in future projects."
-          },
-          {
-            project: "Marketing Campaign",
-            date: "Nov 2022",
-            feedback: "Loved the creative direction. Would like more variety in social media formats next time."
-          }
-        ]
-      };
-    }
+    return apiRequest(`/clients/${clientId}/preferences`, 'get', undefined, 
+      mockClientPreferences.find(pref => pref.client_id === clientId) || {
+        client_id: clientId,
+        communication_channel: "Email",
+        feedback_frequency: "As needed",
+        design_preferences: "No specific preferences recorded",
+        dos: [],
+        donts: []
+      }
+    );
   }
 };
 

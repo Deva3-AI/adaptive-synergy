@@ -1,128 +1,81 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, Clock, BarChart } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { PieChart, Cell, Pie, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import taskService from '@/services/api/taskService';
+import { Progress } from '@/components/ui/progress';
 
 const TaskProgressInsights = () => {
-  const { data: taskStats, isLoading } = useQuery({
-    queryKey: ['task-progress-stats'],
+  // Get task statistics
+  const { data, isLoading } = useQuery({
+    queryKey: ['task-statistics'],
     queryFn: () => taskService.getTaskStatistics(),
-    // If the function doesn't exist, mock data will be used
   });
 
-  // Mock data in case the API isn't ready
-  const data = taskStats || {
-    completion: {
-      completed: 12,
-      inProgress: 8,
-      pending: 5,
-      total: 25
-    },
-    byPriority: [
-      { name: 'High', value: 8, color: '#ef4444' },
-      { name: 'Medium', value: 12, color: '#f59e0b' },
-      { name: 'Low', value: 5, color: '#10b981' }
-    ],
-    byCategory: [
-      { name: 'Design', value: 7, color: '#8b5cf6' },
-      { name: 'Development', value: 10, color: '#3b82f6' },
-      { name: 'Content', value: 5, color: '#14b8a6' },
-      { name: 'Other', value: 3, color: '#64748b' }
-    ]
-  };
-
-  const completionPercentage = Math.round((data.completion.completed / data.completion.total) * 100);
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Task Progress</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Loading task statistics...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
         <CardTitle>Task Progress Insights</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="priorities">Priorities</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm font-medium">Overall Completion</span>
-                <span className="text-sm font-medium">{completionPercentage}%</span>
+        <div className="space-y-6">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                Completion Rate
               </div>
-              <Progress value={completionPercentage} className="h-2" />
+              <div className="text-2xl font-bold">{data?.completion_rate || 0}%</div>
+              <Progress value={data?.completion_rate || 0} className="h-1.5" />
             </div>
             
-            <div className="grid grid-cols-3 gap-4 pt-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{data.completion.completed}</div>
-                <div className="text-xs text-muted-foreground">Completed</div>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Clock className="mr-2 h-4 w-4 text-blue-500" />
+                On-Time Completion
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{data.completion.inProgress}</div>
-                <div className="text-xs text-muted-foreground">In Progress</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{data.completion.pending}</div>
-                <div className="text-xs text-muted-foreground">Pending</div>
-              </div>
+              <div className="text-2xl font-bold">{data?.on_time_completion || 0}%</div>
+              <Progress value={data?.on_time_completion || 0} className="h-1.5" />
             </div>
-          </TabsContent>
+            
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <BarChart className="mr-2 h-4 w-4 text-purple-500" />
+                Avg. Duration
+              </div>
+              <div className="text-2xl font-bold">{data?.average_task_duration || 0} days</div>
+            </div>
+          </div>
           
-          <TabsContent value="categories">
-            <div className="h-[200px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.byCategory}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {data.byCategory.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+          <div>
+            <h3 className="font-medium text-sm text-muted-foreground mb-2">Recent Completions</h3>
+            <div className="space-y-3">
+              {data?.recent_completions?.map((task: any, index: number) => (
+                <div key={index} className="flex justify-between items-center border-b pb-2">
+                  <div>
+                    <div className="font-medium text-sm">{task.title}</div>
+                    <div className="text-xs text-muted-foreground">{task.client}</div>
+                  </div>
+                  <div className="text-xs">{task.completed_date}</div>
+                </div>
+              ))}
             </div>
-          </TabsContent>
-          
-          <TabsContent value="priorities">
-            <div className="h-[200px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.byPriority}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {data.byPriority.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

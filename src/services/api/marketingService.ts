@@ -1,153 +1,111 @@
 
-import apiClient from '@/utils/apiUtils';
+import { apiRequest } from "@/utils/apiUtils";
+import { 
+  mockEmailTemplates, 
+  mockEmailOutreach, 
+  mockLeads, 
+  mockMarketingPlans,
+  mockMarketingTrends,
+  mockCompetitorInsights
+} from "@/utils/mockData";
 
 const marketingService = {
+  // Get all campaigns
   getCampaigns: async () => {
-    try {
-      const response = await apiClient.get('/marketing/campaigns');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      return [];
-    }
+    return apiRequest('/marketing/campaigns', 'get', undefined, []);
   },
 
+  // Create a new campaign
   createCampaign: async (campaignData: any) => {
-    try {
-      const response = await apiClient.post('/marketing/campaigns', campaignData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating campaign:', error);
-      throw error;
-    }
+    return apiRequest('/marketing/campaigns', 'post', campaignData, {});
   },
 
+  // Get all meetings
   getMeetings: async () => {
-    try {
-      const response = await apiClient.get('/marketing/meetings');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching meetings:', error);
-      return [];
-    }
+    return apiRequest('/marketing/meetings', 'get', undefined, []);
   },
 
+  // Create a new meeting
   createMeeting: async (meetingData: any) => {
-    try {
-      const response = await apiClient.post('/marketing/meetings', meetingData);
-      return response.data;
-    } catch (error) {
-      console.error('Error creating meeting:', error);
-      throw error;
-    }
+    return apiRequest('/marketing/meetings', 'post', meetingData, {});
   },
 
+  // Get analytics data
   getAnalytics: async (startDate?: string, endDate?: string) => {
-    try {
-      let url = '/marketing/analytics';
-      const params = [];
-      if (startDate) params.push(`startDate=${startDate}`);
-      if (endDate) params.push(`endDate=${endDate}`);
-      if (params.length > 0) {
-        url += `?${params.join('&')}`;
-      }
-      const response = await apiClient.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching marketing analytics:', error);
-      return null;
-    }
+    const url = startDate && endDate
+      ? `/marketing/analytics?start=${startDate}&end=${endDate}`
+      : '/marketing/analytics';
+    return apiRequest(url, 'get', undefined, {});
   },
 
-  // Add missing methods
-  getEmailOutreach: async () => {
-    try {
-      const response = await apiClient.get('/marketing/email-outreach');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching email outreach data:', error);
-      return [];
-    }
-  },
-
+  // Get email templates
   getEmailTemplates: async () => {
-    try {
-      const response = await apiClient.get('/marketing/email-templates');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching email templates:', error);
-      return [];
-    }
+    return apiRequest('/marketing/email-templates', 'get', undefined, mockEmailTemplates);
   },
 
-  getLeads: async () => {
-    try {
-      const response = await apiClient.get('/marketing/leads');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      return [];
-    }
+  // Get email outreach data
+  getEmailOutreach: async () => {
+    return apiRequest('/marketing/email-outreach', 'get', undefined, mockEmailOutreach);
   },
 
+  // Get leads
+  getLeads: async (status?: string) => {
+    const url = status ? `/marketing/leads?status=${status}` : '/marketing/leads';
+    return apiRequest(url, 'get', undefined, mockLeads);
+  },
+
+  // Get marketing plans
   getMarketingPlans: async () => {
-    try {
-      const response = await apiClient.get('/marketing/plans');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching marketing plans:', error);
-      return [];
-    }
+    return apiRequest('/marketing/plans', 'get', undefined, mockMarketingPlans);
   },
 
+  // Get marketing plan by id
   getMarketingPlanById: async (planId: number) => {
-    try {
-      const response = await apiClient.get(`/marketing/plans/${planId}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching marketing plan ${planId}:`, error);
-      return null;
-    }
+    return apiRequest(`/marketing/plans/${planId}`, 'get', undefined, 
+      mockMarketingPlans.find(plan => plan.id === planId) || {});
   },
 
+  // Get marketing trends
   getMarketingTrends: async () => {
-    try {
-      const response = await apiClient.get('/marketing/trends');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching marketing trends:', error);
-      return [];
-    }
+    return apiRequest('/marketing/trends', 'get', undefined, mockMarketingTrends);
   },
 
+  // Get competitor insights
   getCompetitorInsights: async () => {
-    try {
-      const response = await apiClient.get('/marketing/competitor-insights');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching competitor insights:', error);
-      return [];
-    }
+    return apiRequest('/marketing/competitor-insights', 'get', undefined, mockCompetitorInsights);
   },
 
-  analyzeMeetingTranscript: async (transcriptData: any) => {
-    try {
-      const response = await apiClient.post('/marketing/analyze-transcript', transcriptData);
-      return response.data;
-    } catch (error) {
-      console.error('Error analyzing meeting transcript:', error);
-      throw error;
-    }
+  // Analyze meeting transcript
+  analyzeMeetingTranscript: async (transcript: string) => {
+    return apiRequest('/marketing/analyze-transcript', 'post', { transcript }, {
+      key_points: [
+        "Client is interested in expanding social media presence",
+        "Budget concerns mentioned multiple times",
+        "Competitor analysis is a priority",
+        "Timeline expectations: results within 3 months"
+      ],
+      action_items: [
+        "Prepare social media proposal with budget options",
+        "Conduct competitor analysis for top 3 competitors",
+        "Create 90-day performance roadmap",
+        "Schedule follow-up meeting in 1 week"
+      ],
+      sentiment: "positive",
+      client_concerns: ["Budget", "Timeline", "Measurable results"]
+    });
   },
 
-  getMarketingMetrics: async () => {
-    try {
-      const response = await apiClient.get('/marketing/metrics');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching marketing metrics:', error);
-      return null;
-    }
+  // Get marketing metrics
+  getMarketingMetrics: async (period?: string) => {
+    const url = period ? `/marketing/metrics?period=${period}` : '/marketing/metrics';
+    return apiRequest(url, 'get', undefined, {
+      website_traffic: 45000,
+      conversion_rate: 3.2,
+      cost_per_lead: 45,
+      social_engagement: 12500,
+      email_open_rate: 22.5,
+      content_performance: 4.2
+    });
   }
 };
 
