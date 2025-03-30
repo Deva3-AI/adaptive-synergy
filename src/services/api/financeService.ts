@@ -1,6 +1,26 @@
 
 import apiClient from '@/utils/apiUtils';
 
+export interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  clientId: number;
+  clientName: string;
+  amount: number;
+  dueDate: string;
+  status: 'pending' | 'paid' | 'overdue';
+  createdAt: string;
+}
+
+export interface FinancialRecord {
+  id: number;
+  type: 'expense' | 'income';
+  amount: number;
+  description: string;
+  date: string;
+  category?: string;
+}
+
 export const financeService = {
   getInvoices: async (status?: string) => {
     try {
@@ -71,6 +91,7 @@ export const financeService = {
     }
   },
   
+  // Add missing methods
   getFinancialOverview: async () => {
     try {
       const response = await apiClient.get('/finance/overview');
@@ -132,7 +153,7 @@ export const financeService = {
     }
   },
   
-  // Sales-related methods
+  // Sales methods
   getSalesMetrics: async (dateRange: string) => {
     try {
       const response = await apiClient.get(`/finance/sales/metrics?range=${dateRange}`);

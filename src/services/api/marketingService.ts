@@ -61,6 +61,7 @@ const marketingService = {
     }
   },
   
+  // Add missing methods
   getEmailTemplates: async () => {
     try {
       const response = await apiClient.get('/marketing/email-templates');

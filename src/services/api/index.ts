@@ -18,3 +18,8 @@ export {
   taskService,
   userService
 };
+
+// Re-export types from service files
+export type { Brand } from './clientService';
+export type { Invoice, FinancialRecord } from './financeService';
+export type { TaskAttachment } from './taskService';

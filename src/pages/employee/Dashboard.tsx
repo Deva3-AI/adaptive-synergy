@@ -1,182 +1,121 @@
-import { useState, useEffect } from 'react';
-import hrService from '@/services/api/hrService';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import taskService from '@/services/api/taskService';
 import aiService from '@/services/api/aiService';
 import userService from '@/services/api/userService';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CalendarClock, CheckCircle2, MessageSquare, User2, Activity, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, subDays } from 'date-fns';
-import { Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
+import { CalendarRange, CheckCircle2, MessageSquare, User2, BarChart4, Lightbulb } from "lucide-react";
 
-const Dashboard = () => {
+const EmployeeDashboard = () => {
   const [userId, setUserId] = useState<number | null>(null);
-  const [attendanceData, setAttendanceData] = useState<any[]>([]);
-  const [taskData, setTaskData] = useState<any[]>([]);
-  const [productivityInsights, setProductivityInsights] = useState<any>(null);
-  const [suggestedTasks, setSuggestedTasks] = useState<any[]>([]);
-  const [dateRange, setDateRange] = useState<"week" | "month">("week");
-
-  // Fetch user profile
-  const { data: user, isLoading: isUserLoading } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: () => userService.getUserProfile(),
-  });
 
   useEffect(() => {
-    if (user) {
-      setUserId(user.user_id);
-    }
-  }, [user]);
-
-  // Fetch attendance data
-  const { isLoading: isAttendanceLoading } = useQuery({
-    queryKey: ['attendance', userId, dateRange],
-    queryFn: () => {
-      const today = new Date();
-      let startDate: string | undefined;
-
-      if (dateRange === "week") {
-        startDate = format(subDays(today, 7), 'yyyy-MM-dd');
-      } else if (dateRange === "month") {
-        startDate = format(subDays(today, 30), 'yyyy-MM-dd');
+    // Fetch user ID from local storage or context
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setUserId(user.user_id);
+      } catch (error) {
+        console.error("Error parsing user data from local storage:", error);
       }
+    }
+  }, []);
 
-      return userId ? hrService.getEmployeeAttendance(userId, startDate, format(today, 'yyyy-MM-dd')) : Promise.resolve([]);
-    },
+  // Fix useQuery calls by using the object syntax and meta for error handling
+  const { data: userData } = useQuery({
+    queryKey: ['user-profile', userId],
+    queryFn: () => userService.getUserProfile(userId),
     enabled: !!userId,
-    onSuccess: (data) => {
-      setAttendanceData(data);
-    },
+    meta: {
+      onError: (error: any) => {
+        console.error("Error fetching user profile:", error);
+      }
+    }
   });
 
-  // Fetch tasks data
-  const { isLoading: isTasksLoading } = useQuery({
-    queryKey: ['tasks', userId],
-    queryFn: () => userId ? taskService.getTasksByEmployee(userId) : Promise.resolve([]),
+  const { data: assignedTasks, isLoading: loadingTasks } = useQuery({
+    queryKey: ['assigned-tasks', userId],
+    queryFn: () => taskService.getTasksByEmployee(userId),
     enabled: !!userId,
-    onSuccess: (data) => {
-      setTaskData(data);
-    },
+    meta: {
+      onError: (error: any) => {
+        console.error("Error fetching assigned tasks:", error);
+      }
+    }
   });
 
-  // Fetch productivity insights
-  const { isLoading: isInsightsLoading } = useQuery({
+  const { data: productivityInsights, isLoading: loadingInsights } = useQuery({
     queryKey: ['productivity-insights', userId],
-    queryFn: () => userId ? aiService.getProductivityInsights(userId) : Promise.resolve(null),
+    queryFn: ()Service.getProductivityInsights(userId),
     enabled: !!userId,
-    onSuccess: (data) => {
-      setProductivityInsights(data);
-    },
+    meta: {
+      onError: (error: any) => {
+        console.error("Error fetching productivity insights:", error);
+      }
+    }
   });
 
-  // Fetch suggested tasks
-  const { isLoading: isSuggestedTasksLoading } = useQuery({
+  const { data: suggestedTasks, isLoading: loadingSuggestions } = useQuery({
     queryKey: ['suggested-tasks', userId],
-    queryFn: () => userId ? aiService.getSuggestedTasks(userId) : Promise.resolve([]),
+    queryFn: () => aiService.getSuggestedTasks(userId),
     enabled: !!userId,
-    onSuccess: (data) => {
-      setSuggestedTasks(data);
-    },
+    meta: {
+      onError: (error: any) => {
+        console.error("Error fetching suggested tasks:", error);
+      }
+    }
   });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, 'MMM d, yyyy');
+  // Type guard helper to make TypeScript happy
+  const isTaskArray = (data: unknown): data is any[] => {
+    return Array.isArray(data);
   };
 
+  // Pass data safely to components with type checking
+  const pendingTasks = isTaskArray(assignedTasks) 
+    ? assignedTasks.filter(task => task.status === 'pending' || task.status === 'in_progress')
+    : [];
+    
+  const completedTasksCount = isTaskArray(assignedTasks)
+    ? assignedTasks.filter(task => task.status === 'completed').length
+    : 0;
+
+  const totalTasksCount = isTaskArray(assignedTasks) ? assignedTasks.length : 0;
+
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="container mx-auto py-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* User Profile Card */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">User Profile</CardTitle>
-            <CardDescription>Your profile information</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center space-x-4">
-            {isUserLoading ? (
-              <Skeleton className="h-12 w-12 rounded-full" />
-            ) : (
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={`https://avatar.vercel.sh/${user?.name}.png`} alt={user?.name} />
-                <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
-              </Avatar>
-            )}
-            <div>
-              <h3 className="text-sm font-medium">{user?.name}</h3>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Attendance Overview Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Attendance Overview</CardTitle>
-            <CardDescription>Your attendance record</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Profile</CardTitle>
+            <User2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-2 mb-2">
-              <Button
-                variant={dateRange === "week" ? "default" : "outline"}
-                onClick={() => setDateRange("week")}
-                size="sm"
-              >
-                Weekly
-              </Button>
-              <Button
-                variant={dateRange === "month" ? "default" : "outline"}
-                onClick={() => setDateRange("month")}
-                size="sm"
-              >
-                Monthly
-              </Button>
-            </div>
-            {isAttendanceLoading ? (
-              <Skeleton className="h-4 w-32" />
-            ) : (
-              <div className="space-y-1">
-                {attendanceData.slice(0, 3).map((record) => (
-                  <div key={record.id} className="flex items-center space-x-2">
-                    <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs">{formatDate(record.date)}</span>
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  </div>
-                ))}
-                {attendanceData.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No attendance records found.</p>
-                )}
+            {userData ? (
+              <div className="flex items-center space-x-4">
+                <Avatar>
+                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarFallback>{userData.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-lg font-semibold">{userData.name}</h2>
+                  <p className="text-sm text-muted-foreground">{userData.email}</p>
+                  <Badge variant="secondary">{userData.role_name}</Badge>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Task Summary Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Task Summary</CardTitle>
-            <CardDescription>Your assigned tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isTasksLoading ? (
-              <Skeleton className="h-4 w-32" />
             ) : (
-              <div className="space-y-2">
-                {taskData.slice(0, 3).map((task) => (
-                  <div key={task.task_id} className="flex items-center space-x-2">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs">{task.title}</span>
-                  </div>
-                ))}
-                {taskData.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No tasks assigned.</p>
-                )}
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-24 mt-2" />
+                </div>
               </div>
             )}
           </CardContent>
@@ -184,79 +123,124 @@ const Dashboard = () => {
 
         {/* Productivity Insights Card */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Productivity Insights</CardTitle>
-            <CardDescription>AI-driven insights</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Productivity</CardTitle>
+            <BarChart4 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isInsightsLoading ? (
-              <Skeleton className="h-4 w-32" />
+            {loadingInsights ? (
+              <Skeleton className="h-8 w-full" />
+            ) : productivityInsights ? (
+              <>
+                <div className="text-2xl font-bold">{productivityInsights.productivity_score}</div>
+                <p className="text-sm text-muted-foreground">
+                  {productivityInsights.trends.length} trends identified
+                </p>
+              </>
             ) : (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs">Score: {productivityInsights?.productivity_score}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs">Trends: {productivityInsights?.trends.length}</span>
-                </div>
-              </div>
+              <div className="text-center text-muted-foreground">No insights available</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Suggested Tasks Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Suggested Tasks</CardTitle>
+            <Lightbulb className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loadingSuggestions ? (
+              <Skeleton className="h-8 w-full" />
+            ) : suggestedTasks && suggestedTasks.length > 0 ? (
+              <ul className="list-none space-y-2">
+                {suggestedTasks.map((task: any) => (
+                  <li key={task.id} className="text-sm">
+                    {task.title}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center text-muted-foreground">No suggestions available</div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {/* Suggested Tasks Card */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Suggested Tasks</CardTitle>
-            <CardDescription>AI-generated task suggestions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px] w-full">
-              {isSuggestedTasksLoading ? (
-                <div className="p-4">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6 mt-2" />
-                </div>
+      {/* Task Overview Section */}
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold mb-4">Task Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Tasks</CardTitle>
+              <CardDescription>Tasks in progress or not started</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTasks ? (
+                <Skeleton className="h-4 w-full" />
               ) : (
+                <div className="text-2xl font-bold">{pendingTasks.length}</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Completed Tasks</CardTitle>
+              <CardDescription>Tasks that are marked as done</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTasks ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <div className="text-2xl font-bold">{completedTasksCount}</div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Tasks</CardTitle>
+              <CardDescription>All tasks assigned to you</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTasks ? (
+                <Skeleton className="h-4 w-full" />
+              ) : (
+                <div className="text-2xl font-bold">{totalTasksCount}</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Recent Tasks Section */}
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold mb-4">Recent Tasks</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Assigned Tasks</CardTitle>
+            <CardDescription>Your recently assigned tasks</CardDescription>
+          </CardHeader>
+          <CardContent className="pl-4 pt-0">
+            <ScrollArea className="h-[300px] w-full pr-4">
+              {loadingTasks ? (
+                <div>Loading tasks...</div>
+              ) : assignedTasks && assignedTasks.length > 0 ? (
                 <div className="space-y-3">
-                  {suggestedTasks.map((task) => (
-                    <div key={task.id} className="p-3 border rounded-md">
-                      <h4 className="text-sm font-medium">{task.title}</h4>
+                  {assignedTasks.map((task: any) => (
+                    <div key={task.task_id} className="border rounded-md p-4">
+                      <h3 className="text-sm font-semibold">{task.title}</h3>
                       <p className="text-xs text-muted-foreground">{task.description}</p>
+                      <Badge variant="outline">{task.status}</Badge>
                     </div>
                   ))}
-                  {suggestedTasks.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No tasks suggested.</p>
-                  )}
                 </div>
+              ) : (
+                <div className="text-center text-muted-foreground">No tasks assigned</div>
               )}
             </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions Card */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-            <CardDescription>Manage your tasks and profile</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <Button asChild>
-              <Link to="/app/tasks" className="flex items-center space-x-2">
-                <MessageSquare className="h-4 w-4" />
-                <span>View All Tasks</span>
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link to="/app/profile" className="flex items-center space-x-2">
-                <User2 className="h-4 w-4" />
-                <span>Edit Profile</span>
-              </Link>
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -264,4 +248,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default EmployeeDashboard;

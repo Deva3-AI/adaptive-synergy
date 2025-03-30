@@ -61,6 +61,7 @@ const hrService = {
     }
   },
   
+  // Add missing methods
   getPayslips: async (month?: string, year?: string) => {
     try {
       let url = '/hr/payslips';
@@ -80,7 +81,7 @@ const hrService = {
     }
   },
   
-  generatePayslip: async (employeeId: number, month: string, year: string) => {
+  generatePayslip: async (employeeId: number, month: string, year?: string) => {
     try {
       const response = await apiClient.post('/hr/payslips/generate', { employeeId, month, year });
       return response.data;
@@ -107,6 +108,46 @@ const hrService = {
       return response.data;
     } catch (error) {
       console.error('Get candidates error:', error);
+      return [];
+    }
+  },
+  
+  getHRMetrics: async () => {
+    try {
+      const response = await apiClient.get('/hr/metrics');
+      return response.data;
+    } catch (error) {
+      console.error('Get HR metrics error:', error);
+      return {};
+    }
+  },
+  
+  getAttendanceStats: async (startDate?: string, endDate?: string) => {
+    try {
+      let url = '/hr/attendance/stats';
+      const params = [];
+      if (startDate) params.push(`startDate=${startDate}`);
+      if (endDate) params.push(`endDate=${endDate}`);
+      
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get attendance stats error:', error);
+      return [];
+    }
+  },
+  
+  getHRTrends: async (category?: string) => {
+    try {
+      const url = category ? `/hr/trends?category=${category}` : '/hr/trends';
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get HR trends error:', error);
       return [];
     }
   }
