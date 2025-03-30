@@ -1,62 +1,71 @@
-
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, LineChart, PieChart } from "@/components/ui/charts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChatBubbleIcon, BarChartIcon, Clock } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
-import { formatDistanceToNow } from "date-fns";
-import AttendanceTracker from "@/components/employee/AttendanceTracker";
-import { Link } from "react-router-dom";
+import { 
+  Calendar, 
+  Clock, 
+  BarChart as BarChartIcon, 
+  TrendingUp, 
+  CheckCircle, 
+  AlertCircle, 
+  MessageSquare,
+  User
+} from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import { useUser } from '@/hooks/useUser';
 
-// Define the interface for attendance records
-interface Attendance {
-  attendance_id: number;
-  login_time: string;
-  logout_time: string | null;
-  work_date: string;
-}
+// Mock data for chart examples
+const taskCompletionData = [
+  { name: 'Jan', value: 10 },
+  { name: 'Feb', value: 25 },
+  { name: 'Mar', value: 15 },
+  { name: 'Apr', value: 30 },
+  { name: 'May', value: 22 },
+  { name: 'Jun', value: 28 }
+];
 
-// Define the interface for tasks
-interface Task {
-  task_id: number;
-  title: string;
-  description: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  estimated_time: number;
-  actual_time: number;
-  start_time: string;
-  end_time: string;
-  created_at: string;
-  updated_at: string;
-  client_id: number;
-  assigned_to: number;
-  clients: {
-    client_id: number;
-    client_name: string;
-  };
-}
+const workHoursData = [
+  { name: 'Mon', value: 7.5 },
+  { name: 'Tue', value: 8.2 },
+  { name: 'Wed', value: 7.8 },
+  { name: 'Thu', value: 8.5 },
+  { name: 'Fri', value: 6.5 },
+  { name: 'Sat', value: 0 },
+  { name: 'Sun', value: 0 }
+];
+
+const taskCategoriesData = [
+  { name: 'Design', value: 35 },
+  { name: 'Development', value: 25 },
+  { name: 'Research', value: 15 },
+  { name: 'Planning', value: 10 },
+  { name: 'Testing', value: 15 }
+];
 
 const EmployeeDashboard = () => {
-  const { user } = useAuth();
-
+  const { user } = useUser();
+  const [workSessionActive, setWorkSessionActive] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [sessionTimer, setSessionTimer] = useState<string>("00:00:00");
+  
   // Fetch today's attendance record
-  const { 
-    data: attendance, 
-    isLoading: isLoadingAttendance,
-    refetch: refetchAttendance 
-  } = useQuery({
+  const { data: todayAttendance, isLoading: isLoadingAttendance, refetch: refetchAttendance } = useQuery({
     queryKey: ['today-attendance', user?.id],
-    enabled: !!user,
+    enabled: !!user?.id,
     queryFn: async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
+        
         const { data, error } = await supabase
           .from('employee_attendance')
           .select('*')
@@ -65,311 +74,494 @@ const EmployeeDashboard = () => {
           .maybeSingle();
         
         if (error) throw error;
+        
+        if (data) {
+          // If there's a login time but no logout time, session is active
+          if (data.login_time && !data.logout_time) {
+            setWorkSessionActive(true);
+            setCurrentSessionId(data.attendance_id);
+            setSessionStartTime(new Date(data.login_time));
+          }
+        }
+        
         return data;
       } catch (error) {
-        console.error('Error fetching attendance:', error);
+        console.error('Error fetching today\'s attendance:', error);
         return null;
       }
     }
   });
-
-  // Fetch tasks
+  
+  // Fetch tasks for the employee
   const { data: tasks, isLoading: isLoadingTasks } = useQuery({
     queryKey: ['employee-tasks', user?.id],
-    enabled: !!user,
+    enabled: !!user?.id,
     queryFn: async () => {
       try {
         const { data, error } = await supabase
           .from('tasks')
-          .select(`
-            *,
-            clients (
-              client_id,
-              client_name
-            )
-          `)
+          .select('*')
           .eq('assigned_to', user?.id)
-          .in('status', ['pending', 'in_progress'])
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(5);
         
         if (error) throw error;
-        return data as Task[];
+        
+        return data;
       } catch (error) {
         console.error('Error fetching tasks:', error);
         return [];
       }
     }
   });
-
-  // Fetch completed tasks count
-  const { data: completedTasksCount, isLoading: isLoadingCompletedCount } = useQuery({
-    queryKey: ['completed-tasks-count', user?.id],
-    enabled: !!user,
+  
+  // Fetch performance data
+  const { data: performanceData } = useQuery({
+    queryKey: ['employee-performance', user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
       try {
-        const { count, error } = await supabase
-          .from('tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('assigned_to', user?.id)
-          .eq('status', 'completed');
-        
-        if (error) throw error;
-        return count || 0;
+        // In a real implementation, fetch performance data from Supabase
+        // For now, return mock data
+        return {
+          completedTasks: 15,
+          tasksInProgress: 5,
+          averageRating: 4.8,
+          onTimeCompletion: 92,
+        };
       } catch (error) {
-        console.error('Error fetching completed tasks count:', error);
-        return 0;
+        console.error('Error fetching performance data:', error);
+        return {
+          completedTasks: 0,
+          tasksInProgress: 0,
+          averageRating: 0,
+          onTimeCompletion: 0,
+        };
       }
     }
   });
-
-  // Handler for attendance updates
-  const handleAttendanceUpdate = () => {
-    refetchAttendance();
+  
+  // Update timer for active work session
+  useEffect(() => {
+    let intervalId: number;
+    
+    if (workSessionActive && sessionStartTime) {
+      intervalId = window.setInterval(() => {
+        const now = new Date();
+        const timeDiff = now.getTime() - sessionStartTime.getTime();
+        
+        const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+        
+        setSessionTimer(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }, 1000);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [workSessionActive, sessionStartTime]);
+  
+  // Handle start work
+  const handleStartWork = async () => {
+    if (!user) {
+      toast.error('You must be logged in to use the time tracker');
+      return;
+    }
+    
+    try {
+      const now = new Date().toISOString();
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if there's already an attendance record for today
+      const { data: existingRecord, error: checkError } = await supabase
+        .from('employee_attendance')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('work_date', today)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      let attendanceRecord;
+      
+      if (existingRecord) {
+        // If there's a record but no login time, update it
+        if (!existingRecord.login_time) {
+          const { data, error } = await supabase
+            .from('employee_attendance')
+            .update({ login_time: now })
+            .eq('attendance_id', existingRecord.attendance_id)
+            .select()
+            .single();
+          
+          if (error) throw error;
+          attendanceRecord = data;
+        } else {
+          attendanceRecord = existingRecord;
+        }
+      } else {
+        // Create a new attendance record
+        const { data, error } = await supabase
+          .from('employee_attendance')
+          .insert({
+            user_id: user.id,
+            login_time: now,
+            work_date: today
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        attendanceRecord = data;
+      }
+      
+      setWorkSessionActive(true);
+      setCurrentSessionId(attendanceRecord.attendance_id);
+      setSessionStartTime(new Date(attendanceRecord.login_time));
+      
+      toast.success('Work session started successfully');
+      refetchAttendance();
+    } catch (error) {
+      console.error('Error starting work session:', error);
+      toast.error('Failed to start work session');
+    }
   };
-
-  // Calculate task metrics
-  const pendingTasks = tasks?.filter(task => task.status === 'pending').length || 0;
-  const inProgressTasks = tasks?.filter(task => task.status === 'in_progress').length || 0;
-  const totalWorkHours = tasks?.reduce((total, task) => total + (task.actual_time || 0), 0) || 0;
-
+  
+  // Handle stop work
+  const handleStopWork = async () => {
+    if (!user || !currentSessionId) {
+      toast.error('No active work session found');
+      return;
+    }
+    
+    try {
+      const now = new Date().toISOString();
+      
+      // Update the attendance record with logout time
+      const { error } = await supabase
+        .from('employee_attendance')
+        .update({ logout_time: now })
+        .eq('attendance_id', currentSessionId)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setWorkSessionActive(false);
+      setCurrentSessionId(null);
+      setSessionStartTime(null);
+      
+      toast.success('Work session ended successfully');
+      refetchAttendance();
+    } catch (error) {
+      console.error('Error ending work session:', error);
+      toast.error('Failed to end work session');
+    }
+  };
+  
+  // Format tasks for display
+  const formattedTasks = tasks?.map(task => ({
+    ...task,
+    status: task.status || 'pending',
+    progress: task.progress || 0,
+    priority: task.priority || 'Medium'
+  })) || [];
+  
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'High': return 'destructive';
+      case 'Medium': return 'default';
+      case 'Low': return 'secondary';
+      default': return 'default';
+    }
+  };
+  
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Employee Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user?.user_metadata?.name || user?.email || 'Employee'}!
+            Welcome back, {user?.user_metadata?.name || 'Employee'}
           </p>
         </div>
-        <AttendanceTracker 
-          attendance={attendance} 
-          onAttendanceUpdate={handleAttendanceUpdate} 
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <CardDescription>Assigned to you</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingTasks || isLoadingCompletedCount ? (
-              <Skeleton className="h-8 w-28" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {(tasks?.length || 0) + (completedTasksCount || 0)}
+        <div className="flex items-center gap-2">
+          {workSessionActive ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 text-green-500 mr-1" />
+                <span className="font-mono text-lg">{sessionTimer}</span>
               </div>
-            )}
-            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-              <div className="flex flex-col">
-                <span className="text-muted-foreground">Pending</span>
-                <span className="font-medium">{pendingTasks}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-muted-foreground">In Progress</span>
-                <span className="font-medium">{inProgressTasks}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-muted-foreground">Completed</span>
-                <span className="font-medium">{completedTasksCount || 0}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Work Hours</CardTitle>
-            <CardDescription>This month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingTasks ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {totalWorkHours.toFixed(1)} hrs
-              </div>
-            )}
-            <div className="mt-1 flex items-center text-xs text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>Tracked from completed tasks</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Today's Schedule</CardTitle>
-            <CardDescription>
-              {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAttendance ? (
-              <Skeleton className="h-8 w-full" />
-            ) : attendance?.login_time ? (
-              <div className="text-sm">
-                <div className="mb-1">
-                  <span className="font-medium">Login:</span>{" "}
-                  {new Date(attendance.login_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </div>
-                {attendance.logout_time && (
-                  <div>
-                    <span className="font-medium">Logout:</span>{" "}
-                    {new Date(attendance.logout_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                No attendance recorded for today
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Tasks</CardTitle>
-          <CardDescription>
-            Your current workload and progress
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoadingTasks ? (
-            <div className="space-y-4">
-              {Array(3).fill(0).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
-          ) : tasks && tasks.length > 0 ? (
-            <div className="space-y-4">
-              {tasks.slice(0, 5).map((task) => (
-                <div key={task.task_id} className="border rounded-md p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-medium">
-                        <Link to={`/employee/tasks/${task.task_id}`} className="hover:underline">
-                          {task.title}
-                        </Link>
-                      </h3>
-                      <div className="text-sm text-muted-foreground flex items-center space-x-2">
-                        <span>Client: {task.clients?.client_name || 'Unknown'}</span>
-                        <span>•</span>
-                        <span>Est: {task.estimated_time || 0}h</span>
-                      </div>
-                    </div>
-                    <Badge variant={task.status === 'in_progress' ? 'default' : 'secondary'}>
-                      {task.status === 'in_progress' ? 'In Progress' : 'Pending'}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>Progress</span>
-                      <span>0%</span>
-                    </div>
-                    <Progress value={0} className="h-1" />
-                  </div>
-                </div>
-              ))}
-              {tasks.length > 5 && (
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link to="/employee/tasks">View all tasks</Link>
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No active tasks assigned to you</p>
-              <Button variant="outline" size="sm" className="mt-2" asChild>
-                <Link to="/employee/tasks">View all tasks</Link>
+              <Button variant="destructive" onClick={handleStopWork}>
+                Stop Work
               </Button>
             </div>
+          ) : (
+            <Button onClick={handleStartWork}>
+              Start Work
+            </Button>
           )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        </div>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Notifications</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="text-sm font-medium">Work Status</div>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  id: 1,
-                  title: "New task assigned",
-                  description: "You have been assigned a new design task",
-                  time: "2 hours ago",
-                  icon: <ChatBubbleIcon className="h-5 w-5 text-blue-500" />
-                },
-                {
-                  id: 2,
-                  title: "Task deadline approaching",
-                  description: "API Integration task is due in 2 days",
-                  time: "5 hours ago",
-                  icon: <Clock className="h-5 w-5 text-amber-500" />
-                }
-              ].map(notification => (
-                <div key={notification.id} className="flex gap-3 border-b pb-3 last:border-b-0 last:pb-0">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                    {notification.icon}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">{notification.title}</p>
-                    <p className="text-sm text-muted-foreground">{notification.description}</p>
-                    <p className="text-xs text-muted-foreground">{notification.time}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="text-2xl font-bold">
+              {workSessionActive ? (
+                <Badge variant="success">Working</Badge>
+              ) : (
+                <Badge variant="outline">Not Clocked In</Badge>
+              )}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {workSessionActive
+                ? `Started at ${sessionStartTime ? format(sessionStartTime, 'h:mm a') : '--'}`
+                : 'Click "Start Work" to begin your workday'}
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader>
-            <CardTitle>Performance Overview</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="text-sm font-medium">Pending Tasks</div>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Task Completion Rate</div>
-                  <div className="text-sm text-muted-foreground">
-                    {isLoadingCompletedCount ? 
-                      <Skeleton className="h-4 w-8 inline-block" /> : 
-                      `${completedTasksCount || 0}/${(tasks?.length || 0) + (completedTasksCount || 0)}`
-                    }
-                  </div>
-                </div>
-                <Progress 
-                  value={isLoadingCompletedCount ? 0 : 
-                    ((completedTasksCount || 0) / ((tasks?.length || 0) + (completedTasksCount || 0))) * 100 || 0
-                  } 
-                  className="h-2"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Work Hour Utilization</div>
-                  <div className="text-sm text-muted-foreground">85%</div>
-                </div>
-                <Progress value={85} className="h-2" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Client Satisfaction</div>
-                  <div className="text-sm text-muted-foreground">92%</div>
-                </div>
-                <Progress value={92} className="h-2" />
-              </div>
+            <div className="text-2xl font-bold">
+              {isLoadingTasks ? '--' : formattedTasks.filter(t => t.status === 'pending').length}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Tasks awaiting completion
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="text-sm font-medium">Completed Tasks</div>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {performanceData?.completedTasks || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Last 30 days
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="text-sm font-medium">On-Time Completion</div>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {performanceData?.onTimeCompletion || 0}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Tasks completed on time
+            </p>
           </CardContent>
         </Card>
       </div>
+      
+      <Tabs defaultValue="tasks">
+        <TabsList>
+          <TabsTrigger value="tasks">Current Tasks</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+        </TabsList>
+        <TabsContent value="tasks" className="space-y-4">
+          <h3 className="text-lg font-medium mt-6">Recent Tasks</h3>
+          
+          {isLoadingTasks ? (
+            <div className="text-center text-muted-foreground py-10">
+              Loading tasks...
+            </div>
+          ) : formattedTasks.length === 0 ? (
+            <div className="text-center text-muted-foreground py-10">
+              No tasks assigned to you yet
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {formattedTasks.map((task) => (
+                <Card key={task.task_id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-base">
+                        <Link to={`/tasks/${task.task_id}`} className="hover:underline">
+                          {task.title}
+                        </Link>
+                      </CardTitle>
+                      <Badge variant={getPriorityColor(task.priority)}>
+                        {task.priority}
+                      </Badge>
+                    </div>
+                    <CardDescription className="line-clamp-2">
+                      {task.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <div className="space-y-1">
+                      <div className="text-sm flex justify-between">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">{task.progress}%</span>
+                      </div>
+                      <Progress value={task.progress} />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t px-6 py-2">
+                    <div className="flex justify-between items-center w-full">
+                      <div className="flex items-center">
+                        <Badge variant="outline" className="capitalize">
+                          {task.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                        <span>3</span>
+                        <User className="h-3.5 w-3.5 ml-3 mr-1" />
+                        <span>You</span>
+                      </div>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <Button asChild variant="outline">
+              <Link to="/employee/tasks">View All Tasks</Link>
+            </Button>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="performance">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+            <Card className="col-span-2 md:col-span-1">
+              <CardHeader>
+                <CardTitle>Task Completion</CardTitle>
+                <CardDescription>
+                  Your task completion rate over the last 6 months
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LineChart 
+                  data={taskCompletionData}
+                  xAxisKey="name"
+                  yAxisKey="value"
+                  height={300}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-2 md:col-span-1">
+              <CardHeader>
+                <CardTitle>Work Hours</CardTitle>
+                <CardDescription>
+                  Your working hours for the last 7 days
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BarChart 
+                  data={workHoursData}
+                  xAxisKey="name"
+                  yAxisKey="value"
+                  height={300}
+                />
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-2">
+              <CardHeader>
+                <CardTitle>Task Categories</CardTitle>
+                <CardDescription>
+                  Distribution of your tasks by category
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-center items-center h-[300px]">
+                  <PieChart 
+                    data={taskCategoriesData}
+                    nameKey="name"
+                    dataKey="value"
+                    height={300}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="attendance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance History</CardTitle>
+              <CardDescription>
+                Your attendance record for the past week
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Login Time</TableHead>
+                      <TableHead>Logout Time</TableHead>
+                      <TableHead>Work Hours</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>{format(new Date(), 'EEEE, MMM d')}</TableCell>
+                      <TableCell>
+                        {todayAttendance?.login_time
+                          ? format(new Date(todayAttendance.login_time), 'h:mm a')
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {todayAttendance?.logout_time
+                          ? format(new Date(todayAttendance.logout_time), 'h:mm a')
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {todayAttendance?.login_time && todayAttendance?.logout_time
+                          ? ((new Date(todayAttendance.logout_time).getTime() - new Date(todayAttendance.login_time).getTime()) / (1000 * 60 * 60)).toFixed(2) + 'h'
+                          : workSessionActive
+                            ? sessionTimer
+                            : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {workSessionActive
+                          ? <Badge variant="success">Working</Badge>
+                          : todayAttendance?.logout_time
+                            ? <Badge variant="default">Complete</Badge>
+                            : todayAttendance?.login_time
+                              ? <Badge variant="warning">Incomplete</Badge>
+                              : <Badge variant="outline">Not Started</Badge>}
+                      </TableCell>
+                    </TableRow>
+                    {/* More rows would be populated from actual attendance data */}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
