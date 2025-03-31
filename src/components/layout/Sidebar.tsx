@@ -1,25 +1,30 @@
-import React from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  BarChart, 
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
   Settings,
-  User,
-  Building,
-  Mail,
   Calendar,
-  TrendingUp,
+  Mail,
   MessageSquare,
-  ListChecks,
-  File,
-  BadgeCheck,
-  ShieldCheck,
-  LucideIcon
+  LogOut,
+  Menu,
+  ChevronRight,
+  ChevronLeft,
+  Building,
+  DollarSign,
+  TrendingUp,
+  ClipboardList,
+  UserCheck,
+  Clock as ClockIcon,
+  BarChart2
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SidebarProps {
   expanded?: boolean;
@@ -56,7 +61,7 @@ const navItems: {
     {
       href: '/employee/attendance',
       label: 'Attendance',
-      icon: Clock,
+      icon: ClockIcon,
     },
     {
       href: '/employee/profile',
@@ -156,7 +161,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
   const { user, hasRole } = useAuth();
   const location = useLocation();
   
-  // Use hasRole instead of isEmployee, etc.
   const showEmployeeSection = hasRole('employee') || hasRole('admin');
   const showMarketingSection = hasRole('marketing') || hasRole('admin');
   const showHRSection = hasRole('hr') || hasRole('admin');
@@ -181,7 +185,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
       </div>
 
       <nav className="flex-1 space-y-1 px-2">
-        {/* Main Navigation */}
         {navItems.main.map((item) => (
           <NavLink
             key={item.href}
@@ -200,7 +203,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
           </NavLink>
         ))}
 
-        {/* Employee Section */}
         {showEmployeeSection && (
           <>
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
@@ -226,7 +228,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
           </>
         )}
 
-        {/* HR Section */}
         {showHRSection && (
           <>
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
@@ -252,7 +253,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
           </>
         )}
 
-        {/* Finance Section */}
         {showFinanceSection && (
           <>
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
@@ -278,7 +278,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
           </>
         )}
 
-        {/* Marketing Section */}
         {showMarketingSection && (
           <>
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
@@ -304,7 +303,6 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
           </>
         )}
 
-        {/* Admin Tools Section */}
         {hasRole('admin') && (
           <>
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">

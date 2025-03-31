@@ -1,357 +1,369 @@
-
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X, FileText, Search, Download } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { format, differenceInDays } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Calendar, Check, X, Eye, Filter, ChevronDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { LeaveRequest } from '@/interfaces/hr';
-import hrServiceSupabase from '@/services/api/hrServiceSupabase';
+} from "@/components/ui/select";
+import { hrService } from '@/services/api/hrService';
 
-const LeaveRequestsManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('pending');
-  const [searchTerm, setSearchTerm] = useState('');
+// Define updated LeaveRequest interface with required fields
+interface LeaveRequest {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: string;
+  leaveType: string;
+  days: number;
+}
+
+const LeaveRequestsManagement = () => {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
-  const [approvalNotes, setApprovalNotes] = useState('');
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  
-  const queryClient = useQueryClient();
-  
-  // Fetch all leave requests
-  const { data: leaveRequests, isLoading } = useQuery({
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterEmployee, setFilterEmployee] = useState<string>('all');
+
+  // Fetch leave requests
+  const { data: leaveRequests, isLoading, refetch } = useQuery({
     queryKey: ['leaveRequests'],
     queryFn: async () => {
       try {
-        return await hrServiceSupabase.getLeaveRequests();
+        return await hrService.getLeaveRequests();
       } catch (error) {
         console.error('Error fetching leave requests:', error);
         throw error;
       }
-    },
+    }
   });
-  
-  // Mutation to approve/reject leave requests
-  const updateLeaveRequestMutation = useMutation({
-    mutationFn: async ({ requestId, status, notes }: { requestId: number; status: 'approved' | 'rejected'; notes?: string }) => {
-      return await hrServiceSupabase.updateLeaveRequest(requestId, status, notes);
-    },
-    onSuccess: () => {
-      toast.success(`Leave request ${selectedRequest?.status === 'approved' ? 'approved' : 'rejected'} successfully`);
-      setDetailsDialogOpen(false);
-      setSelectedRequest(null);
-      setApprovalNotes('');
-      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
-    },
-    onError: (error) => {
-      console.error('Error updating leave request:', error);
-      toast.error('Failed to update leave request');
-    },
+
+  // Fetch employees for filtering
+  const { data: employees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => hrService.getEmployees()
   });
-  
-  const handleApprove = () => {
-    if (!selectedRequest) return;
-    updateLeaveRequestMutation.mutate({ 
-      requestId: selectedRequest.id, 
-      status: 'approved',
-      notes: approvalNotes
-    });
+
+  // Handle updating leave request status
+  const handleUpdateStatus = async (id: number, status: 'approved' | 'rejected', reason: string = '') => {
+    try {
+      // Call the correct function and pass it the right parameters
+      await hrService.updateLeaveRequestStatus(id, status, reason);
+      
+      toast.success(`Leave request ${status}`);
+      refetch();
+      
+      // Close dialogs
+      setApproveDialogOpen(false);
+      setRejectDialogOpen(false);
+      setRejectReason('');
+    } catch (error) {
+      console.error(`Error ${status} leave request:`, error);
+      toast.error(`Failed to ${status} leave request`);
+    }
   };
-  
-  const handleReject = () => {
-    if (!selectedRequest) return;
-    updateLeaveRequestMutation.mutate({ 
-      requestId: selectedRequest.id, 
-      status: 'rejected',
-      notes: approvalNotes
-    });
-  };
-  
-  // Helper function to filter leave requests
-  const getFilteredRequests = () => {
+
+  // Filter leave requests
+  const filteredRequests = React.useMemo(() => {
     if (!leaveRequests) return [];
     
-    // First filter by status tab
-    let filtered = leaveRequests;
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(request => request.status === activeTab);
-    }
+    return (leaveRequests as any[]).filter(request => {
+      const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
+      const matchesEmployee = filterEmployee === 'all' || request.employee_id.toString() === filterEmployee;
+      
+      return matchesStatus && matchesEmployee;
+    });
+  }, [leaveRequests, filterStatus, filterEmployee]);
+
+  // Calculate leave duration
+  const calculateDuration = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return differenceInDays(end, start) + 1;
+  };
+
+  // View request details
+  const handleViewRequest = (request: any) => {
+    // Enhance the request with calculated days field
+    const enhancedRequest: LeaveRequest = {
+      ...request,
+      leaveType: request.leaveType || 'vacation', // Set default if missing
+      days: calculateDuration(request.start_date, request.end_date)
+    };
     
-    // Then filter by search term (employee name or ID)
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        request => 
-          request.employee_name.toLowerCase().includes(term) || 
-          request.employee_id.toString().includes(term) ||
-          getLeaveTypeText(request.leaveType).toLowerCase().includes(term)
-      );
-    }
+    setSelectedRequest(enhancedRequest);
+    setViewDialogOpen(true);
+  };
+
+  // Approve request
+  const handleApproveClick = (request: any) => {
+    // Enhance the request with calculated days field
+    const enhancedRequest: LeaveRequest = {
+      ...request,
+      leaveType: request.leaveType || 'vacation', // Set default if missing
+      days: calculateDuration(request.start_date, request.end_date)
+    };
     
-    return filtered;
+    setSelectedRequest(enhancedRequest);
+    setApproveDialogOpen(true);
   };
-  
-  // Helper function to get badge variant based on status
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'approved':
-        return 'success';
-      case 'rejected':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
+
+  // Reject request
+  const handleRejectClick = (request: any) => {
+    // Enhance the request with calculated days field
+    const enhancedRequest: LeaveRequest = {
+      ...request,
+      leaveType: request.leaveType || 'vacation', // Set default if missing
+      days: calculateDuration(request.start_date, request.end_date)
+    };
+    
+    setSelectedRequest(enhancedRequest);
+    setRejectDialogOpen(true);
   };
-  
-  // Helper function to get leave type display text
-  const getLeaveTypeText = (leaveType: string) => {
-    switch(leaveType) {
-      case 'annual':
-        return 'Annual Leave';
-      case 'sick':
-        return 'Sick Leave';
-      case 'personal':
-        return 'Personal Leave';
-      case 'wfh':
-        return 'Work From Home';
-      case 'halfDay':
-        return 'Half Day';
-      default:
-        return 'Other';
-    }
-  };
-  
-  const filteredRequests = getFilteredRequests();
-  
+
   return (
-    <Card className="w-full">
+    <Card className="space-y-4">
       <CardHeader>
         <CardTitle>Leave Requests Management</CardTitle>
-        <CardDescription>
-          Approve or reject employee leave requests
-        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
-              <TabsList className="grid grid-cols-3">
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="approved">Approved</TabsTrigger>
-                <TabsTrigger value="rejected">Rejected</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by employee or type..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          {/* Filter by Status */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 w-40">
+                <Filter className="mr-2 h-4 w-4" />
+                Status
+                <ChevronDown className="ml-auto h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-4" align="start">
+              <ScrollArea className="h-[200px] w-full pr-1">
+                <RadioGroup defaultValue={filterStatus} onValueChange={setFilterStatus} className="flex flex-col space-y-1">
+                  <Label htmlFor="all" className="cursor-pointer flex items-center space-x-2 rounded-md p-2 hover:bg-secondary">
+                    <RadioGroupItem value="all" id="all" className="h-4 w-4" />
+                    <span>All</span>
+                  </Label>
+                  <Label htmlFor="pending" className="cursor-pointer flex items-center space-x-2 rounded-md p-2 hover:bg-secondary">
+                    <RadioGroupItem value="pending" id="pending" className="h-4 w-4" />
+                    <span>Pending</span>
+                  </Label>
+                  <Label htmlFor="approved" className="cursor-pointer flex items-center space-x-2 rounded-md p-2 hover:bg-secondary">
+                    <RadioGroupItem value="approved" id="approved" className="h-4 w-4" />
+                    <span>Approved</span>
+                  </Label>
+                  <Label htmlFor="rejected" className="cursor-pointer flex items-center space-x-2 rounded-md p-2 hover:bg-secondary">
+                    <RadioGroupItem value="rejected" id="rejected" className="h-4 w-4" />
+                    <span>Rejected</span>
+                  </Label>
+                </RadioGroup>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+          
+          {/* Filter by Employee */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 w-40">
+                <Filter className="mr-2 h-4 w-4" />
+                Employee
+                <ChevronDown className="ml-auto h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-4" align="start">
+              <ScrollArea className="h-[200px] w-full pr-1">
+                <RadioGroup defaultValue={filterEmployee} onValueChange={setFilterEmployee} className="flex flex-col space-y-1">
+                  <Label htmlFor="all-employees" className="cursor-pointer flex items-center space-x-2 rounded-md p-2 hover:bg-secondary">
+                    <RadioGroupItem value="all" id="all-employees" className="h-4 w-4" />
+                    <span>All Employees</span>
+                  </Label>
+                  {employees?.map(employee => (
+                    <Label key={employee.id} htmlFor={`employee-${employee.id}`} className="cursor-pointer flex items-center space-x-2 rounded-md p-2 hover:bg-secondary">
+                      <RadioGroupItem value={employee.id.toString()} id={`employee-${employee.id}`} className="h-4 w-4" />
+                      <span>{employee.name}</span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+        </div>
+        
+        {isLoading ? (
+          <div className="text-center py-8">Loading leave requests...</div>
+        ) : leaveRequests && leaveRequests.length > 0 ? (
+          <ScrollArea>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRequests.map((request: any) => (
+                  <TableRow key={request.id}>
+                    <TableCell>{request.employee_name}</TableCell>
+                    <TableCell>{format(new Date(request.start_date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{format(new Date(request.end_date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{request.reason}</TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        request.status === 'approved' ? 'success' : 
+                        request.status === 'rejected' ? 'destructive' : 
+                        'secondary'
+                      }>
+                        {request.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewRequest(request)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                      {request.status === 'pending' && (
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => handleApproveClick(request)}>
+                            <Check className="h-4 w-4 mr-2" />
+                            Approve
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleRejectClick(request)}>
+                            <X className="h-4 w-4 mr-2" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        ) : (
+          <div className="text-center py-8">No leave requests found.</div>
+        )}
+      </CardContent>
+
+      {/* View Request Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Leave Request Details</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="employee" className="text-right">Employee:</Label>
+              <div className="col-span-3 font-medium">{selectedRequest?.employee_name}</div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="start-date" className="text-right">Start Date:</Label>
+              <div className="col-span-3">{selectedRequest?.start_date ? format(new Date(selectedRequest.start_date), 'MMM dd, yyyy') : 'N/A'}</div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="end-date" className="text-right">End Date:</Label>
+              <div className="col-span-3">{selectedRequest?.end_date ? format(new Date(selectedRequest.end_date), 'MMM dd, yyyy') : 'N/A'}</div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="leave-type" className="text-right">Leave Type:</Label>
+              <div className="col-span-3">{selectedRequest?.leaveType}</div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="duration" className="text-right">Duration:</Label>
+              <div className="col-span-3">{selectedRequest?.days} days</div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reason" className="text-right">Reason:</Label>
+              <div className="col-span-3">{selectedRequest?.reason}</div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">Status:</Label>
+              <div className="col-span-3">
+                <Badge variant={
+                  selectedRequest?.status === 'approved' ? 'success' : 
+                  selectedRequest?.status === 'rejected' ? 'destructive' : 
+                  'secondary'
+                }>
+                  {selectedRequest?.status}
+                </Badge>
+              </div>
             </div>
           </div>
-          
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <p>Loading leave requests...</p>
-            </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No {activeTab !== 'all' ? activeTab : ''} leave requests found.</p>
-            </div>
-          ) : (
-            <div className="border rounded-md">
-              <div className="grid grid-cols-1 md:grid-cols-6 font-medium p-4 border-b bg-muted">
-                <div className="md:col-span-1">Employee</div>
-                <div className="md:col-span-1">Type</div>
-                <div className="md:col-span-1">Dates</div>
-                <div className="md:col-span-1">Days</div>
-                <div className="md:col-span-1">Status</div>
-                <div className="md:col-span-1 text-right">Actions</div>
-              </div>
-              
-              {filteredRequests.map((request) => (
-                <div key={request.id} className="grid grid-cols-1 md:grid-cols-6 items-center p-4 border-b last:border-b-0 hover:bg-muted/50">
-                  <div className="md:col-span-1 font-medium">{request.employee_name}</div>
-                  <div className="md:col-span-1">{getLeaveTypeText(request.leaveType)}</div>
-                  <div className="md:col-span-1 text-sm">
-                    {format(new Date(request.start_date), 'MMM d, yyyy')}
-                    {request.end_date && request.start_date !== request.end_date && 
-                      <span> - <br className="md:hidden" /> {format(new Date(request.end_date), 'MMM d, yyyy')}</span>}
-                  </div>
-                  <div className="md:col-span-1">{request.days}</div>
-                  <div className="md:col-span-1">
-                    <Badge variant={getStatusBadge(request.status)}>
-                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                    </Badge>
-                  </div>
-                  <div className="md:col-span-1 flex justify-end items-center gap-2 mt-2 md:mt-0">
-                    {request.status === 'pending' && (
-                      <>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          className="text-green-500 hover:text-green-700"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setDetailsDialogOpen(true);
-                          }}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          className="text-red-500 hover:text-red-700"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setDetailsDialogOpen(true);
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedRequest(request);
-                        setDetailsDialogOpen(true);
-                      }}
-                    >
-                      Details
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-      
-      {/* Leave request details dialog */}
-      {selectedRequest && (
-        <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Leave Request Details</DialogTitle>
-              <DialogDescription>
-                Request from {selectedRequest.employee_name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="font-semibold">Employee ID:</div>
-                <div>{selectedRequest.employee_id}</div>
-                
-                <div className="font-semibold">Employee:</div>
-                <div>{selectedRequest.employee_name}</div>
-                
-                <div className="font-semibold">Type:</div>
-                <div>{getLeaveTypeText(selectedRequest.leaveType)}</div>
-                
-                <div className="font-semibold">Period:</div>
-                <div>
-                  {format(new Date(selectedRequest.start_date), 'MMM d, yyyy')}
-                  {selectedRequest.end_date && selectedRequest.start_date !== selectedRequest.end_date && 
-                    ` - ${format(new Date(selectedRequest.end_date), 'MMM d, yyyy')}`}
-                </div>
-                
-                <div className="font-semibold">Days:</div>
-                <div>{selectedRequest.days}</div>
-                
-                <div className="font-semibold">Status:</div>
-                <div>
-                  <Badge variant={getStatusBadge(selectedRequest.status)}>
-                    {selectedRequest.status.charAt(0).toUpperCase() + selectedRequest.status.slice(1)}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="font-semibold">Reason:</div>
-                <div className="text-sm bg-muted p-3 rounded-md">{selectedRequest.reason}</div>
-              </div>
-              
-              {selectedRequest.document_url && (
-                <Button 
-                  className="w-full gap-2"
-                  onClick={() => window.open(selectedRequest.document_url, '_blank')}
-                >
-                  <FileText className="h-4 w-4" />
-                  View Document
-                </Button>
-              )}
-              
-              {selectedRequest.status === 'pending' && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="notes" className="font-semibold text-sm">Approval/Rejection Notes:</label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Add notes for approving or rejecting this request..."
-                      value={approvalNotes}
-                      onChange={(e) => setApprovalNotes(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleReject}
-                      disabled={updateLeaveRequestMutation.isPending}
-                    >
-                      Reject
-                    </Button>
-                    <Button
-                      onClick={handleApprove}
-                      disabled={updateLeaveRequestMutation.isPending}
-                    >
-                      Approve
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Request Dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Approve Leave Request</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <p>Are you sure you want to approve this leave request?</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setApproveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => handleUpdateStatus(selectedRequest!.id, 'approved')}>
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Request Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reject Leave Request</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Label htmlFor="reject-reason">Reason for Rejection</Label>
+            <Textarea 
+              id="reject-reason" 
+              placeholder="Enter reason for rejection" 
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => handleUpdateStatus(selectedRequest!.id, 'rejected', rejectReason)}>
+              Reject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

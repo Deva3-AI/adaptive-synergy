@@ -1,48 +1,64 @@
 
 import { useState } from 'react';
+import { useAuth } from './use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { taskService, Task } from '@/services/api/taskService';
 import { toast } from 'sonner';
-import taskService from '@/services/api/taskService';
-import { Task, DetailedTask, TaskFilter } from '@/interfaces/tasks';
 
-/**
- * Hook for managing tasks
- */
 const useTasks = () => {
-  const [filters, setFilters] = useState<TaskFilter>({});
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [filter, setFilter] = useState('all');
 
   // Get all tasks
-  const { data: tasks = [], isLoading, error } = useQuery({
-    queryKey: ['tasks', filters],
-    queryFn: () => taskService.getTasks(filters),
+  const { data: tasks, isLoading, error } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      const fetchedTasks = await taskService.getTasks();
+      return fetchedTasks;
+    }
+  });
+
+  // Get tasks assigned to the current user
+  const { data: myTasks, isLoading: isLoadingMyTasks } = useQuery({
+    queryKey: ['myTasks', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      const fetchedTasks = await taskService.getTasksByUser(userId);
+      return fetchedTasks;
+    },
+    enabled: !!user?.id
   });
 
   // Create task mutation
   const createTaskMutation = useMutation({
-    mutationFn: (taskData: Partial<Task>) => taskService.createTask(taskData),
+    mutationFn: (task: Partial<Task>) => taskService.createTask(task),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['myTasks', user?.id] });
       toast.success('Task created successfully');
     },
     onError: (error) => {
       console.error('Error creating task:', error);
       toast.error('Failed to create task');
-    },
+    }
   });
 
   // Update task mutation
   const updateTaskMutation = useMutation({
-    mutationFn: ({ taskId, taskData }: { taskId: number; taskData: Partial<Task> }) => 
+    mutationFn: ({ taskId, taskData }: { taskId: number, taskData: Partial<Task> }) => 
       taskService.updateTask(taskId, taskData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['myTasks', user?.id] });
       toast.success('Task updated successfully');
     },
     onError: (error) => {
       console.error('Error updating task:', error);
       toast.error('Failed to update task');
-    },
+    }
   });
 
   // Delete task mutation
@@ -50,131 +66,67 @@ const useTasks = () => {
     mutationFn: (taskId: number) => taskService.deleteTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['myTasks', user?.id] });
       toast.success('Task deleted successfully');
     },
     onError: (error) => {
       console.error('Error deleting task:', error);
       toast.error('Failed to delete task');
-    },
+    }
   });
 
-  // Update task status mutation
-  const updateTaskStatusMutation = useMutation({
-    mutationFn: ({ taskId, status }: { taskId: number; status: Task['status'] }) => 
-      taskService.updateTaskStatus(taskId, status),
+  // Add comment mutation
+  const addCommentMutation = useMutation({
+    mutationFn: (params: { taskId: number, comment: string }) => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      
+      return taskService.addTaskComment(params.taskId, {
+        task_id: params.taskId,
+        user_id: userId,
+        user_name: user.name,
+        content: params.comment
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      toast.success('Task status updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error updating task status:', error);
-      toast.error('Failed to update task status');
-    },
+      toast.success('Comment added successfully');
+    }
   });
 
-  // Get task by ID
-  const getTaskById = async (taskId: number): Promise<Task | null> => {
-    try {
-      return await taskService.getTaskById(taskId);
-    } catch (error) {
-      console.error('Error fetching task:', error);
-      toast.error('Failed to load task details');
-      return null;
-    }
+  // Function to create a new task
+  const createTask = async (taskData: Partial<Task>) => {
+    return createTaskMutation.mutateAsync(taskData);
   };
 
-  // Get detailed task by ID
-  const getDetailedTask = async (taskId: number): Promise<DetailedTask | null> => {
-    try {
-      return await taskService.getDetailedTask(taskId);
-    } catch (error) {
-      console.error('Error fetching detailed task:', error);
-      toast.error('Failed to load task details');
-      return null;
-    }
+  // Function to update a task
+  const updateTask = async (taskId: number, taskData: Partial<Task>) => {
+    return updateTaskMutation.mutateAsync({ taskId, taskData });
   };
 
-  // Create a task
-  const createTask = async (taskData: Partial<Task>): Promise<Task | null> => {
-    try {
-      return await createTaskMutation.mutateAsync(taskData);
-    } catch (error) {
-      console.error('Error creating task:', error);
-      return null;
-    }
+  // Function to delete a task
+  const deleteTask = async (taskId: number) => {
+    return deleteTaskMutation.mutateAsync(taskId);
   };
 
-  // Update a task
-  const updateTask = async (taskId: number, taskData: Partial<Task>): Promise<Task | null> => {
-    try {
-      return await updateTaskMutation.mutateAsync({ taskId, taskData });
-    } catch (error) {
-      console.error('Error updating task:', error);
-      return null;
-    }
-  };
-
-  // Delete a task
-  const deleteTask = async (taskId: number): Promise<boolean> => {
-    try {
-      await deleteTaskMutation.mutateAsync(taskId);
-      return true;
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      return false;
-    }
-  };
-
-  // Update task status
-  const updateTaskStatus = async (taskId: number, status: Task['status']): Promise<Task | null> => {
-    try {
-      return await updateTaskStatusMutation.mutateAsync({ taskId, status });
-    } catch (error) {
-      console.error('Error updating task status:', error);
-      return null;
-    }
-  };
-
-  // Add a comment to a task
-  const addTaskComment = async (taskId: number, userId: number, comment: string) => {
-    try {
-      const result = await taskService.addTaskComment(taskId, userId, comment);
-      if (result) {
-        queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] });
-        toast.success('Comment added successfully');
-      }
-      return result;
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast.error('Failed to add comment');
-      return null;
-    }
-  };
-
-  // Apply filters to the task list
-  const applyFilters = (newFilters: TaskFilter) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
-
-  // Clear all filters
-  const clearFilters = () => {
-    setFilters({});
+  // Function to add a comment to a task
+  const addComment = async (taskId: number, comment: string) => {
+    return addCommentMutation.mutateAsync({ taskId, comment });
   };
 
   return {
     tasks,
+    myTasks,
     isLoading,
+    isLoadingMyTasks,
     error,
-    getTaskById,
-    getDetailedTask,
+    filter,
+    setFilter,
     createTask,
     updateTask,
     deleteTask,
-    updateTaskStatus,
-    addTaskComment,
-    filters,
-    applyFilters,
-    clearFilters,
+    addComment
   };
 };
 

@@ -1,13 +1,12 @@
-
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BarChart, LineChart, PieChart, TrendingUp, Calendar, Filter, Download, Brain } from "lucide-react";
-import DashboardCard from "@/components/dashboard/DashboardCard";
-import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
-import AIInsightCard from "@/components/ai/AIInsightCard";
-import { generateMarketingInsights } from "@/utils/aiUtils";
-import { toast } from "sonner";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { marketingService } from '@/services/api/marketingService';
+import { toast } from 'sonner';
+import { Brain, RefreshCw, TrendingUp, Filter } from 'lucide-react';
+import { generateMarketingInsights } from '@/utils/aiUtils';
 
 // Sample data for charts
 const campaignPerformanceData = [

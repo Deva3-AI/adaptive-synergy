@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,21 +32,18 @@ const EmployeePerformanceInsights = ({
     setIsLoading(true);
     try {
       const filtered = {
-        attendanceData: attendanceData.filter(a => a.user_id === employeeId),
-        taskData: taskData.filter(t => t.assigned_to === employeeId)
+        attendanceData: attendanceData.filter(a => a.user_id === employeeId)
       };
 
       // If not enough data, show an error
-      if (filtered.attendanceData.length === 0 && filtered.taskData.length === 0) {
+      if (filtered.attendanceData.length === 0) {
         toast.error('Not enough historical data to generate insights');
         setIsLoading(false);
         return;
       }
 
-      const results = await analyzeEmployeePerformance(
-        filtered.attendanceData,
-        filtered.taskData
-      );
+      // Fix: Pass only one argument to analyzeEmployeePerformance
+      const results = await analyzeEmployeePerformance(filtered.attendanceData);
       
       setPerformanceData(results);
     } catch (error) {

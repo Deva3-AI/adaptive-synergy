@@ -1,390 +1,286 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Task, DetailedTask, TaskComment, TaskAttachment, TaskFilter } from '@/interfaces/tasks';
-import { toast } from 'sonner';
 
-/**
- * Service for managing tasks
- */
-const taskService = {
-  /**
-   * Get all tasks
-   */
-  getTasks: async (filters?: TaskFilter) => {
-    try {
-      let query = supabase
-        .from('tasks')
-        .select(`
-          *,
-          clients (client_name),
-          users:assigned_to (name)
-        `);
-      
-      if (filters) {
-        if (filters.status) query = query.eq('status', filters.status);
-        if (filters.priority) query = query.eq('priority', filters.priority);
-        if (filters.assignedTo) query = query.eq('assigned_to', filters.assignedTo);
-        if (filters.clientId) query = query.eq('client_id', filters.clientId);
-        if (filters.search) query = query.ilike('title', `%${filters.search}%`);
-        if (filters.startDate) query = query.gte('created_at', filters.startDate);
-        if (filters.endDate) query = query.lte('created_at', filters.endDate);
+import { toast } from "sonner";
+import { mockUserData } from "@/utils/mockData";
+
+// Define Task interface
+export interface Task {
+  id?: number;
+  task_id: number;
+  title: string;
+  description: string;
+  client_id?: number;
+  client_name?: string;
+  client?: string;
+  assigned_to?: number;
+  assignee_name?: string;
+  status: string;
+  priority: string;
+  due_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  progress: number;
+  estimated_hours?: number;
+  actual_hours?: number;
+  comments?: any[];
+}
+
+export interface TaskComment {
+  id?: number;
+  task_id: number;
+  user_id: number;
+  user_name: string;
+  content: string;
+  created_at: string;
+}
+
+// Mock tasks data
+const mockTasks = [
+  {
+    task_id: 1,
+    id: 1,
+    title: "Create homepage design",
+    description: "Design the homepage layout for the new website",
+    client_id: 1,
+    client_name: "Acme Corp",
+    assigned_to: 2,
+    assignee_name: "John Designer",
+    status: "in_progress",
+    priority: "high",
+    due_date: "2023-06-15",
+    created_at: "2023-06-01",
+    updated_at: "2023-06-05",
+    progress: 65,
+    estimated_hours: 10,
+    actual_hours: 6.5,
+    comments: [
+      {
+        id: 1,
+        task_id: 1,
+        user_id: 1,
+        user_name: "Admin User",
+        content: "Please make sure to follow the brand guidelines",
+        created_at: "2023-06-02T10:30:00"
       }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Transform data to use proper structure
-      const transformedTasks = data?.map(task => ({
-        ...task,
-        client: task.clients ? task.clients.client_name : 'Unknown',
-        assignee_name: task.users ? task.users.name : 'Unassigned',
-      })) || [];
-      
-      return transformedTasks;
+    ]
+  },
+  {
+    task_id: 2,
+    id: 2,
+    title: "Implement user authentication",
+    description: "Create login and registration functionality",
+    client_id: 2,
+    client_name: "TechStart Inc",
+    assigned_to: 3,
+    assignee_name: "Jane Developer",
+    status: "pending",
+    priority: "medium",
+    due_date: "2023-06-20",
+    created_at: "2023-06-03",
+    updated_at: "2023-06-03",
+    progress: 0,
+    estimated_hours: 15,
+    actual_hours: 0,
+    comments: []
+  },
+  {
+    task_id: 3,
+    id: 3,
+    title: "Create content for about page",
+    description: "Write copy for the about us section",
+    client_id: 1,
+    client_name: "Acme Corp",
+    assigned_to: 4,
+    assignee_name: "David Writer",
+    status: "completed",
+    priority: "low",
+    due_date: "2023-06-10",
+    created_at: "2023-06-01",
+    updated_at: "2023-06-08",
+    progress: 100,
+    estimated_hours: 5,
+    actual_hours: 4.5,
+    comments: [
+      {
+        id: 2,
+        task_id: 3,
+        user_id: 4,
+        user_name: "David Writer",
+        content: "First draft completed, awaiting feedback",
+        created_at: "2023-06-05T15:45:00"
+      },
+      {
+        id: 3,
+        task_id: 3,
+        user_id: 1,
+        user_name: "Admin User",
+        content: "Looks good, just minor edits needed",
+        created_at: "2023-06-06T11:20:00"
+      }
+    ]
+  }
+];
+
+// Task service functions
+export const taskService = {
+  // Get all tasks
+  getTasks: async () => {
+    try {
+      // In a real app, this would be an API call
+      return [...mockTasks];
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      toast.error('Failed to load tasks');
-      return [];
-    }
-  },
-
-  /**
-   * Get a task by ID
-   * @param taskId - Task ID
-   */
-  getTaskById: async (taskId: number): Promise<Task | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          clients (client_name),
-          users:assigned_to (name)
-        `)
-        .eq('task_id', taskId)
-        .single();
-      
-      if (error) throw error;
-      
-      if (!data) return null;
-      
-      // Transform data to use proper structure
-      const transformedTask = {
-        ...data,
-        client: data.clients ? data.clients.client_name : 'Unknown',
-        assignee_name: data.users ? data.users.name : 'Unassigned',
-      };
-      
-      return transformedTask;
-    } catch (error) {
-      console.error('Error fetching task:', error);
-      toast.error('Failed to load task details');
-      return null;
-    }
-  },
-
-  /**
-   * Get detailed task by ID
-   * @param taskId - Task ID
-   */
-  getDetailedTask: async (taskId: number): Promise<DetailedTask | null> => {
-    try {
-      // Fetch task data
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          clients (client_name),
-          users:assigned_to (name)
-        `)
-        .eq('task_id', taskId)
-        .single();
-      
-      if (taskError) throw taskError;
-      
-      if (!taskData) return null;
-      
-      // Fetch comments
-      const { data: commentsData, error: commentsError } = await supabase
-        .from('task_comments')
-        .select(`
-          *,
-          users:user_id (name)
-        `)
-        .eq('task_id', taskId);
-      
-      if (commentsError) throw commentsError;
-      
-      // Fetch attachments
-      const { data: attachmentsData, error: attachmentsError } = await supabase
-        .from('task_attachments')
-        .select('*')
-        .eq('task_id', taskId);
-      
-      if (attachmentsError) throw attachmentsError;
-      
-      // Create detailed task object
-      const detailedTask: DetailedTask = {
-        id: taskData.task_id,
-        task_id: taskData.task_id,
-        title: taskData.title,
-        description: taskData.description,
-        client: taskData.clients ? taskData.clients.client_name : 'Unknown',
-        priority: taskData.priority || 'medium',
-        status: taskData.status,
-        dueDate: taskData.end_time ? new Date(taskData.end_time) : undefined,
-        startDate: taskData.start_time ? new Date(taskData.start_time) : undefined,
-        progress: 0, // This needs to be calculated or stored somewhere
-        estimatedHours: taskData.estimated_time || 0,
-        actualHours: taskData.actual_time || 0,
-        assignedTo: taskData.users ? taskData.users.name : 'Unassigned',
-        comments: commentsData?.map(comment => ({
-          id: comment.id,
-          taskId: comment.task_id,
-          userId: comment.user_id,
-          userName: comment.users ? comment.users.name : 'Unknown User',
-          comment: comment.comment,
-          createdAt: comment.created_at
-        })) || [],
-        attachments: attachmentsData || [],
-        tags: [],
-        recentActivity: []
-      };
-      
-      return detailedTask;
-    } catch (error) {
-      console.error('Error fetching detailed task:', error);
-      toast.error('Failed to load task details');
-      return null;
-    }
-  },
-
-  /**
-   * Create a new task
-   * @param taskData - Task data
-   */
-  createTask: async (taskData: Partial<Task>): Promise<Task | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert(taskData)
-        .select(`
-          *,
-          clients (client_name),
-          users:assigned_to (name)
-        `)
-        .single();
-      
-      if (error) throw error;
-      
-      if (!data) return null;
-      
-      // Transform data to use proper structure
-      const transformedTask = {
-        ...data,
-        client: data.clients ? data.clients.client_name : 'Unknown',
-        assignee_name: data.users ? data.users.name : 'Unassigned',
-      };
-      
-      toast.success('Task created successfully');
-      return transformedTask;
-    } catch (error) {
-      console.error('Error creating task:', error);
-      toast.error('Failed to create task');
-      return null;
-    }
-  },
-
-  /**
-   * Update a task
-   * @param taskId - Task ID
-   * @param taskData - Updated task data
-   */
-  updateTask: async (taskId: number, taskData: Partial<Task>): Promise<Task | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .update(taskData)
-        .eq('task_id', taskId)
-        .select(`
-          *,
-          clients (client_name),
-          users:assigned_to (name)
-        `)
-        .single();
-      
-      if (error) throw error;
-      
-      if (!data) return null;
-      
-      // Transform data to use proper structure
-      const transformedTask = {
-        ...data,
-        client: data.clients ? data.clients.client_name : 'Unknown',
-        assignee_name: data.users ? data.users.name : 'Unassigned',
-      };
-      
-      toast.success('Task updated successfully');
-      return transformedTask;
-    } catch (error) {
-      console.error('Error updating task:', error);
-      toast.error('Failed to update task');
-      return null;
-    }
-  },
-
-  /**
-   * Delete a task
-   * @param taskId - Task ID
-   */
-  deleteTask: async (taskId: number): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('task_id', taskId);
-      
-      if (error) throw error;
-      
-      toast.success('Task deleted successfully');
-      return true;
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
-      return false;
-    }
-  },
-
-  /**
-   * Update task status
-   * @param taskId - Task ID
-   * @param status - New status
-   */
-  updateTaskStatus: async (taskId: number, status: Task['status']): Promise<Task | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .update({ status })
-        .eq('task_id', taskId)
-        .select(`
-          *,
-          clients (client_name),
-          users:assigned_to (name)
-        `)
-        .single();
-      
-      if (error) throw error;
-      
-      if (!data) return null;
-      
-      // Transform data to use proper structure
-      const transformedTask = {
-        ...data,
-        client: data.clients ? data.clients.client_name : 'Unknown',
-        assignee_name: data.users ? data.users.name : 'Unassigned',
-      };
-      
-      toast.success('Task status updated successfully');
-      return transformedTask;
-    } catch (error) {
-      console.error('Error updating task status:', error);
-      toast.error('Failed to update task status');
-      return null;
-    }
-  },
-
-  /**
-   * Add a comment to a task
-   * @param taskId - Task ID
-   * @param userId - User ID
-   * @param comment - Comment text
-   */
-  addTaskComment: async (commentData: any) => {
-    try {
-      // This would be an API call in a real application
-      const response = {
-        success: true,
-        data: {
-          id: Math.floor(Math.random() * 10000),
-          task_id: commentData.task_id, // Use task_id instead of taskId
-          user_id: commentData.user_id,
-          comment: commentData.comment,
-          created_at: new Date().toISOString()
-        }
-      };
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error adding comment:', error);
       throw error;
     }
   },
 
-  /**
-   * Get tasks summary for dashboard
-   * @param userId - User ID (optional)
-   */
-  getTasksSummary: async (userId?: number) => {
+  // Get task by ID
+  getTaskById: async (taskId: number) => {
     try {
-      // Get all tasks (optionally filtered by user)
-      let query = supabase.from('tasks').select('*');
+      const task = mockTasks.find(t => t.task_id === taskId || t.id === taskId);
+      if (!task) {
+        throw new Error('Task not found');
+      }
+      return task;
+    } catch (error) {
+      console.error(`Error fetching task #${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get tasks by status
+  getTasksByStatus: async (status: string) => {
+    try {
+      return mockTasks.filter(task => task.status === status);
+    } catch (error) {
+      console.error(`Error fetching tasks with status "${status}":`, error);
+      throw error;
+    }
+  },
+
+  // Get tasks by assigned user
+  getTasksByUser: async (userId: number) => {
+    try {
+      return mockTasks.filter(task => task.assigned_to === userId);
+    } catch (error) {
+      console.error(`Error fetching tasks for user #${userId}:`, error);
+      throw error;
+    }
+  },
+
+  // Get tasks by client
+  getTasksByClient: async (clientId: number) => {
+    try {
+      return mockTasks.filter(task => task.client_id === clientId);
+    } catch (error) {
+      console.error(`Error fetching tasks for client #${clientId}:`, error);
+      throw error;
+    }
+  },
+
+  // Create a new task
+  createTask: async (taskData: Partial<Task>) => {
+    try {
+      const newTask = {
+        task_id: Math.max(...mockTasks.map(t => t.task_id)) + 1,
+        id: Math.max(...mockTasks.map(t => t.id || 0)) + 1,
+        title: taskData.title || '',
+        description: taskData.description || '',
+        client_id: taskData.client_id,
+        client_name: taskData.client_name || 'Unknown Client',
+        assigned_to: taskData.assigned_to,
+        assignee_name: taskData.assignee_name || 'Unassigned',
+        status: taskData.status || 'pending',
+        priority: taskData.priority || 'medium',
+        due_date: taskData.due_date,
+        created_at: new Date().toISOString().split('T')[0],
+        updated_at: new Date().toISOString().split('T')[0],
+        progress: taskData.progress || 0,
+        estimated_hours: taskData.estimated_hours,
+        actual_hours: taskData.actual_hours || 0,
+        comments: []
+      };
       
-      if (userId) {
-        query = query.eq('assigned_to', userId);
+      // In a real app, this would be an API call
+      mockTasks.push(newTask as any);
+      
+      return newTask;
+    } catch (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
+  },
+
+  // Update a task
+  updateTask: async (taskId: number, taskData: Partial<Task>) => {
+    try {
+      const taskIndex = mockTasks.findIndex(t => t.task_id === taskId || t.id === taskId);
+      
+      if (taskIndex === -1) {
+        throw new Error('Task not found');
       }
       
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      if (!data) return null;
-      
-      // Calculate task statistics
-      const total = data.length;
-      const pending = data.filter(task => task.status === 'pending').length;
-      const inProgress = data.filter(task => task.status === 'in_progress').length;
-      const completed = data.filter(task => task.status === 'completed').length;
-      const cancelled = data.filter(task => task.status === 'cancelled').length;
-      
-      // Calculate overdue and due soon tasks
-      const now = new Date();
-      const overdueCount = data.filter(task => 
-        task.status !== 'completed' && 
-        task.status !== 'cancelled' && 
-        task.end_time && 
-        new Date(task.end_time) < now
-      ).length;
-      
-      // Tasks due in the next 3 days
-      const threeDaysLater = new Date();
-      threeDaysLater.setDate(now.getDate() + 3);
-      
-      const dueSoonCount = data.filter(task => 
-        task.status !== 'completed' && 
-        task.status !== 'cancelled' && 
-        task.end_time && 
-        new Date(task.end_time) >= now && 
-        new Date(task.end_time) <= threeDaysLater
-      ).length;
-      
-      // Calculate completion rate
-      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-      
-      return {
-        total,
-        pending,
-        inProgress,
-        completed,
-        cancelled,
-        overdueCount,
-        dueSoonCount,
-        completionRate
+      // Update task
+      mockTasks[taskIndex] = {
+        ...mockTasks[taskIndex],
+        ...taskData,
+        updated_at: new Date().toISOString().split('T')[0]
       };
+      
+      return mockTasks[taskIndex];
     } catch (error) {
-      console.error('Error getting tasks summary:', error);
-      return null;
+      console.error(`Error updating task #${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete a task
+  deleteTask: async (taskId: number) => {
+    try {
+      const taskIndex = mockTasks.findIndex(t => t.task_id === taskId || t.id === taskId);
+      
+      if (taskIndex === -1) {
+        throw new Error('Task not found');
+      }
+      
+      // Remove task
+      mockTasks.splice(taskIndex, 1);
+      
+      return { success: true };
+    } catch (error) {
+      console.error(`Error deleting task #${taskId}:`, error);
+      throw error;
+    }
+  },
+
+  // Add a comment to a task
+  addTaskComment: async (taskId: number, comment: Omit<TaskComment, 'id' | 'created_at'>) => {
+    try {
+      const taskIndex = mockTasks.findIndex(t => t.task_id === taskId || t.id === taskId);
+      
+      if (taskIndex === -1) {
+        throw new Error('Task not found');
+      }
+      
+      const newComment = {
+        id: Math.max(...mockTasks.flatMap(t => t.comments?.map(c => c.id) || [0])) + 1,
+        task_id: taskId,
+        user_id: comment.user_id,
+        user_name: comment.user_name,
+        content: comment.content,
+        created_at: new Date().toISOString()
+      };
+      
+      // Add comment
+      if (!mockTasks[taskIndex].comments) {
+        mockTasks[taskIndex].comments = [];
+      }
+      
+      mockTasks[taskIndex].comments?.push(newComment);
+      
+      return newComment;
+    } catch (error) {
+      console.error(`Error adding comment to task #${taskId}:`, error);
+      throw error;
     }
   }
 };
-
-export default taskService;

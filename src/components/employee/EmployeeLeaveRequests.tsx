@@ -1,88 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { hrService } from '@/services/api';
-import { toast } from 'sonner';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Clock, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { hrService } from '@/services/api';
+import { useAuth } from '@/hooks/use-auth';
 
 const EmployeeLeaveRequests = () => {
   const { user } = useAuth();
-  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newRequest, setNewRequest] = useState({
     start_date: '',
     end_date: '',
     reason: '',
+    leaveType: 'vacation'
   });
-
-  // Function to fetch leave requests
-  const fetchLeaveRequests = async () => {
-    try {
-      setLoading(true);
-      const requests = await hrService.getLeaveRequests(user?.id);
-      setLeaveRequests(requests);
-    } catch (error) {
-      console.error('Error fetching leave requests:', error);
-      toast.error('Failed to fetch leave requests');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchLeaveRequests();
   }, [user]);
 
-  // Function to handle input changes for the new leave request form
+  const fetchLeaveRequests = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    try {
+      const data = await hrService.getEmployeeLeaveRequests();
+      setRequests(data);
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+      toast.error('Failed to load leave requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user?.id) {
+      toast.error('User information not available');
+      return;
+    }
+    
+    try {
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      
+      await hrService.submitLeaveRequest({
+        employee_id: userId,
+        start_date: newRequest.start_date,
+        end_date: newRequest.end_date,
+        reason: newRequest.reason,
+        leaveType: newRequest.leaveType,
+      });
+      
+      toast.success('Leave request submitted successfully');
+      setIsDialogOpen(false);
+      fetchLeaveRequests();
+      
+      setNewRequest({
+        start_date: '',
+        end_date: '',
+        reason: '',
+        leaveType: 'vacation'
+      });
+    } catch (error) {
+      console.error('Error submitting leave request:', error);
+      toast.error('Failed to submit leave request');
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setNewRequest({
       ...newRequest,
       [e.target.name]: e.target.value,
     });
-  };
-
-  // Function to handle submitting a new leave request
-  const handleSubmitRequest = async (requestData: any) => {
-    try {
-      // Convert user.id to number if it's not already
-      const userId = typeof user?.id === 'string' ? parseInt(user.id, 10) : user?.id;
-      
-      // Make sure userId is a number
-      if (!userId || isNaN(Number(userId))) {
-        toast.error('Invalid user ID');
-        return;
-      }
-      
-      const response = await hrService.submitLeaveRequest({
-        ...requestData,
-        employee_id: Number(userId) 
-      });
-      
-      if (response.success) {
-        toast.success('Leave request submitted successfully');
-        setNewRequest({
-          start_date: '',
-          end_date: '',
-          reason: '',
-        });
-        fetchLeaveRequests(); // Refresh leave requests
-      } else {
-        toast.error(response.error || 'Failed to submit leave request');
-      }
-    } catch (error) {
-      console.error('Error submitting leave request:', error);
-      toast.error('Failed to submit leave request');
-    }
   };
 
   return (
@@ -123,7 +124,18 @@ const EmployeeLeaveRequests = () => {
               onChange={handleInputChange}
             />
           </div>
-          <Button onClick={() => handleSubmitRequest(newRequest)}>Submit Request</Button>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select leave type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vacation">Vacation</SelectItem>
+              <SelectItem value="sick">Sick</SelectItem>
+              <SelectItem value="maternity">Maternity</SelectItem>
+              <SelectItem value="paternity">Paternity</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => handleSubmit(newRequest)}>Submit Request</Button>
         </CardContent>
       </Card>
 
@@ -137,7 +149,7 @@ const EmployeeLeaveRequests = () => {
             <div>Loading leave requests...</div>
           ) : (
             <div className="divide-y">
-              {leaveRequests.map((request: any) => (
+              {requests.map((request: any) => (
                 <div key={request.id} className="py-2">
                   <div className="flex justify-between">
                     <div>

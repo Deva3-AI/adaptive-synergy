@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { mockUserData } from '@/utils/mockData';
 
@@ -6,6 +7,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  roleDetails?: any;
 }
 
 export const useUser = (userId: number | string | undefined) => {
@@ -20,7 +22,6 @@ export const useUser = (userId: number | string | undefined) => {
       setLoading(true);
       try {
         // In a real app, this would be an API call
-        // For now we're mocking with static data
         setTimeout(() => {
           const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
           
@@ -29,26 +30,32 @@ export const useUser = (userId: number | string | undefined) => {
           
           if (foundUser) {
             // Add role details if we have them
-            let roleDetails = null;
-            if (foundUser.role) {
-              // Find the role by name
-              roleDetails = Object.values(mockUserData.roles || [])
-                .find(r => r.role_name === foundUser.role);
-            }
+            const roleDetails = foundUser.role ? 
+              Object.values(mockUserData.roles || [])
+                .find(r => r.role_name === foundUser.role) : 
+              null;
             
-            setUser({
-              ...foundUser,
+            // Create a user object that matches the User interface
+            const userObj: User = {
+              id: foundUser.id,
+              name: foundUser.name,
+              email: foundUser.email,
+              role: foundUser.role,
               roleDetails
-            });
+            };
+            
+            setUser(userObj);
           } else {
-            setError('User not found');
+            // Use a real Error object instead of a string
+            setError(new Error('User not found'));
           }
           
           setLoading(false);
         }, 500);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setError('Failed to fetch user data');
+      } catch (err) {
+        console.error('Error fetching user:', err);
+        // Use a real Error object instead of a string
+        setError(new Error('Failed to fetch user data'));
         setLoading(false);
       }
     };

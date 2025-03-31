@@ -1,8 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  BarChart as BarChartIcon,
+  CheckCircle as CheckCircleIcon,
+  DollarSign as DollarSignIcon,
+  Users as UsersIcon,
+  Bell,
+  Calendar,
+  ArrowUpRight,
+  ArrowDownRight
+} from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { userService } from '@/services/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import TasksSummary from '@/components/dashboard/TasksSummary';
+import RecentActivityFeed from '@/components/dashboard/RecentActivityFeed';
+import FinancialSummary from '@/components/dashboard/FinancialSummary';
+import ClientsOverview from '@/components/dashboard/ClientsOverview';
+import NotificationsPanel from '@/components/dashboard/NotificationsPanel';
+import UpcomingCalendar from '@/components/dashboard/UpcomingCalendar';
+import TeamPerformance from '@/components/dashboard/TeamPerformance';
+import MarketingMetrics from '@/components/dashboard/MarketingMetrics';
+import RecruitmentMetrics from '@/components/dashboard/RecruitmentMetrics';
+import { useQuery } from '@tanstack/react-query';
+import { userService } from '@/services/api/userService';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -15,10 +35,8 @@ const Dashboard = () => {
       
       try {
         setLoading(true);
-        // Convert user.id to number if it's a string
         const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
         
-        // Make API call
         const data = await userService.getDashboardData(Number(userId));
         setDashboardData(data);
       } catch (error) {
@@ -58,7 +76,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSignIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$45,231.89</div>
@@ -70,7 +88,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
+            <BarChartIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">23</div>
@@ -82,7 +100,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <UsersIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>
@@ -94,7 +112,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircleIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">128</div>

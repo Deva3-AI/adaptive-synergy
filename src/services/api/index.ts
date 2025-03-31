@@ -1,20 +1,19 @@
 
+import { userService } from './userService';
+import { taskService } from './taskService';
+import { financeService } from './financeService';
+import { clientService } from './clientService';
+import { hrService } from './hrService';
+import { marketingService } from './marketingService';
 import aiService from './aiService';
-import authService from './authService';
-import clientService from './clientService';
-import financeService from './financeService';
-import hrService from './hrServiceSupabase';
-import marketingService from './marketingService';
-import taskService from './taskService';
-import userService from './userService';
 
+// Export all services
 export {
-  aiService,
-  authService,
-  clientService,
+  userService,
+  taskService,
   financeService,
+  clientService,
   hrService,
   marketingService,
-  taskService,
-  userService
+  aiService
 };
