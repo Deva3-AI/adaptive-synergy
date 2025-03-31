@@ -1,169 +1,209 @@
-import React, {
-  createContext,
-  useState,
-  useEffect,
-  useContext,
-  ReactNode,
-} from 'react';
-import { authService } from '@/services/api';
-import { useRouter } from 'next/router';
-import { toast } from 'sonner';
 
-interface User {
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '@/services/api';
+
+export interface User {
   id: number;
   name: string;
   email: string;
-  role_id: number;
+  role: string;
+  roles?: string[];
+  permissions?: string[];
+  client_id?: number;
 }
 
-interface AuthContextProps {
+export interface AuthContextType {
+  isAuthenticated: boolean;
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-  roles: any[];
-  permissions: any[];
+  signup: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (password: string) => Promise<void>;
+  loading: boolean;
+  isAdmin: boolean;
+  isEmployee: boolean;
+  isClient: boolean;
+  isMarketing: boolean;
+  isHR: boolean;
+  isFinance: boolean;
+  hasRole: (role: string) => boolean;
   hasPermission: (permission: string) => boolean;
-  userRole: string | undefined;
 }
 
-const AuthContext = createContext<AuthContextProps>({
-  user: null,
-  token: null,
-  login: async () => {},
-  logout: () => {},
-  isLoading: true,
-  roles: [],
-  permissions: [],
-  hasPermission: () => false,
-  userRole: undefined,
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [roles, setRoles] = useState<any[]>([]);
-  const [permissions, setPermissions] = useState<any[]>([]);
-  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const isAuthenticated = !!user;
+  
+  // Role-specific flags
+  const isAdmin = user?.role === 'admin';
+  const isEmployee = user?.role === 'employee';
+  const isClient = user?.role === 'client';
+  const isMarketing = user?.role === 'marketing';
+  const isHR = user?.role === 'hr';
+  const isFinance = user?.role === 'finance';
+  
+  // Check if user has a specific role
+  const hasRole = (role: string): boolean => {
+    if (!user) return false;
+    
+    // Check direct role
+    if (user.role === role) return true;
+    
+    // Check roles array
+    if (user.roles && user.roles.length > 0) {
+      return user.roles.includes(role);
+    }
+    
+    return false;
+  };
+  
+  // Check if user has a specific permission
+  const hasPermission = (permission: string): boolean => {
+    if (!user || !user.permissions) return false;
+    return user.permissions.includes(permission);
+  };
 
   useEffect(() => {
-    const loadUserFromLocalStorage = async () => {
-      setIsLoading(true);
+    // Check for user on initial load
+    const checkUser = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const userStr = localStorage.getItem('user');
-
-        if (token && userStr) {
-          const user = JSON.parse(userStr);
-          setUser(user);
-          setToken(token);
-
-          // Fetch roles and permissions
-          try {
-            const rolesResponse = await authService.getUserRoles();
-            setRoles(rolesResponse);
-
-            const permissionsResponse = await authService.getUserPermissions(user.id);
-            setPermissions(permissionsResponse);
-          } catch (error) {
-            console.error('Failed to fetch roles or permissions:', error);
-            toast.error('Failed to fetch roles or permissions.');
-          }
+        console.info('Auth state:', { isAuthenticated, user, loading });
+        
+        // Check localStorage for user data
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          console.info('User found in localStorage:', parsedUser);
+          setUser(parsedUser);
         }
+        
+        // Additional auth checks can go here
       } catch (error) {
-        console.error('Error loading user from localStorage:', error);
-        toast.error('Failed to load user data.');
+        console.error('Auth check error:', error);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    loadUserFromLocalStorage();
+    checkUser();
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
-      const data = await authService.login(email, password);
-      setToken(data.access_token);
-      localStorage.setItem('token', data.access_token);
-
-      const userResponse = {
-        id: data.user_id,
-        name: data.name,
-        email: data.email,
-        role_id: data.role,
-      };
-      setUser(userResponse);
-      localStorage.setItem('user', JSON.stringify(userResponse));
-
-      // Fetch roles and permissions
-      try {
-        const rolesResponse = await authService.getUserRoles();
-        setRoles(rolesResponse);
-
-        const permissionsResponse = await authService.getUserPermissions(data.user_id);
-        setPermissions(permissionsResponse);
-      } catch (error) {
-        console.error('Failed to fetch roles or permissions:', error);
-        toast.error('Failed to fetch roles or permissions.');
-      }
-
-      const role = roles.find(r => r.role_id === userResponse.role_id)?.role_name;
-
-      if (role === 'admin') {
-        router.push('/admin/dashboard');
+      setLoading(true);
+      const result = await authService.login(email, password);
+      
+      if (result.success && result.data) {
+        const userData = {
+          id: result.data.user_id || result.data.id,
+          name: result.data.name,
+          email: result.data.email,
+          role: result.data.role
+        };
+        
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        toast.success('Logged in successfully!');
       } else {
-        router.push('/employee/dashboard');
+        throw new Error(result.error || 'Failed to login');
       }
-      toast.success('Login successful!');
     } catch (error: any) {
-      console.error('Login failed:', error);
-      toast.error(error?.response?.data?.detail || 'Login failed. Please check your credentials.');
+      console.error('Login error:', error);
+      throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    setPermissions([]);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
-    toast.success('Logged out successfully!');
+  const signup = async (email: string, password: string, name: string) => {
+    try {
+      setLoading(true);
+      const result = await authService.register(name, email, password);
+      
+      if (result.success) {
+        toast.success('Signup successful! Please check your email for verification.');
+      } else {
+        throw new Error(result.error || 'Failed to create account');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const hasPermission = (permission: string): boolean => {
-    return permissions.includes(permission);
+  const logout = async () => {
+    try {
+      authService.logout();
+      setUser(null);
+      localStorage.removeItem('user');
+      navigate('/login');
+      toast.success('Logged out successfully');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   };
 
-  const userRole = roles.find(r => r.role_id === user?.role_id)?.role_name;
+  const requestPasswordReset = async (email: string) => {
+    try {
+      await authService.resetPassword(email);
+      toast.success('Password reset instructions sent to your email');
+    } catch (error: any) {
+      console.error('Password reset request error:', error);
+      throw error;
+    }
+  };
 
-  const value: AuthContextProps = {
-    user,
-    token,
-    login,
-    logout,
-    isLoading,
-    roles,
-    permissions,
-    hasPermission,
-    userRole,
+  const resetPassword = async (password: string) => {
+    try {
+      await authService.setNewPassword('token', password);
+      toast.success('Password updated successfully!');
+      navigate('/login');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!isLoading ? children : <div>Loading...</div>}
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        login,
+        signup,
+        logout,
+        requestPasswordReset,
+        resetPassword,
+        loading,
+        isAdmin,
+        isEmployee,
+        isClient,
+        isMarketing,
+        isHR,
+        isFinance,
+        hasRole,
+        hasPermission
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

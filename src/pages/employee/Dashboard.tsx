@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { userService } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import {
   Clock,
@@ -24,18 +25,56 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/hooks/use-auth';
 import TaskList from '@/components/employee/TaskList';
 import WorkTracker from '@/components/employee/WorkTracker';
 import AIAssistant from '@/components/ai/AIAssistant';
 import VirtualManagerInsights from '@/components/employee/VirtualManagerInsights';
 import EmployeeLeaveRequests from '@/components/employee/EmployeeLeaveRequests';
-import { hrService, userService } from '@/services/api';
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [taskFilter, setTaskFilter] = useState<any>({});
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Convert user.id to number if it's a string
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        
+        // Fetch dashboard data
+        const data = await userService.getUserProfile(Number(userId));
+        
+        // Fetch attendance data
+        const attendanceData = await userService.getUserAttendance(
+          Number(userId), 
+          new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0], 
+          new Date().toISOString().split('T')[0]
+        );
+        
+        // Fetch user tasks
+        const tasksData = await userService.getUserTasks(Number(userId));
+        
+        // Combine all data
+        setDashboardData({
+          ...data,
+          attendance: attendanceData,
+          tasks: tasksData
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, [user]);
   
   const { data: tasks, isLoading: tasksLoading, error: tasksError } = useQuery({
     queryKey: ['employee-tasks', user?.id],

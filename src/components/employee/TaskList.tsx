@@ -1,611 +1,799 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Clock, 
-  Calendar, 
-  CheckCircle2, 
-  Circle, 
-  MoreHorizontal, 
-  PanelRight, 
-  Filter, 
-  ArrowUpDown,
-  User,
-  Building,
-  ArrowRight,
-  PlusCircle, 
-  AlertCircle,
+import React, { useState, useEffect } from 'react';
+import { taskService } from '@/services/api';
+import { useAuth } from '@/hooks/use-auth';
+import { Task } from '@/interfaces/tasks';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  CheckCircle,
+  Clock,
   FileText,
-  ClipboardCheck,
-  Trash
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
+  Filter,
+  ListChecks,
+  Loader2,
+  MessageSquare,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Share2,
+  Tag,
+  Trash2,
+  UserRoundCheck,
+  Users,
+} from "lucide-react";
+import { format, subDays, addDays } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { DateRange } from "react-day-picker"
+import { CalendarIcon } from "@radix-ui/react-icons"
+import { DateRangePicker } from "@/components/date-range-picker"
+import { Progress } from "@/components/ui/progress"
 import { toast } from 'sonner';
 
-// Task interface
-interface Task {
-  task_id: number;
-  id?: number;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  client_id?: number;
-  client_name?: string;
-  client?: string;
-  assigned_to?: number;
-  assignee_name?: string;
-  created_at?: string;
-  updated_at?: string;
-  due_date?: string;
-  progress: number;
-  estimated_hours?: number;
-  actual_hours?: number;
-  attachments?: any[];
+interface ExtendedTask extends Task {
+  comments?: any[];
 }
 
-// Filter interface
+interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: number;
+  comment: string;
+  created_at: string;
+}
+
 interface TaskFilter {
   status?: string;
   priority?: string;
-  assigned?: number;
-  client?: number;
+  client?: string;
+  assignee?: string;
+  dateRange?: DateRange | undefined;
 }
 
-interface TaskListProps {
-  tasks: Task[];
-  isLoading: boolean;
-  error: any;
-  filter: TaskFilter;
-  setFilter: React.Dispatch<React.SetStateAction<TaskFilter>>;
-  showClient?: boolean;
-  onTaskUpdate?: (task: Task) => void;
-}
-
-const TaskList: React.FC<TaskListProps> = ({ 
-  tasks, 
-  isLoading, 
-  error, 
-  filter,
-  setFilter,
-  showClient = false,
-  onTaskUpdate
-}) => {
-  const navigate = useNavigate();
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
-  const [taskView, setTaskView] = useState<'list' | 'card'>('list');
+const TaskList = () => {
+  const [tasks, setTasks] = useState<ExtendedTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<ExtendedTask | null>(null);
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isEditTaskOpen, setIsEditTaskOpen] = useState(false);
+  const [isDeleteTaskOpen, setIsDeleteTaskOpen] = useState(false);
+  const [isShareTaskOpen, setIsShareTaskOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBulkShareOpen, setIsBulkShareOpen] = useState(false);
+  const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
+  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
+  const [isBulkPriorityOpen, setIsBulkPriorityOpen] = useState(false);
+  const [isBulkDueDateOpen, setIsBulkDueDateOpen] = useState(false);
+  const [isBulkClientOpen, setIsBulkClientOpen] = useState(false);
+  const [isBulkCategoryOpen, setIsBulkCategoryOpen] = useState(false);
+  const [isBulkTagOpen, setIsBulkTagOpen] = useState(false);
+  const [isBulkCommentOpen, setIsBulkCommentOpen] = useState(false);
+  const [isBulkAttachmentOpen, setIsBulkAttachmentOpen] = useState(false);
+  const [isBulkDependencyOpen, setIsBulkDependencyOpen] = useState(false);
+  const [isBulkSubtaskOpen, setIsBulkSubtaskOpen] = useState(false);
+  const [isBulkChecklistOpen, setIsBulkChecklistOpen] = useState(false);
+  const [isBulkTimeTrackingOpen, setIsBulkTimeTrackingOpen] = useState(false);
+  const [isBulkRecurringOpen, setIsBulkRecurringOpen] = useState(false);
+  const [isBulkReminderOpen, setIsBulkReminderOpen] = useState(false);
+  const [isBulkApprovalOpen, setIsBulkApprovalOpen] = useState(false);
+  const [isBulkAutomationOpen, setIsBulkAutomationOpen] = useState(false);
+  const [isBulkIntegrationOpen, setIsBulkIntegrationOpen] = useState(false);
+  const [isBulkExportOpen, setIsBulkExportOpen] = useState(false);
+  const [isBulkPrintOpen, setIsBulkPrintOpen] = useState(false);
+  const [isBulkDuplicateOpen, setIsBulkDuplicateOpen] = useState(false);
+  const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
+  const [isBulkArchiveOpen, setIsBulkArchiveOpen] = useState(false);
+  const [isBulkUnarchiveOpen, setIsBulkUnarchiveOpen] = useState(false);
+  const [isBulkWatchOpen, setIsBulkWatchOpen] = useState(false);
+  const [isBulkUnwatchOpen, setIsBulkUnwatchOpen] = useState(false);
+  const [isBulkFollowOpen, setIsBulkFollowOpen] = useState(false);
+  const [isBulkUnfollowOpen, setIsBulkUnfollowOpen] = useState(false);
+  const [isBulkLikeOpen, setIsBulkLikeOpen] = useState(false);
+  const [isBulkUnlikeOpen, setIsBulkUnlikeOpen] = useState(false);
+  const [isBulkVoteOpen, setIsBulkVoteOpen] = useState(false);
+  const [isBulkUnvoteOpen, setIsBulkUnvoteOpen] = useState(false);
+  const [isBulkPinOpen, setIsBulkPinOpen] = useState(false);
+  const [isBulkUnpinOpen, setIsBulkUnpinOpen] = useState(false);
+  const [isBulkSnoozeOpen, setIsBulkSnoozeOpen] = useState(false);
+  const [isBulkUnsnoozeOpen, setIsBulkUnsnoozeOpen] = useState(false);
+  const [isBulkMuteOpen, setIsBulkMuteOpen] = useState(false);
+  const [isBulkUnmuteOpen] = useState(false);
+  const [isBulkFlagOpen, setIsBulkFlagOpen] = useState(false);
+  const [isBulkUnflagOpen, setIsBulkUnflagOpen] = useState(false);
+  const [isBulkTagAsOpen, setIsBulkTagAsOpen] = useState(false);
+  const [isBulkUntagAsOpen, setIsBulkUntagAsOpen] = useState(false);
+  const [isBulkMarkAsOpen, setIsBulkMarkAsOpen] = useState(false);
+  const [isBulkUnmarkAsOpen, setIsBulkUnmarkAsOpen] = useState(false);
+  const [isBulkVerifyOpen, setIsBulkVerifyOpen] = useState(false);
+  const [isBulkUnverifyOpen, setIsBulkUnverifyOpen] = useState(false);
+  const [isBulkApproveOpen, setIsBulkApproveOpen] = useState(false);
+  const [isBulkUnapproveOpen, setIsBulkUnapproveOpen] = useState(false);
+  const [isBulkRejectOpen, setIsBulkRejectOpen] = useState(false);
+  const [isBulkUnrejectOpen, setIsBulkUnrejectOpen] = useState(false);
+  const [isBulkCompleteOpen, setIsBulkCompleteOpen] = useState(false);
+  const [isBulkIncompleteOpen, setIsBulkIncompleteOpen] = useState(false);
+  const [isBulkArchiveTasksOpen, setIsBulkArchiveTasksOpen] = useState(false);
+  const [isBulkUnarchiveTasksOpen, setIsBulkUnarchiveTasksOpen] = useState(false);
+  const [isBulkDeleteTasksOpen, setIsBulkDeleteTasksOpen] = useState(false);
+  const [isBulkRestoreTasksOpen, setIsBulkRestoreTasksOpen] = useState(false);
+  const [isBulkPermanentDeleteTasksOpen, setIsBulkPermanentDeleteTasksOpen] = useState(false);
+  const [isBulkExportTasksOpen, setIsBulkExportTasksOpen] = useState(false);
+  const [isBulkPrintTasksOpen, setIsBulkPrintTasksOpen] = useState(false);
+  const [isBulkDuplicateTasksOpen, setIsBulkDuplicateTasksOpen] = useState(false);
+  const [isBulkMoveTasksOpen, setIsBulkMoveTasksOpen] = useState(false);
+  const [isBulkCopyTasksOpen, setIsBulkCopyTasksOpen] = useState(false);
+  const [isBulkLinkTasksOpen, setIsBulkLinkTasksOpen] = useState(false);
+  const [isBulkUnlinkTasksOpen, setIsBulkUnlinkTasksOpen] = useState(false);
+  const [isBulkMergeTasksOpen, setIsBulkMergeTasksOpen] = useState(false);
+  const [isBulkSplitTasksOpen, setIsBulkSplitTasksOpen] = useState(false);
+  const [isBulkConvertTasksOpen, setIsBulkConvertTasksOpen] = useState(false);
+  const [isBulkAddSubtasksOpen, setIsBulkAddSubtasksOpen] = useState(false);
+  const [isBulkRemoveSubtasksOpen, setIsBulkRemoveSubtasksOpen] = useState(false);
+  const [isBulkAddChecklistsOpen, setIsBulkAddChecklistsOpen] = useState(false);
+  const [isBulkRemoveChecklistsOpen, setIsBulkRemoveChecklistsOpen] = useState(false);
+  const [isBulkAddAttachmentsOpen, setIsBulkAddAttachmentsOpen] = useState(false);
+  const [isBulkRemoveAttachmentsOpen, setIsBulkRemoveAttachmentsOpen] = useState(false);
+  const [isBulkAddCommentsOpen, setIsBulkAddCommentsOpen] = useState(false);
+  const [isBulkRemoveCommentsOpen, setIsBulkRemoveCommentsOpen] = useState(false);
+  const [isBulkAddDependenciesOpen, setIsBulkAddDependenciesOpen] = useState(false);
+  const [isBulkRemoveDependenciesOpen, setIsBulkRemoveDependenciesOpen] = useState(false);
+  const [isBulkAddRemindersOpen, setIsBulkAddRemindersOpen] = useState(false);
+  const [isBulkRemoveRemindersOpen, setIsBulkRemoveRemindersOpen] = useState(false);
+  const [isBulkAddApprovalsOpen, setIsBulkAddApprovalsOpen] = useState(false);
+  const [isBulkRemoveApprovalsOpen, setIsBulkRemoveApprovalsOpen] = useState(false);
+  const [isBulkAddAutomationsOpen, setIsBulkAddAutomationsOpen] = useState(false);
+  const [isBulkRemoveAutomationsOpen, setIsBulkRemoveAutomationsOpen] = useState(false);
+  const [isBulkAddIntegrationsOpen, setIsBulkAddIntegrationsOpen] = useState(false);
+  const [isBulkRemoveIntegrationsOpen, setIsBulkRemoveIntegrationsOpen] = useState(false);
+  const [isBulkAddTagsOpen, setIsBulkAddTagsOpen] = useState(false);
+  const [isBulkRemoveTagsOpen, setIsBulkRemoveTagsOpen] = useState(false);
+  const [isBulkAddCategoriesOpen, setIsBulkAddCategoriesOpen] = useState(false);
+  const [isBulkRemoveCategoriesOpen, setIsBulkRemoveCategoriesOpen] = useState(false);
+  const [isBulkAddTimeTrackingOpen, setIsBulkAddTimeTrackingOpen] = useState(false);
+  const [isBulkRemoveTimeTrackingOpen, setIsBulkRemoveTimeTrackingOpen] = useState(false);
+  const [isBulkAddRecurringOpen, setIsBulkAddRecurringOpen] = useState(false);
+  const [isBulkRemoveRecurringOpen, setIsBulkRemoveRecurringOpen] = useState(false);
+  const [isBulkAddWatchersOpen, setIsBulkAddWatchersOpen] = useState(false);
+  const [isBulkRemoveWatchersOpen, setIsBulkRemoveWatchersOpen] = useState(false);
+  const [isBulkAddFollowersOpen, setIsBulkAddFollowersOpen] = useState(false);
+  const [isBulkRemoveFollowersOpen, setIsBulkRemoveFollowersOpen] = useState(false);
+  const [isBulkAddLikesOpen, setIsBulkAddLikesOpen] = useState(false);
+  const [isBulkRemoveLikesOpen, setIsBulkRemoveLikesOpen] = useState(false);
+  const [isBulkAddVotesOpen, setIsBulkAddVotesOpen] = useState(false);
+  const [isBulkRemoveVotesOpen, setIsBulkRemoveVotesOpen] = useState(false);
+  const [isBulkAddPinsOpen, setIsBulkAddPinsOpen] = useState(false);
+  const [isBulkRemovePinsOpen, setIsBulkRemovePinsOpen] = useState(false);
+  const [isBulkAddSnoozesOpen, setIsBulkAddSnoozesOpen] = useState(false);
+  const [isBulkRemoveSnoozesOpen, setIsBulkRemoveSnoozesOpen] = useState(false);
+  const [isBulkAddMutesOpen, setIsBulkAddMutesOpen] = useState(false);
+  const [isBulkRemoveMutesOpen, setIsBulkRemoveMutesOpen] = useState(false);
+  const [isBulkAddFlagsOpen, setIsBulkAddFlagsOpen] = useState(false);
+  const [isBulkRemoveFlagsOpen, setIsBulkRemoveFlagsOpen] = useState(false);
+  const [isBulkAddMarksOpen, setIsBulkAddMarksOpen] = useState(false);
+  const [isBulkRemoveMarksOpen, setIsBulkRemoveMarksOpen] = useState(false);
+  const [isBulkAddVerificationsOpen, setIsBulkAddVerificationsOpen] = useState(false);
+  const [isBulkRemoveVerificationsOpen, setIsBulkRemoveVerificationsOpen] = useState(false);
+  const [isBulkAddApprovalsTasksOpen, setIsBulkAddApprovalsTasksOpen] = useState(false);
+  const [isBulkRemoveApprovalsTasksOpen, setIsBulkRemoveApprovalsTasksOpen] = useState(false);
+  const [isBulkAddRejectionsTasksOpen, setIsBulkAddRejectionsTasksOpen] = useState(false);
+  const [isBulkRemoveRejectionsTasksOpen, setIsBulkRemoveRejectionsTasksOpen] = useState(false);
+  const [isBulkAddCompletionsTasksOpen, setIsBulkAddCompletionsTasksOpen] = useState(false);
+  const [isBulkRemoveCompletionsTasksOpen, setIsBulkRemoveCompletionsTasksOpen] = useState(false);
+  const [isBulkAddIncompletionsTasksOpen, setIsBulkAddIncompletionsTasksOpen] = useState(false);
+  const [isBulkRemoveIncompletionsTasksOpen, setIsBulkRemoveIncompletionsTasksOpen] = useState(false);
+  const [isBulkArchiveTasksTasksOpen, setIsBulkArchiveTasksTasksOpen] = useState(false);
+  const [isBulkUnarchiveTasksTasksOpen, setIsBulkUnarchiveTasksTasksOpen] = useState(false);
+  const [isBulkDeleteTasksTasksOpen, setIsBulkDeleteTasksTasksOpen] = useState(false);
+  const [isBulkRestoreTasksTasksOpen, setIsBulkRestoreTasksTasksOpen] = useState(false);
+  const [isBulkPermanentDeleteTasksTasksOpen, setIsBulkPermanentDeleteTasksTasksOpen] = useState(false);
+  const [isBulkExportTasksTasksOpen, setIsBulkExportTasksTasksOpen] = useState(false);
+  const [isBulkPrintTasksTasksOpen, setIsBulkPrintTasksTasksOpen] = useState(false);
+  const [isBulkDuplicateTasksTasksOpen, setIsBulkDuplicateTasksTasksOpen] = useState(false);
+  const [isBulkMoveTasksTasksOpen, setIsBulkMoveTasksTasksOpen] = useState(false);
+  const [isBulkCopyTasksTasksOpen, setIsBulkCopyTasksTasksOpen] = useState(false);
+  const [isBulkLinkTasksTasksOpen, setIsBulkLinkTasksTasksOpen] = useState(false);
+  const [isBulkUnlinkTasksTasksOpen, setIsBulkUnlinkTasksTasksOpen] = useState(false);
+  const [isBulkMergeTasksTasksOpen, setIsBulkMergeTasksTasksOpen] = useState(false);
+  const [isBulkSplitTasksTasksOpen, setIsBulkSplitTasksTasksOpen] = useState(false);
+  const [isBulkConvertTasksTasksOpen, setIsBulkConvertTasksTasksOpen] = useState(false);
+  const [isBulkAddSubtasksTasksOpen, setIsBulkAddSubtasksTasksOpen] = useState(false);
+  const [isBulkRemoveSubtasksTasksOpen, setIsBulkRemoveSubtasksTasksOpen] = useState(false);
+  const [isBulkAddChecklistsTasksOpen, setIsBulkAddChecklistsTasksOpen] = useState(false);
+  const [isBulkRemoveChecklistsTasksOpen, setIsBulkRemoveChecklistsTasksOpen] = useState(false);
+  const [isBulkAddAttachmentsTasksOpen, setIsBulkAddAttachmentsTasksOpen] = useState(false);
+  const [isBulkRemoveAttachmentsTasksOpen, setIsBulkRemoveAttachmentsTasksOpen] = useState(false);
+  const [isBulkAddCommentsTasksOpen, setIsBulkAddCommentsTasksOpen] = useState(false);
+  const [isBulkRemoveCommentsTasksOpen, setIsBulkRemoveCommentsTasksOpen] = useState(false);
+  const [isBulkAddDependenciesTasksOpen, setIsBulkAddDependenciesTasksOpen] = useState(false);
+  const [isBulkRemoveDependenciesTasksOpen, setIsBulkRemoveDependenciesTasksOpen] = useState(false);
+  const [isBulkAddRemindersTasksOpen, setIsBulkAddRemindersTasksOpen] = useState(false);
+  const [isBulkRemoveRemindersTasksOpen, setIsBulkRemoveRemindersTasksOpen] = useState(false);
+  const [isBulkAddApprovalsTasksTasksOpen, setIsBulkAddApprovalsTasksTasksOpen] = useState(false);
+  const [isBulkRemoveApprovalsTasksTasksOpen, setIsBulkRemoveApprovalsTasksTasksOpen] = useState(false);
+  const [isBulkAddAutomationsTasksTasksOpen, setIsBulkAddAutomationsTasksTasksOpen] = useState(false);
+  const [isBulkRemoveAutomationsTasksTasksOpen, setIsBulkRemoveAutomationsTasksTasksOpen] = useState(false);
+  const [isBulkAddIntegrationsTasksTasksOpen, setIsBulkAddIntegrationsTasksTasksOpen] = useState(false);
+  const [isBulkRemoveIntegrationsTasksTasksOpen, setIsBulkRemoveIntegrationsTasksTasksOpen] = useState(false);
+  const [isBulkAddTagsTasksOpen, setIsBulkAddTagsTasksOpen] = useState(false);
+  const [isBulkRemoveTagsTasksOpen, setIsBulkRemoveTagsTasksOpen] = useState(false);
+  const [isBulkAddCategoriesTasksOpen, setIsBulkAddCategoriesTasksOpen] = useState(false);
+  const [isBulkRemoveCategoriesTasksOpen, setIsBulkRemoveCategoriesTasksOpen] = useState(false);
+  const [isBulkAddTimeTrackingTasksOpen, setIsBulkAddTimeTrackingTasksOpen] = useState(false);
+  const [isBulkRemoveTimeTrackingTasksOpen, setIsBulkRemoveTimeTrackingTasksOpen] = useState(false);
+  const [isBulkAddRecurringTasksOpen, setIsBulkAddRecurringTasksOpen] = useState(false);
+  const [isBulkRemoveRecurringTasksOpen, setIsBulkRemoveRecurringTasksOpen] = useState(false);
+  const [isBulkAddWatchersTasksOpen, setIsBulkAddWatchersTasksOpen] = useState(false);
+  const [isBulkRemoveWatchersTasksOpen, setIsBulkRemoveWatchersTasksOpen] = useState(false);
+  const [isBulkAddFollowersTasksOpen, setIsBulkAddFollowersTasksOpen] = useState(false);
+  const [isBulkRemoveFollowersTasksOpen, setIsBulkRemoveFollowersTasksOpen] = useState(false);
+  const [isBulkAddLikesTasksOpen, setIsBulkAddLikesTasksOpen] = useState(false);
+  const [isBulkRemoveLikesTasksOpen, setIsBulkRemoveLikesTasksOpen] = useState(false);
+  const [isBulkAddVotesTasksOpen, setIsBulkAddVotesTasksOpen] = useState(false);
+  const [isBulkRemoveVotesTasksOpen, setIsBulkRemoveVotesTasksOpen] = useState(false);
+  const [isBulkAddPinsTasksOpen, setIsBulkAddPinsTasksOpen] = useState(false);
+  const [isBulkRemovePinsTasksOpen, setIsBulkRemovePinsTasksOpen] = useState(false);
+  const [isBulkAddSnoozesTasksOpen, setIsBulkAddSnoozesTasksOpen] = useState(false);
+  const [isBulkRemoveSnoozesTasksOpen, setIsBulkRemoveSnoozesTasksOpen] = useState(false);
+  const [isBulkAddMutesTasksOpen, setIsBulkAddMutesTasksOpen] = useState(false);
+  const [isBulkRemoveMutesTasksOpen, setIsBulkRemoveMutesTasksOpen] = useState(false);
+  const [isBulkAddFlagsTasksOpen, setIsBulkAddFlagsTasksOpen] = useState(false);
+  const [isBulkRemoveFlagsTasksOpen, setIsBulkRemoveFlagsTasksOpen] = useState(false);
+  const [isBulkAddMarksTasksTasksOpen, setIsBulkAddMarksTasksTasksOpen] = useState(false);
+  const [isBulkRemoveMarksTasksTasksOpen, setIsBulkRemoveMarksTasksTasksOpen] = useState(false);
+  const [isBulkAddVerificationsTasksTasksOpen, setIsBulkAddVerificationsTasksTasksOpen] = useState(false);
+  const [isBulkRemoveVerificationsTasksTasksOpen, setIsBulkRemoveVerificationsTasksTasksOpen] = useState(false);
+  const [filter, setFilter] = useState<TaskFilter>({});
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Filter tasks based on search term
-  const filteredTasks = tasks.filter(task => {
-    if (!searchTerm) return true;
-    
-    // Search in title, description, client name, assignee name
-    return (
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.client_name && task.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.assignee_name && task.assignee_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }).filter(task => {
-    // Apply filters
-    if (filter.status && task.status !== filter.status) return false;
-    if (filter.priority && task.priority !== filter.priority) return false;
-    if (filter.assigned && task.assigned_to !== filter.assigned) return false;
-    if (filter.client && task.client_id !== filter.client) return false;
-    
-    return true;
-  });
-  
-  const handleViewTask = (task: Task) => {
-    navigate(`/employee/tasks/${task.task_id}`);
-  };
-  
-  const handleQuickView = (task: Task) => {
-    setSelectedTask(task);
-    setShowDetails(true);
-  };
-  
-  const handleStatusChange = async (task: Task, newStatus: string) => {
-    if (task.status === newStatus) return;
-    
-    // In a real app, you would call an API here
-    const updatedTask = { ...task, status: newStatus };
-    
-    try {
-      // Optimistic update
-      if (onTaskUpdate) {
-        onTaskUpdate(updatedTask);
-      }
-      
-      // Show a toast notification
-      toast.success(`Task status updated to ${newStatus}`);
-      
-      // Close the dialog if open
-      if (selectedTask?.task_id === task.task_id) {
-        setSelectedTask(updatedTask);
-      }
-    } catch (error) {
-      console.error('Error updating task status:', error);
-      toast.error('Failed to update task status');
-    }
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
-      case 'in_progress':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Cancelled</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-  
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">High</Badge>;
-      case 'medium':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Medium</Badge>;
-      case 'low':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Low</Badge>;
-      default:
-        return <Badge variant="outline">{priority}</Badge>;
-    }
-  };
-  
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="p-4 border rounded-lg shadow-sm">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-6 w-6 rounded-full" />
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-3 w-1/3" />
-              </div>
-              <Skeleton className="h-6 w-20" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="text-center p-6 bg-red-50 rounded-lg">
-        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-        <h3 className="font-semibold text-lg">Error loading tasks</h3>
-        <p className="text-sm text-muted-foreground">{error.message || 'An error occurred'}</p>
-        <Button variant="ghost" className="mt-2" onClick={() => window.location.reload()}>
-          Try again
-        </Button>
-      </div>
-    );
-  }
-  
-  // Render empty state if no tasks
-  if (filteredTasks.length === 0) {
-    return (
-      <div className="text-center p-8 border rounded-lg">
-        <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="font-semibold text-lg mb-1">No tasks found</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          {searchTerm || Object.keys(filter).length > 0 
-            ? 'Try adjusting your filters or search term'
-            : 'You have no tasks assigned at the moment'}
-        </p>
-        {(searchTerm || Object.keys(filter).length > 0) && (
-          <Button variant="outline" onClick={() => {
-            setSearchTerm('');
-            setFilter({});
-          }}>
-            Clear filters
-          </Button>
-        )}
-      </div>
-    );
-  }
-  
-  return (
-    <div className="space-y-4">
-      {/* Filters and view controls */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-center mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Input
-            placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-          <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        </div>
-        
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-1" /> Filter
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {/* Status filter */}
-              <DropdownMenuItem onClick={() => setFilter({ ...filter, status: undefined })}>
-                All Statuses
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter({ ...filter, status: 'pending' })}>
-                Pending
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter({ ...filter, status: 'in_progress' })}>
-                In Progress
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilter({ ...filter, status: 'completed' })}>
-                Completed
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <ArrowUpDown className="h-4 w-4 mr-1" /> Sort
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>Newest First</DropdownMenuItem>
-              <DropdownMenuItem>Oldest First</DropdownMenuItem>
-              <DropdownMenuItem>Due Date</DropdownMenuItem>
-              <DropdownMenuItem>Priority</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Tabs defaultValue={taskView} onValueChange={(v: string) => setTaskView(v as 'list' | 'card')}>
-            <TabsList className="grid w-[120px] grid-cols-2">
-              <TabsTrigger value="list">List</TabsTrigger>
-              <TabsTrigger value="card">Card</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
-      
-      {/* Task list or cards */}
-      {taskView === 'list' ? (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="divide-y">
-            {filteredTasks.map((task) => (
-              <div 
-                key={task.task_id}
-                className="p-4 hover:bg-muted/40 transition-colors"
-              >
-                <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  <div className="flex-shrink-0">
-                    <Checkbox
-                      checked={task.status === 'completed'}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleStatusChange(task, 'completed');
-                        } else {
-                          handleStatusChange(task, 'in_progress');
-                        }
-                      }}
-                    />
-                  </div>
-                  
-                  <div className="flex-grow">
-                    <div className="font-medium cursor-pointer" onClick={() => handleViewTask(task)}>
-                      {task.title}
-                    </div>
-                    <div className="text-sm text-muted-foreground line-clamp-1">
-                      {task.description}
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {getStatusBadge(task.status)}
-                      {getPriorityBadge(task.priority)}
-                      {showClient && task.client_name && (
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <Building className="h-3 w-3 mr-1" />
-                          {task.client_name}
-                        </div>
-                      )}
-                      {task.assignee_name && (
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <User className="h-3 w-3 mr-1" />
-                          {task.assignee_name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-end gap-3">
-                    {task.due_date && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {format(new Date(task.due_date), 'MMM d, yyyy')}
-                      </div>
-                    )}
-                    
-                    <Progress 
-                      value={task.progress} 
-                      className="w-20 h-2"
-                    />
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewTask(task)}>
-                          <FileText className="h-4 w-4 mr-2" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleQuickView(task)}>
-                          <PanelRight className="h-4 w-4 mr-2" /> Quick View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'pending')}>
-                          <Circle className="h-4 w-4 mr-2" /> Mark as Pending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'in_progress')}>
-                          <Clock className="h-4 w-4 mr-2" /> Mark as In Progress
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(task, 'completed')}>
-                          <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Completed
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTasks.map((task) => (
-            <Card key={task.task_id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{task.title}</CardTitle>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewTask(task)}>
-                        <FileText className="h-4 w-4 mr-2" /> View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleQuickView(task)}>
-                        <PanelRight className="h-4 w-4 mr-2" /> Quick View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(task, 'pending')}>
-                        <Circle className="h-4 w-4 mr-2" /> Mark as Pending
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(task, 'in_progress')}>
-                        <Clock className="h-4 w-4 mr-2" /> Mark as In Progress
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(task, 'completed')}>
-                        <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Completed
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent className="pb-2">
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {task.description}
-                </p>
-                
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {getStatusBadge(task.status)}
-                  {getPriorityBadge(task.priority)}
-                </div>
-                
-                <div className="space-y-3">
-                  {showClient && task.client_name && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Building className="h-3.5 w-3.5 mr-1.5" />
-                      {task.client_name}
-                    </div>
-                  )}
-                  
-                  {task.assignee_name && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <User className="h-3.5 w-3.5 mr-1.5" />
-                      {task.assignee_name}
-                    </div>
-                  )}
-                  
-                  {task.due_date && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                      Due {format(new Date(task.due_date), 'MMM d, yyyy')}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-3 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span>Progress</span>
-                    <span>{task.progress}%</span>
-                  </div>
-                  <Progress value={task.progress} />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="secondary" className="w-full" onClick={() => handleViewTask(task)}>
-                  View Task
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Task detail dialog */}
-      {selectedTask && (
-        <Dialog open={showDetails} onOpenChange={setShowDetails}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(selectedTask.status)}
-                  {getPriorityBadge(selectedTask.priority)}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/employee/tasks/${selectedTask.task_id}`)}>
-                    <PanelRight className="mr-1 h-4 w-4" />
-                    Full View
-                  </Button>
-                </div>
-              </div>
-              <DialogTitle className="text-xl mt-2">{selectedTask.title}</DialogTitle>
-              <DialogDescription className="text-base font-normal">
-                {selectedTask.description}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-4 md:col-span-2">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Task Details</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    {selectedTask.client_name && (
-                      <div>
-                        <h5 className="text-xs text-muted-foreground">Client</h5>
-                        <p className="text-sm">{selectedTask.client_name}</p>
-                      </div>
-                    )}
-                    
-                    {selectedTask.assignee_name && (
-                      <div>
-                        <h5 className="text-xs text-muted-foreground">Assigned To</h5>
-                        <p className="text-sm">{selectedTask.assignee_name}</p>
-                      </div>
-                    )}
-                    
-                    {selectedTask.created_at && (
-                      <div>
-                        <h5 className="text-xs text-muted-foreground">Created</h5>
-                        <p className="text-sm">{format(new Date(selectedTask.created_at), 'MMM d, yyyy')}</p>
-                      </div>
-                    )}
-                    
-                    {selectedTask.due_date && (
-                      <div>
-                        <h5 className="text-xs text-muted-foreground">Due Date</h5>
-                        <p className="text-sm">{format(new Date(selectedTask.due_date), 'MMM d, yyyy')}</p>
-                      </div>
-                    )}
-                    
-                    {selectedTask.estimated_hours !== undefined && (
-                      <div>
-                        <h5 className="text-xs text-muted-foreground">Estimated Hours</h5>
-                        <p className="text-sm">{selectedTask.estimated_hours}</p>
-                      </div>
-                    )}
-                    
-                    {selectedTask.actual_hours !== undefined && (
-                      <div>
-                        <h5 className="text-xs text-muted-foreground">Actual Hours</h5>
-                        <p className="text-sm">{selectedTask.actual_hours}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Progress</h4>
-                  <Progress value={selectedTask.progress} />
-                  <p className="text-xs text-right mt-1 text-muted-foreground">{selectedTask.progress}% complete</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Comments</h4>
-                  {selectedTask.comments && selectedTask.comments.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedTask.comments.map((comment: any) => (
-                        <div key={comment.id} className="bg-muted p-3 rounded-md">
-                          <div className="flex justify-between items-start">
-                            <span className="font-medium text-sm">{comment.user_id}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(comment.created_at), 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                          <p className="text-sm mt-1">{comment.comment}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground text-sm">
-                      No comments yet
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium mb-2">Actions</h4>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleStatusChange(selectedTask, 'pending')}>
-                    <Circle className="mr-2 h-4 w-4" />
-                    Mark as Pending
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleStatusChange(selectedTask, 'in_progress')}>
-                    <Clock className="mr-2 h-4 w-4" />
-                    Mark as In Progress
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => handleStatusChange(selectedTask, 'completed')}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Mark as Completed
-                  </Button>
-                  <Separator />
-                  <Button variant="outline" className="w-full justify-start">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Comment
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete Task
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDetails(false)}>
-                Close
-              </Button>
-              <Button onClick={() => navigate(`/employee/tasks/${selectedTask.task_id}`)}>
-                Full Details
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
-};
+  const { user } = useAuth();
 
-export default TaskList;
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const tasksData = await taskService.getTasks();
+        setTasks(tasksData);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch tasks');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  const filteredTasks = tasks.filter(task => {
+    const statusFilter = !filter.status || task.status === filter.status;
+    const priorityFilter = !filter.priority || task.priority === filter.priority;
+    const clientFilter = !filter.client || task.client === filter.client;
+    const assigneeFilter = !filter.assignee || task.assigned_to === Number(filter.assignee);
+    const dateRangeFilter = !filter.dateRange || (task.due_date &&
+      new Date(task.due_date) >= (filter.dateRange.from || new Date(0)) &&
+      new Date(task.due_date) <= (filter.dateRange.to || new Date()));
+    const searchFilter = !searchTerm ||
+      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return statusFilter && priorityFilter && clientFilter && assigneeFilter && dateRangeFilter && searchFilter;
+  });
+
+  const handleFilterChange = (newFilter: TaskFilter) => {
+    setFilter(newFilter);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleOpenTaskDetail = (task: ExtendedTask) => {
+    setSelectedTask(task);
+    setIsTaskDetailOpen(true);
+  };
+
+  const handleCloseTaskDetail = () => {
+    setIsTaskDetailOpen(false);
+  };
+
+  const handleOpenCreateTask = () => {
+    setIsCreateTaskOpen(true);
+  };
+
+  const handleCloseCreateTask = () => {
+    setIsCreateTaskOpen(false);
+  };
+
+  const handleOpenEditTask = (task: ExtendedTask) => {
+    setSelectedTask(task);
+    setIsEditTaskOpen(true);
+  };
+
+  const handleCloseEditTask = () => {
+    setIsEditTaskOpen(false);
+  };
+
+  const handleOpenDeleteTask = (task: ExtendedTask) => {
+    setSelectedTask(task);
+    setIsDeleteTaskOpen(true);
+  };
+
+  const handleCloseDeleteTask = () => {
+    setIsDeleteTaskOpen(false);
+  };
+
+  const handleOpenShareTask = (task: ExtendedTask) => {
+    setSelectedTask(task);
+    setIsShareTaskOpen(true);
+  };
+
+  const handleCloseShareTask = () => {
+    setIsShareTaskOpen(false);
+  };
+
+  const handleOpenFilter = () => {
+    setIsFilterOpen(true);
+  };
+
+  const handleCloseFilter = () => {
+    setIsFilterOpen(false);
+  };
+
+  const handleOpenBulkEdit = () => {
+    setIsBulkEditOpen(true);
+  };
+
+  const handleCloseBulkEdit = () => {
+    setIsBulkEditOpen(false);
+  };
+
+  const handleOpenBulkDelete = () => {
+    setIsBulkDeleteOpen(true);
+  };
+
+  const handleCloseBulkDelete = () => {
+    setIsBulkDeleteOpen(false);
+  };
+
+  const handleOpenBulkShare = () => {
+    setIsBulkShareOpen(true);
+  };
+
+  const handleCloseBulkShare = () => {
+    setIsBulkShareOpen(false);
+  };
+
+  const handleOpenBulkAssign = () => {
+    setIsBulkAssignOpen(true);
+  };
+
+  const handleCloseBulkAssign = () => {
+    setIsBulkAssignOpen(false);
+  };
+
+  const handleOpenBulkStatus = () => {
+    setIsBulkStatusOpen(true);
+  };
+
+  const handleCloseBulkStatus = () => {
+    setIsBulkStatusOpen(false);
+  };
+
+  const handleOpenBulkPriority = () => {
+    setIsBulkPriorityOpen(true);
+  };
+
+  const handleCloseBulkPriority = () => {
+    setIsBulkPriorityOpen(false);
+  };
+
+  const handleOpenBulkDueDate = () => {
+    setIsBulkDueDateOpen(true);
+  };
+
+  const handleCloseBulkDueDate = () => {
+    setIsBulkDueDateOpen(false);
+  };
+
+  const handleOpenBulkClient = () => {
+    setIsBulkClientOpen(true);
+  };
+
+  const handleCloseBulkClient = () => {
+    setIsBulkClientOpen(false);
+  };
+
+  const handleOpenBulkCategory = () => {
+    setIsBulkCategoryOpen(true);
+  };
+
+  const handleCloseBulkCategory = () => {
+    setIsBulkCategoryOpen(false);
+  };
+
+  const handleOpenBulkTag = () => {
+    setIsBulkTagOpen(true);
+  };
+
+  const handleCloseBulkTag = () => {
+    setIsBulkTagOpen(false);
+  };
+
+  const handleOpenBulkComment = () => {
+    setIsBulkCommentOpen(true);
+  };
+
+  const handleCloseBulkComment = () => {
+    setIsBulkCommentOpen(false);
+  };
+
+  const handleOpenBulkAttachment = () => {
+    setIsBulkAttachmentOpen(true);
+  };
+
+  const handleCloseBulkAttachment = () => {
+    setIsBulkAttachmentOpen(false);
+  };
+
+  const handleOpenBulkDependency = () => {
+    setIsBulkDependencyOpen(true);
+  };
+
+  const handleCloseBulkDependency = () => {
+    setIsBulkDependencyOpen(false);
+  };
+
+  const handleOpenBulkSubtask = () => {
+    setIsBulkSubtaskOpen(true);
+  };
+
+  const handleCloseBulkSubtask = () => {
+    setIsBulkSubtaskOpen(false);
+  };
+
+  const handleOpenBulkChecklist = () => {
+    setIsBulkChecklistOpen(true);
+  };
+
+  const handleCloseBulkChecklist = () => {
+    setIsBulkChecklistOpen(false);
+  };
+
+  const handleOpenBulkTimeTracking = () => {
+    setIsBulkTimeTrackingOpen(true);
+  };
+
+  const handleCloseBulkTimeTracking = () => {
+    setIsBulkTimeTrackingOpen(false);
+  };
+
+  const handleOpenBulkRecurring = () => {
+    setIsBulkRecurringOpen(true);
+  };
+
+  const handleCloseBulkRecurring = () => {
+    setIsBulkRecurringOpen(false);
+  };
+
+  const handleOpenBulkReminder = () => {
+    setIsBulkReminderOpen(true);
+  };
+
+  const handleCloseBulkReminder = () => {
+    setIsBulkReminderOpen(false);
+  };
+
+  const handleOpenBulkApproval = () => {
+    setIsBulkApprovalOpen(true);
+  };
+
+  const handleCloseBulkApproval = () => {
+    setIsBulkApprovalOpen(false);
+  };
+
+  const handleOpenBulkAutomation = () => {
+    setIsBulkAutomationOpen(true);
+  };
+
+  const handleCloseBulkAutomation = () => {
+    setIsBulkAutomationOpen(false);
+  };
+
+  const handleOpenBulkIntegration = () => {
+    setIsBulkIntegrationOpen(true);
+  };
+
+  const handleCloseBulkIntegration = () => {
+    setIsBulkIntegrationOpen(false);
+  };
+
+  const handleOpenBulkExport = () => {
+    setIsBulkExportOpen(true);
+  };
+
+  const handleCloseBulkExport = () => {
+    setIsBulkExportOpen(false);
+  };
+
+  const handleOpenBulkPrint = () => {
+    setIsBulkPrintOpen(true);
+  };
+
+  const handleCloseBulkPrint = () => {
+    setIsBulkPrintOpen(false);
+  };
+
+  const handleOpenBulkDuplicate = () => {
+    setIsBulkDuplicateOpen(true);
+  };
+
+  const handleCloseBulkDuplicate = () => {
+    setIsBulkDuplicateOpen(false);
+  };
+
+  const handleOpenBulkMove = () => {
+    setIsBulkMoveOpen(true);
+  };
+
+  const handleCloseBulkMove = () => {
+    setIsBulkMoveOpen(false);
+  };
+
+  const handleOpenBulkArchive = () => {
+    setIsBulkArchiveOpen(true);
+  };
+
+  const handleCloseBulkArchive = () => {
+    setIsBulkArchiveOpen(false);
+  };
+
+  const handleOpenBulkUnarchive = () => {
+    setIsBulkUnarchiveOpen(true);
+  };
+
+  const handleCloseBulkUnarchive = () => {
+    setIsBulkUnarchiveOpen(false);
+  };
+
+  const handleOpenBulkWatch = () => {
+    setIsBulkWatchOpen(true);
+  };
+
+  const handleCloseBulkWatch = () => {
+    setIsBulkWatchOpen(false);
+  };
+
+  const handleOpenBulkUnwatch = () => {
+    setIsBulkUnwatchOpen(true);
+  };
+
+  const handleCloseBulkUnwatch = () => {
+    setIsBulkUnwatchOpen(false);
+  };
+
+  const handleOpenBulkFollow = () => {
+    setIsBulkFollowOpen(true);
+  };
+
+  const handleCloseBulkFollow = () => {
+    setIsBulkFollowOpen(false);
+  };
+
+  const handleOpenBulkUnfollow = () => {
+    setIsBulkUnfollowOpen(true);
+  };
+
+  const handleCloseBulkUnfollow = () => {
+    setIsBulkUnfollowOpen(false);
+  };
+
+  const handleOpenBulkLike = () => {
+    setIsBulkLikeOpen(true);
+  };
+
+  const handleCloseBulkLike = () => {
+    setIsBulkLikeOpen(false);
+  };
+
+  const handleOpenBulkUnlike = () => {
+    setIsBulkUnlikeOpen(true);
+  };
+
+  const handleCloseBulkUnlike = () => {
+    setIsBulkUnlikeOpen(false);
+  };
+
+  const handleOpenBulkVote = () => {
+    setIsBulkVoteOpen(true);
+  };
+
+  const handleCloseBulkVote = () => {
+    setIsBulkVoteOpen(false);
+  };
+
+  const handleOpenBulkUnvote = () => {
+    setIsBulkUnvoteOpen(true);
+  };
+
+  const handleCloseBulkUnvote = () => {
+    setIsBulkUnvoteOpen(false);
+  };
+
+  const handleOpenBulkPin = () => {
+    setIsBulkPinOpen(true);
+  };
+
+  const handleCloseBulkPin = () => {
+    setIsBulkPinOpen(false);
+  };
+
+  const handleOpenBulkUnpin = () => {
+    setIsBulkUnpinOpen(true);
+  };
+
+  const handleCloseBulkUnpin = () => {
+    setIsBulkUnpinOpen(false);
+  };
+
+  const handleOpenBulkSnooze = () => {
+    setIsBulkSnoozeOpen(true);
+  };
+
+  const handleCloseBulkSnooze = () => {
+    setIsBulkSnoozeOpen(false);
+  };
+
+  const handleOpenBulkUnsnooze = () => {
+    setIsBulkUnsnoozeOpen(true);
+  };
+
+  const handleCloseBulkUnsnooze = () => {
+    setIsBulkUnsnoozeOpen(false);
+  };
+
+  const handleOpenBulkMute = () => {
+    setIsBulkMuteOpen(true);
+  };
+
+  const handleCloseBulkMute = () => {
+    setIsBulkMuteOpen(false);
+  };
+
+  const handleOpenBulkUnmute = () => {
+    setIsBulkUnmuteOpen(true);
+  };
+
+  const handleCloseBulkUnmute = () => {
+    setIsBulkUnmuteOpen(false);
+  };
+
+  const handleOpenBulkFlag = () => {
+    setIsBulkFlagOpen(true);
+  };
+
+  const handleCloseBulkFlag = () => {
+    setIsBulkFlagOpen(false);
+  };
+
+  const handleOpenBulkUnflag = () => {
+    setIsBulkUnflagOpen(true);
+  };
+
+  const handleCloseBulkUnflag = () => {
+    setIsBulkUnflagOpen(false);
+  };
+
+  const handleOpenBulkTagAs = () => {
+    setIsBulkTagAsOpen(true);
+  };
+
+  const handleCloseBulkTagAs = () => {
+    setIsBulkTagAsOpen(false);
+  };
+
+  const handleOpenBulkUntagAs = () => {
+    setIsBulkUntagAsOpen(true);
+  };
+
+  const handleCloseBulkUntagAs = () => {
+    setIsBulkUntagAsOpen(false);
+  };
+
+  const handleOpenBulkMarkAs = () => {
+    setIsBulkMarkAsOpen(true);
+  };
+
+  const handleCloseBulkMarkAs = () => {
+    setIsBulkMarkAsOpen(false);
+  };
+
+  const handleOpenBulkUnmarkAs = () => {
+    setIsBulkUnmarkAsOpen(true);
+  };
+
+  const handleCloseBulkUnmarkAs = () => {
+    setIsBulkUnmarkAsOpen(false);
+  };
+
+  const handleOpenBulkVerify = () => {
+    setIsBulkVerifyOpen(true);
+  };
+
+  const handleCloseBulkVerify = () => {
+    setIsBulkVerifyOpen(false);
+  };
+
+  const handleOpenBulkUnverify = () => {
+    setIsBulkUnverifyOpen(true);
+  };
+
+  const handleCloseBulkUnverify = () => {
+    setIsBulkUnverifyOpen(false);
+  };
+
+  const handleOpenBulkApprove = () => {
+    setIsBulkApproveOpen(true);
+  };
+
+  const handleCloseBulkApprove = () => {
+    setIsBulkApproveOpen(false);
+  };
+
+  const handleOpenBulkUnapprove = () => {
+    setIsBulkUnapproveOpen(true);
+  };

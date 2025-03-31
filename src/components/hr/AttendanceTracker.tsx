@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,14 +19,13 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ userId }) => {
   const [currentAttendance, setCurrentAttendance] = useState<Attendance | null>(null);
   const [workStartTime, setWorkStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<string>("00:00:00");
-  
-  // Fetch today's attendance record
+  const [actionInProgress, setActionInProgress] = useState<boolean>(false);
+
   const { data: todayAttendance, refetch: refetchAttendance } = useQuery({
     queryKey: ['today-attendance', userId],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      // Use the Supabase client directly for this specific query
       const { data, error } = await supabase
         .from('employee_attendance')
         .select('*')
@@ -40,8 +38,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ userId }) => {
     },
     enabled: !!userId,
   });
-  
-  // Update state based on today's attendance
+
   useEffect(() => {
     if (todayAttendance) {
       setCurrentAttendance(todayAttendance);
@@ -59,8 +56,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ userId }) => {
       setCurrentAttendance(null);
     }
   }, [todayAttendance]);
-  
-  // Calculate elapsed time when working
+
   useEffect(() => {
     let intervalId: number;
     
@@ -83,35 +79,34 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ userId }) => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [isWorking, workStartTime]);
-  
+
   const handleStartWork = async () => {
     try {
       await hrServiceSupabase.startWork(userId);
       toast.success("Work started successfully");
       refetchAttendance();
-      // Invalidate the employee-attendance query to refresh dashboard
       queryClient.invalidateQueries({ queryKey: ['employee-attendance-supabase'] });
     } catch (error) {
       console.error("Error starting work:", error);
       toast.error("Failed to start work");
     }
   };
-  
-  const handleStopWork = async () => {
-    if (!currentAttendance) return;
-    
+
+  const handleStopWork = async (attendanceId: number) => {
     try {
-      await hrServiceSupabase.stopWork(userId, currentAttendance.attendance_id);
-      toast.success("Work stopped successfully");
-      refetchAttendance();
-      // Invalidate the employee-attendance query to refresh dashboard
-      queryClient.invalidateQueries({ queryKey: ['employee-attendance-supabase'] });
+      setActionInProgress(true);
+      await hrServiceSupabase.stopWork(attendanceId);
+      
+      fetchAttendance();
+      toast.success('Work session ended successfully');
     } catch (error) {
-      console.error("Error stopping work:", error);
-      toast.error("Failed to stop work");
+      console.error('Error stopping work:', error);
+      toast.error('Failed to end work session');
+    } finally {
+      setActionInProgress(false);
     }
   };
-  
+
   return (
     <Card>
       <CardHeader className="pb-3">

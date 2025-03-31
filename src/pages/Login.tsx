@@ -1,25 +1,46 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/use-auth';
 import AuthForm from '@/components/auth/AuthForm';
-import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      await login(email, password);
+      toast.success('Successfully logged in!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error?.message || 'Failed to login. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-5xl flex flex-col lg:flex-row shadow-lg rounded-lg overflow-hidden">
-        <div className="lg:w-1/2 bg-primary p-12 text-white flex flex-col justify-center">
-          <h1 className="text-3xl font-bold mb-4">Welcome Back!</h1>
-          <p className="mb-6">Log in to access your dashboard, manage your tasks, and collaborate with your team.</p>
-          <div className="mt-auto">
-            <p className="text-sm opacity-80">Powered by HyperFlow AI</p>
-          </div>
-        </div>
-        
-        <div className="lg:w-1/2 p-12 bg-card flex items-center justify-center">
-          <AuthForm mode="login" />
-        </div>
-      </div>
-    </div>
+    <AuthForm
+      type="login"
+      onSubmit={handleLogin}
+      isLoading={isLoading}
+      title="Sign In"
+      description="Enter your details to sign in to your account"
+      submitText="Sign In"
+      footerText="Don't have an account?"
+      footerLinkText="Sign up"
+      footerLinkUrl="/signup"
+      additionalLinks={[
+        <Link to="/reset-password" className="text-sm text-primary hover:underline" key="forgot-password">
+          Forgot your password?
+        </Link>
+      ]}
+    />
   );
 };
 

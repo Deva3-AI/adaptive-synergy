@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '@/services/api';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { mockUserData } from '@/utils/mockData';
 
 export interface User {
   id: string | number;
@@ -19,6 +20,11 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   isClient: boolean;
+  isAdmin: boolean;
+  isEmployee: boolean;
+  isMarketing: boolean;
+  isHR: boolean;
+  isFinance: boolean;
   hasRole: (role: string) => boolean;
   hasPermission: (permission: string) => boolean;
   login: (email: string, password: string) => Promise<any>;
@@ -35,6 +41,11 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAuthenticated: false,
   isClient: false,
+  isAdmin: false,
+  isEmployee: false,
+  isMarketing: false,
+  isHR: false,
+  isFinance: false,
   hasRole: () => false,
   hasPermission: () => false,
   login: async () => ({}),
@@ -108,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (result.success && result.data) {
         // Set user in state
         const userData = {
-          id: result.data.user_id,
+          id: result.data.user_id || result.data.id,
           name: result.data.name,
           email: result.data.email,
           role: result.data.role,
@@ -171,6 +182,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user;
   const isClient = user?.role === 'client';
+  const isAdmin = user?.role === 'admin';
+  const isEmployee = user?.role === 'employee';
+  const isMarketing = user?.role === 'marketing';
+  const isHR = user?.role === 'hr';
+  const isFinance = user?.role === 'finance';
   
   // Adding aliases for backward compatibility
   const signup = register;
@@ -182,6 +198,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading, 
       isAuthenticated,
       isClient,
+      isAdmin,
+      isEmployee,
+      isMarketing,
+      isHR,
+      isFinance,
       hasRole,
       hasPermission,
       login, 

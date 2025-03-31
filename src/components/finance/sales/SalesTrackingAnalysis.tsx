@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -17,19 +16,19 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
   // Fetch sales trend data
   const { data: salesTrends, isLoading: isTrendsLoading } = useQuery({
     queryKey: ["sales-trends", dateRange],
-    queryFn: () => financeService.getSalesTrends(dateRange),
+    queryFn: () => financeService.getSalesTrends(),
   });
 
   // Fetch sales by channel data
   const { data: salesByChannel, isLoading: isChannelLoading } = useQuery({
     queryKey: ["sales-by-channel", dateRange],
-    queryFn: () => financeService.getSalesByChannel(dateRange),
+    queryFn: () => financeService.getSalesByChannel(),
   });
 
   // Fetch top products/services data
   const { data: topProducts, isLoading: isProductsLoading } = useQuery({
     queryKey: ["top-products", dateRange],
-    queryFn: () => financeService.getTopProducts(dateRange),
+    queryFn: () => financeService.getTopProducts(),
   });
 
   // Format number as currency

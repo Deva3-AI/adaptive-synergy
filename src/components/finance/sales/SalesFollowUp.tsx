@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -39,7 +38,7 @@ const SalesFollowUp = () => {
   // Mutation to complete a follow-up
   const completeFollowUpMutation = useMutation({
     mutationFn: (data: { id: number, feedback: string }) => 
-      financeService.completeFollowUp(data.id, data.feedback),
+      financeService.completeFollowUp(data.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-followups"] });
       toast.success("Follow-up marked as completed");

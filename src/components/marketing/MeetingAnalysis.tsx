@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { marketingService } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import {
   FileText,
   FileAudio,
@@ -18,51 +18,35 @@ import {
   User,
   AlertTriangle
 } from 'lucide-react';
-import { marketingService } from '@/services/api';
 
 const MeetingAnalysis = () => {
   const [transcript, setTranscript] = useState('');
   const [meetingId, setMeetingId] = useState<number | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const { toast } = useToast();
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
   
-  const handleAnalyzeTranscript = async () => {
+  const analyzeMutation = useMutation({
+    mutationFn: (transcriptText: string) => 
+      marketingService.analyzeMeetingTranscript(transcriptText),
+    onSuccess: (data) => {
+      setAnalysisResults(data);
+      toast.success('Transcript analyzed successfully');
+    },
+    onError: (error) => {
+      console.error('Analysis error:', error);
+      toast.error('Failed to analyze transcript');
+    }
+  });
+
+  const handleAnalyzeTranscript = () => {
     if (!transcript.trim()) {
-      toast({
-        title: "Input Required",
-        description: "Please enter a meeting transcript to analyze",
-        variant: "destructive"
-      });
+      toast.error('Please enter meeting transcript');
       return;
     }
     
-    setIsAnalyzing(true);
-    
-    try {
-      const result = await marketingService.analyzeMeetingTranscript({
-        text: transcript,
-        meetingId: meetingId || 0
-      });
-      
-      setAnalysisResult(result);
-      toast({
-        title: "Analysis Complete",
-        description: "Meeting transcript has been successfully analyzed",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error('Error analyzing transcript:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "Failed to analyze meeting transcript. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
+    analyzeMutation.mutate(transcript);
   };
-  
+
   const getPriorityBadge = (priority: string) => {
     switch(priority) {
       case 'high':
@@ -75,7 +59,7 @@ const MeetingAnalysis = () => {
         return <Badge>{priority}</Badge>;
     }
   };
-  
+
   const getSentimentBadge = (sentiment: string) => {
     switch(sentiment) {
       case 'positive':
@@ -88,7 +72,7 @@ const MeetingAnalysis = () => {
         return <Badge>{sentiment}</Badge>;
     }
   };
-  
+
   return (
     <div className="grid gap-6 md:grid-cols-12">
       <div className="md:col-span-5">
@@ -148,7 +132,7 @@ const MeetingAnalysis = () => {
       </div>
       
       <div className="md:col-span-7">
-        {!analysisResult ? (
+        {!analysisResults ? (
           <div className="h-full flex items-center justify-center border rounded-lg bg-gray-50 p-6">
             <div className="text-center">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -173,13 +157,13 @@ const MeetingAnalysis = () => {
                       Summary
                     </h4>
                     <p className="text-sm text-gray-700 p-3 bg-blue-50 rounded-md">
-                      {analysisResult.summary}
+                      {analysisResults.summary}
                     </p>
                   </div>
                   
                   <div className="flex items-center space-x-2">
                     <h4 className="text-sm font-medium">Overall Sentiment:</h4>
-                    {getSentimentBadge(analysisResult.sentiment)}
+                    {getSentimentBadge(analysisResults.sentiment)}
                   </div>
                 </div>
               </CardContent>
@@ -191,7 +175,7 @@ const MeetingAnalysis = () => {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analysisResult.keyPoints.map((point: string, idx: number) => (
+                  {analysisResults.keyPoints.map((point: string, idx: number) => (
                     <li key={idx} className="flex items-start">
                       <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-green-500" />
                       <span className="text-sm">{point}</span>
@@ -207,7 +191,7 @@ const MeetingAnalysis = () => {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
-                  {analysisResult.actionItems.map((item: any, idx: number) => (
+                  {analysisResults.actionItems.map((item: any, idx: number) => (
                     <li key={idx} className="flex items-start p-2 bg-gray-50 rounded-md">
                       <div className="mr-3 mt-0.5">
                         <ListChecks className="h-4 w-4 text-blue-500" />
@@ -236,7 +220,7 @@ const MeetingAnalysis = () => {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {analysisResult.clientPreferences.map((pref: string, idx: number) => (
+                  {analysisResults.clientPreferences.map((pref: string, idx: number) => (
                     <li key={idx} className="flex items-start">
                       <Lightbulb className="h-4 w-4 mr-2 mt-0.5 text-yellow-500" />
                       <span className="text-sm">{pref}</span>
@@ -254,7 +238,7 @@ const MeetingAnalysis = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm p-3 bg-gray-50 rounded-md">
-                  {analysisResult.nextSteps}
+                  {analysisResults.nextSteps}
                 </p>
               </CardContent>
             </Card>

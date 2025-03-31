@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -18,19 +17,19 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
   // Fetch sales growth data
   const { data: salesGrowth, isLoading: isGrowthLoading } = useQuery({
     queryKey: ["sales-growth", dateRange],
-    queryFn: () => financeService.getSalesGrowthData(dateRange),
+    queryFn: () => financeService.getSalesGrowthData(),
   });
 
   // Fetch targets data
   const { data: salesTargets, isLoading: isTargetsLoading } = useQuery({
     queryKey: ["sales-targets", dateRange],
-    queryFn: () => financeService.getSalesTargets(dateRange),
+    queryFn: () => financeService.getSalesTargets(),
   });
 
   // Fetch growth forecast
   const { data: growthForecast, isLoading: isForecastLoading } = useQuery({
     queryKey: ["growth-forecast", dateRange],
-    queryFn: () => financeService.getGrowthForecast(dateRange),
+    queryFn: () => financeService.getGrowthForecast(),
   });
 
   return (

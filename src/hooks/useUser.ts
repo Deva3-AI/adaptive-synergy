@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { mockUserData } from '@/utils/mockData';
 
 export interface User {
@@ -10,85 +8,53 @@ export interface User {
   role: string;
 }
 
-export const useUser = () => {
+export const useUser = (userId: number | string | undefined) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Fetch the current user session
     const fetchUser = async () => {
+      if (!userId) return;
+      
+      setLoading(true);
       try {
-        setLoading(true);
-        
-        // Get the current session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          throw error;
-        }
-        
-        if (session?.user) {
-          // Get user details from our users table
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select(`
-              user_id,
-              name,
-              email,
-              role_id,
-              roles (
-                role_name
-              )
-            `)
-            .eq('email', session.user.email)
-            .single();
+        // In a real app, this would be an API call
+        // For now we're mocking with static data
+        setTimeout(() => {
+          const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
           
-          if (userError) {
-            throw userError;
-          }
+          // Find user in mock data
+          const foundUser = mockUserData.users.find(u => u.id === numericUserId);
           
-          if (userData) {
-            const foundRole = mockUserData.roles.find(r => r.role_id === userData.role_id);
-            const userInfo = {
-              id: userData.user_id,
-              name: userData.name,
-              email: userData.email,
-              role: foundRole?.role_name || 'unknown'
-            };
+          if (foundUser) {
+            // Add role details if we have them
+            let roleDetails = null;
+            if (foundUser.role) {
+              // Find the role by name
+              roleDetails = Object.values(mockUserData.roles || [])
+                .find(r => r.role_name === foundUser.role);
+            }
             
-            setUser(userInfo);
+            setUser({
+              ...foundUser,
+              roleDetails
+            });
+          } else {
+            setError('User not found');
           }
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error('Error fetching user:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch user'));
-        setUser(null);
-      } finally {
+          
+          setLoading(false);
+        }, 500);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setError('Failed to fetch user data');
         setLoading(false);
       }
     };
-
+    
     fetchUser();
-    
-    // Set up listener for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN') {
-          fetchUser();
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-      }
-    );
-    
-    // Clean up subscription
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  }, [userId]);
 
   return { user, loading, error };
 };

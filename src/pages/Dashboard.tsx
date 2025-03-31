@@ -1,31 +1,25 @@
-
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  BarChart,
-  CreditCard,
-  DollarSign,
-  Users,
-  Activity,
-  CheckCircle,
-  Clock,
-  Calendar,
-  TrendingUp
-} from 'lucide-react';
-import { userService } from '@/services/api';
 import { useAuth } from '@/hooks/use-auth';
+import { userService } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      if (!user) return;
+      
       try {
-        // In a real app, you would fetch data based on user role
-        const data = await userService.getDashboardData(user?.id);
+        setLoading(true);
+        // Convert user.id to number if it's a string
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        
+        // Make API call
+        const data = await userService.getDashboardData(Number(userId));
         setDashboardData(data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -34,12 +28,9 @@ const Dashboard = () => {
       }
     };
 
-    if (user) {
-      fetchDashboardData();
-    }
+    fetchDashboardData();
   }, [user]);
 
-  // Function to render the appropriate dashboard cards based on user role
   const renderDashboardCards = () => {
     if (loading) {
       return (
@@ -62,7 +53,6 @@ const Dashboard = () => {
       );
     }
 
-    // If no data, return default cards
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

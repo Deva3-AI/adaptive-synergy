@@ -1,41 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Mail, Lock, User } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-// Form schema for login
-const loginSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(1, { message: 'Password is required' }),
-});
-
-// Form schema for signup
-const signupSchema = z.object({
-  username: z.string().min(3, { message: 'Username must be at least 3 characters' }),
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
-});
-
-type LoginValues = z.infer<typeof loginSchema>;
-type SignupValues = z.infer<typeof signupSchema>;
-
-interface AuthFormProps {
-  type: 'login' | 'signup';
-  onSubmit: (email: string, password: string, username?: string) => void;
+export interface AuthFormProps {
+  type: 'login' | 'signup' | 'reset-password';
+  onSubmit: (email: string, password: string, name?: string) => Promise<void>;
   isLoading: boolean;
   title: string;
   description: string;
   submitText: string;
-  footerText: string;
-  footerLinkText: string;
-  footerLinkUrl: string;
+  footerText?: string;
+  footerLinkText?: string;
+  footerLinkUrl?: string;
   additionalLinks?: React.ReactNode[];
 }
 
@@ -49,191 +31,100 @@ const AuthForm: React.FC<AuthFormProps> = ({
   footerText,
   footerLinkText,
   footerLinkUrl,
-  additionalLinks = [],
+  additionalLinks,
 }) => {
-  // Create form based on type
-  const loginForm = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { login, register } = useAuth();
 
-  const signupForm = useForm<SignupValues>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      username: '',
-      email: '',
-      password: '',
-    },
-  });
-
-  // Handle form submission
-  const handleLoginSubmit = (values: LoginValues) => {
-    onSubmit(values.email, values.password);
-  };
-
-  const handleSignupSubmit = (values: SignupValues) => {
-    onSubmit(values.email, values.password, values.username);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (type === 'signup') {
+      await onSubmit(email, password, name);
+    } else {
+      await onSubmit(email, password);
+    }
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {type === 'login' ? (
-          <Form {...loginForm}>
-            <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
-              <FormField
-                control={loginForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="m@example.com"
-                          className="pl-9"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {type === 'signup' && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                disabled={isLoading}
               />
-              <FormField
-                control={loginForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="password"
-                          className="pl-9"
-                          placeholder="********"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  submitText
-                )}
-              </Button>
-            </form>
-          </Form>
-        ) : (
-          <Form {...signupForm}>
-            <form onSubmit={signupForm.handleSubmit(handleSignupSubmit)} className="space-y-4">
-              <FormField
-                control={signupForm.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="johndoe"
-                          className="pl-9"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={signupForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="m@example.com"
-                          className="pl-9"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={signupForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="password"
-                          className="pl-9"
-                          placeholder="********"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  submitText
-                )}
-              </Button>
-            </form>
-          </Form>
-        )}
-        <div className="mt-4 text-center text-sm">
-          {additionalLinks.length > 0 && (
-            <div className="space-x-4 mb-2">
-              {additionalLinks.map((link, i) => <span key={i}>{link}</span>)}
             </div>
           )}
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          </div>
+          {type !== 'reset-password' && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+          )}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Please wait
+              </>
+            ) : (
+              submitText
+            )}
+          </Button>
+        </form>
+        {additionalLinks && additionalLinks.length > 0 && (
+          <div className="mt-4 flex flex-col space-y-2">
+            {additionalLinks.map((link, index) => (
+              <div key={index}>{link}</div>
+            ))}
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-center text-muted-foreground">
-          {footerText}{' '}
-          <Link to={footerLinkUrl} className="font-medium text-primary hover:underline">
-            {footerLinkText}
-          </Link>
-        </p>
-      </CardFooter>
+      {footerText && footerLinkText && footerLinkUrl && (
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-muted-foreground">
+            {footerText}{' '}
+            <Link to={footerLinkUrl} className="text-primary hover:underline">
+              {footerLinkText}
+            </Link>
+          </p>
+        </CardFooter>
+      )}
     </Card>
   );
 };

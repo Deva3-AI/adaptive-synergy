@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,7 +67,7 @@ interface Candidate {
   skills: string[];
   experience: number;
   education: string;
-  status: 'new' | 'screening' | 'interview' | 'offer' | 'rejected' | 'hired';
+  status: "new" | "screening" | "interview" | "offer" | "rejected" | "hired";
   match_score: number;
   notes: string;
   strengths: string[];

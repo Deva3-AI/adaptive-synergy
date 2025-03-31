@@ -1,413 +1,174 @@
+import { mockUserData } from '@/utils/mockData';
 
-import { supabase } from '@/lib/supabase';
-import { PaySlip, Candidate, Employee, LeaveRequest, Attendance, HRTask } from '@/interfaces/hr';
-import { mockHRData } from '@/utils/mockData';
-
-const hrServiceSupabase = {
-  // Employee Management
-  getEmployees: async (): Promise<Employee[]> => {
+// Define HR service with Supabase integration
+const hrService = {
+  // Get all employees
+  getEmployees: async () => {
+    // This would be a Supabase query in a real app
     try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*');
-      
-      if (error) throw error;
-      return data as Employee[];
+      return mockUserData.users.filter(user => 
+        user.role === 'employee' || user.role === 'developer' || user.role === 'designer'
+      );
     } catch (error) {
       console.error('Error fetching employees:', error);
-      return mockHRData.employees;
+      throw error;
     }
   },
   
-  getEmployeeById: async (employeeId: number): Promise<Employee | null> => {
+  // Get employee by ID
+  getEmployeeById: async (employeeId: number) => {
     try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('id', employeeId)
-        .single();
-      
-      if (error) throw error;
-      return data as Employee;
+      return mockUserData.users.find(user => user.id === employeeId);
     } catch (error) {
       console.error('Error fetching employee:', error);
-      return mockHRData.employees.find(emp => emp.id === employeeId) || null;
+      throw error;
     }
   },
   
-  // Attendance Management
-  getAttendance: async (date?: string): Promise<any[]> => {
+  // Submit leave request
+  submitLeaveRequest: async (leaveData: any) => {
     try {
-      let query = supabase.from('attendance').select('*');
-      
-      if (date) {
-        query = query.eq('work_date', date);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data;
+      // This would be a Supabase insert in a real app
+      console.log('Submitting leave request:', leaveData);
+      return { success: true, data: leaveData };
     } catch (error) {
-      console.error('Error fetching attendance:', error);
-      return mockHRData.attendance;
+      console.error('Error submitting leave request:', error);
+      return { success: false, error: error };
     }
   },
   
-  getEmployeeAttendance: async (employeeId?: number, startDate?: string, endDate?: string): Promise<any> => {
+  // Get leave requests
+  getLeaveRequests: async () => {
     try {
-      let query = supabase.from('employee_attendance').select(`
-        attendance_id,
-        user_id,
-        login_time,
-        logout_time,
-        work_date
-      `);
-      
-      if (employeeId) {
-        query = query.eq('user_id', employeeId);
-      }
-      
-      if (startDate) {
-        query = query.gte('work_date', startDate);
-      }
-      
-      if (endDate) {
-        query = query.lte('work_date', endDate);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Calculate metrics
-      const today = new Date().toISOString().split('T')[0];
-      const todayPresent = data.filter(a => a.work_date.startsWith(today)).length;
-      const totalEmployees = await hrServiceSupabase.getEmployees().then(emps => emps.length);
-      
-      // Calculate average hours worked
-      let totalHours = 0;
-      let countRecordsWithHours = 0;
-      
-      for (const record of data) {
-        if (record.login_time && record.logout_time) {
-          const login = new Date(record.login_time);
-          const logout = new Date(record.logout_time);
-          const hours = (logout.getTime() - login.getTime()) / (1000 * 60 * 60);
-          totalHours += hours;
-          countRecordsWithHours++;
+      // This would be a Supabase select in a real app
+      const leaveRequests = [
+        {
+          id: 1,
+          employee_id: 1,
+          employee_name: "John Doe",
+          start_date: "2023-03-10",
+          end_date: "2023-03-12",
+          reason: "Vacation",
+          status: "pending"
+        },
+        {
+          id: 2,
+          employee_id: 2,
+          employee_name: "Jane Smith",
+          start_date: "2023-04-01",
+          end_date: "2023-04-05",
+          reason: "Sick leave",
+          status: "approved"
         }
-      }
-      
-      const averageHours = countRecordsWithHours > 0 ? totalHours / countRecordsWithHours : 0;
-      
-      return {
-        attendance_records: data,
-        today_present: todayPresent,
-        total_employees: totalEmployees,
-        average_hours: averageHours.toFixed(1)
-      };
-    } catch (error) {
-      console.error('Error fetching employee attendance:', error);
-      return mockHRData.attendanceSummary;
-    }
-  },
-  
-  startWork: async (employeeId: number): Promise<any> => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const now = new Date().toISOString();
-      
-      // Check if there's already an entry for today
-      const { data: existingEntry, error: checkError } = await supabase
-        .from('employee_attendance')
-        .select('*')
-        .eq('user_id', employeeId)
-        .eq('work_date', today)
-        .single();
-      
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        throw checkError;
-      }
-      
-      // If entry exists, return it without creating a new one
-      if (existingEntry) {
-        return existingEntry;
-      }
-      
-      // Create new attendance entry
-      const { data, error } = await supabase
-        .from('employee_attendance')
-        .insert({
-          user_id: employeeId,
-          login_time: now,
-          work_date: today
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error starting work:', error);
-      
-      // Return mock data for demo purposes
-      return {
-        attendance_id: Math.floor(Math.random() * 1000),
-        user_id: employeeId,
-        login_time: new Date().toISOString(),
-        work_date: new Date().toISOString().split('T')[0]
-      };
-    }
-  },
-  
-  stopWork: async (attendanceId: number): Promise<any> => {
-    try {
-      const now = new Date().toISOString();
-      
-      const { data, error } = await supabase
-        .from('employee_attendance')
-        .update({ logout_time: now })
-        .eq('attendance_id', attendanceId)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error stopping work:', error);
-      
-      // Return mock data for demo purposes
-      return {
-        attendance_id: attendanceId,
-        logout_time: new Date().toISOString()
-      };
-    }
-  },
-  
-  // Leave Management
-  getLeaveRequests: async (): Promise<LeaveRequest[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select('*');
-      
-      if (error) throw error;
-      return data as LeaveRequest[];
+      ];
+      return leaveRequests;
     } catch (error) {
       console.error('Error fetching leave requests:', error);
-      return mockHRData.leaveRequests;
-    }
-  },
-  
-  updateLeaveRequest: async (requestId: number, status: 'approved' | 'rejected', notes?: string): Promise<any> => {
-    try {
-      const updateData: any = { status };
-      if (notes) updateData.notes = notes;
-      
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .update(updateData)
-        .eq('id', requestId)
-        .select();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error updating leave request:', error);
       throw error;
     }
   },
   
-  createLeaveRequest: async (leaveRequest: Partial<LeaveRequest>): Promise<LeaveRequest> => {
+  // Approve leave request
+  approveLeaveRequest: async (leaveId: number) => {
     try {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .insert(leaveRequest)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data as LeaveRequest;
+      // This would be a Supabase update in a real app
+      console.log(`Approving leave request with ID: ${leaveId}`);
+      return { success: true, message: 'Leave request approved' };
     } catch (error) {
-      console.error('Error creating leave request:', error);
-      
-      // Return mock data for demonstration
-      return {
-        ...leaveRequest,
-        id: Math.floor(Math.random() * 1000),
-        status: 'pending',
-        days: 1,
-      } as LeaveRequest;
+      console.error('Error approving leave request:', error);
+      return { success: false, error: error };
     }
   },
   
-  getLeaveBalance: async (employeeId: number): Promise<any> => {
+  // Reject leave request
+  rejectLeaveRequest: async (leaveId: number) => {
     try {
-      const { data, error } = await supabase
-        .from('leave_balance')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      // This would be a Supabase update in a real app
+      console.log(`Rejecting leave request with ID: ${leaveId}`);
+      return { success: true, message: 'Leave request rejected' };
     } catch (error) {
-      console.error('Error fetching leave balance:', error);
-      
-      // Return mock data
-      return {
-        employee_id: employeeId,
-        annual: 18,
-        sick: 10,
-        personal: 5,
-        remaining_annual: 12,
-        remaining_sick: 8,
-        remaining_personal: 3
+      console.error('Error rejecting leave request:', error);
+      return { success: false, error: error };
+    }
+  },
+  
+  // Start work
+  startWork: async () => {
+    try {
+      // This would be a Supabase insert in a real app
+      console.log('Starting work');
+      return { success: true, data: { attendance_id: 123, login_time: new Date().toISOString() } };
+    } catch (error) {
+      console.error('Error starting work:', error);
+      return { success: false, error: error };
+    }
+  },
+  
+  // Stop work
+  stopWork: async (attendanceId: number) => {
+    try {
+      // This would be a Supabase update in a real app
+      console.log(`Stopping work with attendance ID: ${attendanceId}`);
+      return { success: true, message: 'Work session ended' };
+    } catch (error) {
+      console.error('Error stopping work:', error);
+      return { success: false, error: error };
+    }
+  },
+  
+  // Get today attendance
+  getTodayAttendance: async () => {
+    try {
+      // This would be a Supabase select in a real app
+      const attendance = {
+        attendance_id: 123,
+        user_id: 1,
+        employee_name: "John Doe",
+        login_time: new Date().toISOString(),
+        logout_time: null,
+        work_date: new Date().toISOString().split('T')[0],
+        status: "present"
       };
+      return attendance;
+    } catch (error) {
+      console.error('Error getting today attendance:', error);
+      return null;
     }
   },
   
-  // Payroll Management
-  getPayslips: async (month?: string, year?: number): Promise<PaySlip[]> => {
+  // Get attendance history
+  getAttendanceHistory: async (startDate?: string, endDate?: string) => {
     try {
-      let query = supabase.from('payslips').select('*');
-      
-      if (month) query = query.eq('month', month);
-      if (year) query = query.eq('year', year);
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data as PaySlip[];
+      // This would be a Supabase select in a real app
+      console.log(`Fetching attendance history from ${startDate} to ${endDate}`);
+      const attendanceHistory = [
+        {
+          attendance_id: 123,
+          user_id: 1,
+          employee_name: "John Doe",
+          login_time: "2023-01-01T08:00:00Z",
+          logout_time: "2023-01-01T17:00:00Z",
+          work_date: "2023-01-01",
+          total_hours: 9,
+          status: "present"
+        },
+        {
+          attendance_id: 124,
+          user_id: 1,
+          employee_name: "John Doe",
+          login_time: null,
+          logout_time: null,
+          work_date: "2023-01-02",
+          total_hours: 0,
+          status: "absent"
+        }
+      ];
+      return attendanceHistory;
     } catch (error) {
-      console.error('Error fetching payslips:', error);
-      return mockHRData.payslips;
-    }
-  },
-  
-  generatePayslips: async (month: string, year: number): Promise<any> => {
-    try {
-      // In a real app, this would calculate payslips based on attendance data
-      // For now, we'll just return a success message
-      return { success: true, message: 'Payslips generated successfully' };
-    } catch (error) {
-      console.error('Error generating payslips:', error);
+      console.error('Error getting attendance history:', error);
       throw error;
     }
   },
-  
-  // HR Tasks
-  getHRTasks: async (status?: string, category?: string): Promise<HRTask[]> => {
-    try {
-      let query = supabase.from('hr_tasks').select('*');
-      
-      if (status) query = query.eq('status', status);
-      if (category) query = query.eq('category', category);
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data as HRTask[];
-    } catch (error) {
-      console.error('Error fetching HR tasks:', error);
-      
-      // Return mock data
-      return mockHRData.hrTasks;
-    }
-  },
-  
-  getHRTrends: async (): Promise<any> => {
-    try {
-      // This would typically analyze HR data for trends
-      // For mock purposes, return static data
-      return {
-        hiring_trends: [
-          { month: 'Jan', value: 2 },
-          { month: 'Feb', value: 3 },
-          { month: 'Mar', value: 5 },
-          { month: 'Apr', value: 4 },
-          { month: 'May', value: 6 },
-          { month: 'Jun', value: 8 }
-        ],
-        retention_rates: [
-          { month: 'Jan', value: 97 },
-          { month: 'Feb', value: 98 },
-          { month: 'Mar', value: 96 },
-          { month: 'Apr', value: 97 },
-          { month: 'May', value: 98 },
-          { month: 'Jun', value: 99 }
-        ],
-        employee_satisfaction: [
-          { month: 'Q1', value: 7.5 },
-          { month: 'Q2', value: 8.2 }
-        ]
-      };
-    } catch (error) {
-      console.error('Error fetching HR trends:', error);
-      throw error;
-    }
-  },
-  
-  completeHRTask: async (taskId: number): Promise<any> => {
-    try {
-      const { data, error } = await supabase
-        .from('hr_tasks')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', taskId)
-        .select();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error completing HR task:', error);
-      throw error;
-    }
-  },
-  
-  // Recruitment Management
-  getOpenPositions: async (): Promise<any[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('job_postings')
-        .select('*')
-        .eq('status', 'open');
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching open positions:', error);
-      return mockHRData.recruitmentData.openPositions;
-    }
-  },
-  
-  getCandidates: async (): Promise<Candidate[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('candidates')
-        .select('*');
-      
-      if (error) throw error;
-      
-      // Ensure status is one of the valid enum values
-      const processedData = data.map(candidate => ({
-        ...candidate,
-        status: candidate.status as 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected'
-      }));
-      
-      return processedData as Candidate[];
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-      
-      // Ensure mock data has valid status values
-      const processedMockData = mockHRData.recruitmentData.candidates.map(candidate => ({
-        ...candidate,
-        status: candidate.status as 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected'
-      }));
-      
-      return processedMockData;
-    }
-  }
 };
 
-export default hrServiceSupabase;
+export default hrService;

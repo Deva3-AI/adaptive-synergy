@@ -1,297 +1,336 @@
-import React, { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Users,
-  BarChart,
-  Bell,
+import React from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { NavLink, useLocation } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Users, 
+  FileText, 
+  BarChart, 
   Settings,
-  LogOut,
   User,
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  Briefcase,
-  Clock,
-  LineChart,
-  FileText,
-  CalendarCheck,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/use-auth";
-
-// Define a type for the navigation items
-type NavItem = {
-  icon: React.ForwardRefExoticComponent<any>;
-  label: string;
-  path: string;
-  badge?: number;
-};
+  Building,
+  Mail,
+  Calendar,
+  TrendingUp,
+  MessageSquare,
+  ListChecks,
+  File,
+  BadgeCheck,
+  ShieldCheck,
+  LucideIcon
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SidebarProps {
-  className?: string;
-  isMobile?: boolean;
+  expanded?: boolean;
 }
 
-const Sidebar = ({ className, isMobile = false }: SidebarProps) => {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout, isEmployee, isClient, isMarketing, isHR, isFinance } = useAuth();
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  permission?: string;
+}
+
+const navItems: {
+  main: NavItem[];
+  employee: NavItem[];
+  hr: NavItem[];
+  finance: NavItem[];
+  marketing: NavItem[];
+  adminTools: NavItem[];
+} = {
+  main: [
+    {
+      href: '/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+    },
+  ],
+  employee: [
+    {
+      href: '/employee/tasks',
+      label: 'My Tasks',
+      icon: ListChecks,
+    },
+    {
+      href: '/employee/attendance',
+      label: 'Attendance',
+      icon: Clock,
+    },
+    {
+      href: '/employee/profile',
+      label: 'My Profile',
+      icon: User,
+    },
+  ],
+  hr: [
+    {
+      href: '/hr/employees',
+      label: 'Employees',
+      icon: Users,
+    },
+    {
+      href: '/hr/recruitment',
+      label: 'Recruitment',
+      icon: Building,
+    },
+    {
+      href: '/hr/leave-requests',
+      label: 'Leave Requests',
+      icon: Calendar,
+    },
+    {
+      href: '/hr/performance',
+      label: 'Performance',
+      icon: TrendingUp,
+    },
+  ],
+  finance: [
+    {
+      href: '/finance/dashboard',
+      label: 'Dashboard',
+      icon: BarChart,
+    },
+    {
+      href: '/finance/invoices',
+      label: 'Invoices',
+      icon: FileText,
+    },
+    {
+      href: '/finance/reports',
+      label: 'Reports',
+      icon: File,
+    },
+  ],
+  marketing: [
+    {
+      href: '/marketing/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      href: '/marketing/campaigns',
+      label: 'Campaigns',
+      icon: TrendingUp,
+    },
+    {
+      href: '/marketing/analytics',
+      label: 'Analytics',
+      icon: BarChart,
+    },
+    {
+      href: '/marketing/leads',
+      label: 'Leads',
+      icon: Users,
+    },
+    {
+      href: '/marketing/meetings',
+      label: 'Meetings',
+      icon: MessageSquare,
+    },
+  ],
+  adminTools: [
+    {
+      href: '/admin/users',
+      label: 'Manage Users',
+      icon: Users,
+      permission: 'manage_users',
+    },
+    {
+      href: '/admin/roles',
+      label: 'Manage Roles',
+      icon: ShieldCheck,
+      permission: 'manage_roles',
+    },
+    {
+      href: '/admin/settings',
+      label: 'System Settings',
+      icon: Settings,
+      permission: 'manage_settings',
+    },
+  ],
+};
+
+const Sidebar = ({ expanded = true }: SidebarProps) => {
+  const { user, hasRole } = useAuth();
   const location = useLocation();
+  
+  // Use hasRole instead of isEmployee, etc.
+  const showEmployeeSection = hasRole('employee') || hasRole('admin');
+  const showMarketingSection = hasRole('marketing') || hasRole('admin');
+  const showHRSection = hasRole('hr') || hasRole('admin');
+  const showFinanceSection = hasRole('finance') || hasRole('admin');
 
-  // Close mobile sidebar when location changes
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location]);
-
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
+  const isActive = (href: string) => {
+    return location.pathname === href;
   };
 
-  const toggleMobileSidebar = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  // Generate navigation items based on user role
-  const getNavItems = (): NavItem[] => {
-    const commonItems: NavItem[] = [
-      { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-      { icon: User, label: "Profile", path: "/profile" },
-      { icon: Settings, label: "Settings", path: "/settings" },
-    ];
-
-    if (isEmployee) {
-      return [
-        ...commonItems,
-        { icon: Briefcase, label: "Tasks", path: "/employee/tasks" },
-        { icon: Clock, label: "Time Tracking", path: "/employee/dashboard" },
-      ];
-    }
-
-    if (isClient) {
-      return [
-        ...commonItems,
-        { icon: Briefcase, label: "Projects", path: "/client/tasks" },
-        { icon: FileText, label: "Reports", path: "/client/reports" },
-      ];
-    }
-
-    if (isMarketing) {
-      return [
-        ...commonItems,
-        { icon: BarChart, label: "Dashboard", path: "/marketing/dashboard" },
-        { icon: BarChart, label: "Campaigns", path: "/marketing/campaigns" },
-        { icon: CalendarCheck, label: "Meetings", path: "/marketing/meetings" },
-        { icon: LineChart, label: "Analytics", path: "/marketing/analytics" },
-      ];
-    }
-
-    if (isHR) {
-      return [
-        ...commonItems,
-        { icon: LayoutDashboard, label: "HR Dashboard", path: "/hr/dashboard" },
-        { icon: Users, label: "Attendance", path: "/hr/attendance" },
-        { icon: User, label: "Recruitment", path: "/hr/recruitment" },
-        { icon: CreditCard, label: "Payroll", path: "/hr/payroll" },
-        { icon: FileText, label: "Reports", path: "/hr/reports" },
-      ];
-    }
-
-    if (isFinance) {
-      return [
-        ...commonItems,
-        { icon: LayoutDashboard, label: "Dashboard", path: "/finance/dashboard" },
-        { icon: CreditCard, label: "Invoices", path: "/finance/invoices" },
-        { icon: BarChart, label: "Cost Analysis", path: "/finance/cost-analysis" },
-        { icon: LineChart, label: "Performance", path: "/finance/performance" },
-        { icon: FileText, label: "Reports", path: "/finance/reports" },
-        { icon: BarChart, label: "Budgets", path: "/finance/budgets" },
-      ];
-    }
-
-    // Default navigation items if no specific role is matched
-    return [
-      ...commonItems,
-      { icon: Users, label: "Clients", path: "/clients" },
-      { icon: BarChart, label: "Analytics", path: "/analytics" },
-      { icon: Bell, label: "Notifications", path: "/notifications", badge: 3 },
-    ];
-  };
-
-  const navItems = getNavItems();
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  // If in mobile view, don't render the sidebar trigger button
   return (
-    <>
-      {/* Mobile sidebar trigger - only show if not already in mobile sidebar */}
-      {!isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden fixed top-4 left-4 z-50"
-          onClick={toggleMobileSidebar}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+    <div
+      className={cn(
+        "flex flex-col space-y-4 border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-850",
+        expanded ? "w-64" : "w-20",
+        "transition-width duration-300 ease-in-out"
       )}
+    >
+      <div className="flex items-center justify-center py-4">
+        <span className="font-bold text-xl dark:text-white">
+          {expanded ? 'AI Workflow' : 'AI'}
+        </span>
+      </div>
 
-      {/* Sidebar backdrop for mobile */}
-      {mobileOpen && !isMobile && (
-        <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <nav className="flex-1 space-y-1 px-2">
+        {/* Main Navigation */}
+        {navItems.main.map((item) => (
+          <NavLink
+            key={item.href}
+            to={item.href}
+            className={({ isActive }) =>
+              cn(
+                "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                isActive
+                  ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                  : "text-gray-700 dark:text-gray-400"
+              )
+            }
+          >
+            <item.icon className="mr-2.5 h-4 w-4" />
+            {expanded && item.label}
+          </NavLink>
+        ))}
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed top-0 left-0 z-50 h-full bg-sidebar transition-all duration-300 ease-in-out border-r border-sidebar-border flex flex-col",
-          collapsed ? "w-[70px]" : "w-[240px]",
-          isMobile ? "translate-x-0 relative w-full h-full border-0" : mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          className
-        )}
-      >
-        {/* Sidebar header */}
-        <div className="flex items-center h-16 px-4 border-b border-sidebar-border">
-          {!collapsed && (
-            <div className="flex items-center flex-1 space-x-2">
-              <div className="h-7 w-7 rounded-full bg-accent flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-sm">AI</span>
-              </div>
-              <span className="font-display font-semibold text-lg">Hive</span>
+        {/* Employee Section */}
+        {showEmployeeSection && (
+          <>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
+              {expanded && "Employee Tools"}
             </div>
-          )}
-          {!isMobile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 w-8 p-0 rounded-full",
-                collapsed && "mx-auto"
-              )}
-              onClick={toggleSidebar}
-            >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </Button>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex-1 overflow-auto py-4">
-          <nav className="space-y-1 px-2">
-            {navItems.map((item) => (
-              <TooltipProvider key={item.path} delayDuration={collapsed ? 100 : 1000}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <NavLink
-                      to={item.path}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex items-center px-3 py-2 rounded-md text-sm group transition-colors",
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                          collapsed && "justify-center"
-                        )
-                      }
-                    >
-                      <item.icon className={cn("h-5 w-5 flex-shrink-0", collapsed ? "mr-0" : "mr-3")} />
-                      {!collapsed && <span className="flex-1">{item.label}</span>}
-                      {!collapsed && item.badge && (
-                        <Badge variant="accent" size="sm" className="ml-auto">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </NavLink>
-                  </TooltipTrigger>
-                  {collapsed && (
-                    <TooltipContent side="right" sideOffset={10}>
-                      <p>{item.label}</p>
-                      {item.badge && (
-                        <Badge variant="accent" size="sm" className="ml-1">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+            {navItems.employee.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                    isActive
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                      : "text-gray-700 dark:text-gray-400"
+                  )
+                }
+              >
+                <item.icon className="mr-2.5 h-4 w-4" />
+                {expanded && item.label}
+              </NavLink>
             ))}
-          </nav>
-        </div>
+          </>
+        )}
 
-        {/* User profile */}
-        <div className="border-t border-sidebar-border p-3">
-          <TooltipProvider delayDuration={collapsed ? 100 : 1000}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    "flex items-center rounded-md p-2 text-sidebar-foreground hover:bg-sidebar-accent/50 cursor-pointer",
-                    collapsed && "justify-center"
-                  )}
-                >
-                  <Avatar className={cn("h-8 w-8", collapsed ? "mr-0" : "mr-2")}>
-                    <AvatarImage src="https://github.com/shadcn.png" alt={user?.name || "User"} />
-                    <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
-                  </Avatar>
-                  {!collapsed && (
-                    <div className="flex-1 truncate">
-                      <div className="text-sm font-medium">{user?.name || "Guest User"}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {user?.email || "guest@example.com"}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right" sideOffset={10}>
-                  <p className="font-medium">{user?.name || "Guest User"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {user?.email || "guest@example.com"}
-                  </p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+        {/* HR Section */}
+        {showHRSection && (
+          <>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
+              {expanded && "HR Management"}
+            </div>
+            {navItems.hr.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                    isActive
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                      : "text-gray-700 dark:text-gray-400"
+                  )
+                }
+              >
+                <item.icon className="mr-2.5 h-4 w-4" />
+                {expanded && item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
 
-          <TooltipProvider delayDuration={collapsed ? 100 : 1000}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "mt-2 w-full justify-start text-muted-foreground hover:text-sidebar-foreground",
-                    collapsed && "justify-center px-0"
-                  )}
-                  onClick={handleLogout}
-                >
-                  <LogOut className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
-                  {!collapsed && <span>Log out</span>}
-                </Button>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right" sideOffset={10}>
-                  <p>Log out</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </aside>
-    </>
+        {/* Finance Section */}
+        {showFinanceSection && (
+          <>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
+              {expanded && "Finance Management"}
+            </div>
+            {navItems.finance.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                    isActive
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                      : "text-gray-700 dark:text-gray-400"
+                  )
+                }
+              >
+                <item.icon className="mr-2.5 h-4 w-4" />
+                {expanded && item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        {/* Marketing Section */}
+        {showMarketingSection && (
+          <>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
+              {expanded && "Marketing Tools"}
+            </div>
+            {navItems.marketing.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                    isActive
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                      : "text-gray-700 dark:text-gray-400"
+                  )
+                }
+              >
+                <item.icon className="mr-2.5 h-4 w-4" />
+                {expanded && item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        {/* Admin Tools Section */}
+        {hasRole('admin') && (
+          <>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
+              {expanded && "Admin Tools"}
+            </div>
+            {navItems.adminTools.map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                    isActive
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                      : "text-gray-700 dark:text-gray-400"
+                  )
+                }
+              >
+                <item.icon className="mr-2.5 h-4 w-4" />
+                {expanded && item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
+      </nav>
+    </div>
   );
 };
 
