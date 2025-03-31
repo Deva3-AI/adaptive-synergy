@@ -21,7 +21,7 @@ const ClientRequirementsPanel: React.FC<ClientRequirementsPanelProps> = ({ clien
     const fetchClientData = async () => {
       try {
         setLoading(true);
-        const clientDetails = await clientService.getClientDetails(clientId);
+        const clientDetails = await clientService.getClientById(clientId);
         const clientPreferences = await clientService.getClientPreferences(clientId);
         
         setClient(clientDetails);

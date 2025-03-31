@@ -44,7 +44,7 @@ const EnhancedAIAssistant = () => {
       if (!clientId) return;
       setIsClientContextLoading(true);
       try {
-        const clientDetails = await clientService.getClientDetails(Number(clientId)) as ClientDetails;
+        const clientDetails = await clientService.getClientById(Number(clientId)) as ClientDetails;
         if (clientDetails) {
           setClientContext(`Client Name: ${clientDetails.client_name}\nDescription: ${clientDetails.description}\nContact Info: ${clientDetails.contact_info}`);
         } else {

@@ -92,6 +92,38 @@ export interface MarketingTrends {
   industry_examples: string[];
 }
 
+export interface MarketingTrend {
+  id: number;
+  title: string;
+  type: string;
+  description: string;
+  impact: string;
+  discoveredAt: string;
+  source: string;
+  suggestedResponse: string;
+}
+
+export interface MarketingMeeting {
+  id: number;
+  title: string;
+  date: string;
+  attendees: string[];
+  summary: string;
+  action_items: string[];
+}
+
+export interface EmailOutreach {
+  id: number;
+  campaign_name: string;
+  status: string;
+  sent_date: string;
+  recipients: number;
+  open_rate: string;
+  click_rate: string;
+  response_rate: string;
+  meetings_booked: number;
+}
+
 export interface CompetitorInsight {
   id: number;
   competitor_name: string;
@@ -105,6 +137,12 @@ export interface CompetitorInsight {
   growth_rate: string;
   threat_level: string;
   opportunity_areas: string[];
+  impact: string;
+  type: string;
+  description: string;
+  discoveredAt: string;
+  source: string;
+  suggestedResponse: string;
 }
 
 export interface MarketingMetrics {

@@ -1,615 +1,742 @@
 
-import apiClient, { handleApiError } from '@/utils/apiUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { 
+  Campaign, 
+  Meeting, 
+  EmailTemplate, 
+  Lead, 
+  MarketingPlan,
+  MarketingTrends,
+  CompetitorInsight,
+  MarketingMetrics,
+  MeetingAnalysis,
+  EmailOutreach,
+  MarketingTrend
+} from '@/interfaces/marketing';
 
-// Mock data generator for development
-const generateMockData = (type: string, params?: any) => {
-  // This will be replaced with actual API calls in production
-  switch (type) {
-    case 'campaigns':
-      return Array(8).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: `Campaign ${i + 1}`,
-        type: ['email', 'social', 'content', 'paid'][Math.floor(Math.random() * 4)],
-        status: ['active', 'planned', 'completed', 'paused'][Math.floor(Math.random() * 4)],
-        start_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        end_date: new Date(Date.now() + Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        budget: Math.floor(Math.random() * 10000) + 1000,
-        roi: (Math.random() * 5 + 1).toFixed(2),
-        leads_generated: Math.floor(Math.random() * 100) + 10,
-        conversion_rate: (Math.random() * 10 + 1).toFixed(2),
-      }));
-    
-    case 'meetings':
-      return Array(8).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: `Meeting with Lead ${i + 1}`,
-        type: ['discovery', 'proposal', 'follow-up', 'negotiation'][Math.floor(Math.random() * 4)],
-        date: new Date(Date.now() + Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        time: `${Math.floor(Math.random() * 8) + 9}:00 ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
-        contact_name: `Contact Person ${i + 1}`,
-        company: `Company ${i + 1}`,
-        status: ['scheduled', 'completed', 'rescheduled', 'cancelled'][Math.floor(Math.random() * 4)],
-        notes: `Discussion about ${['new project', 'ongoing campaign', 'service proposal', 'partnership opportunity'][Math.floor(Math.random() * 4)]}`,
-      }));
-    
-    case 'analytics':
-      return {
-        overview: {
-          total_leads: Math.floor(Math.random() * 500) + 200,
-          lead_growth: (Math.random() * 30).toFixed(1),
-          conversion_rate: (Math.random() * 15 + 5).toFixed(1),
-          avg_deal_size: Math.floor(Math.random() * 5000) + 2000,
-          channel_performance: [
-            { name: 'Email', value: Math.floor(Math.random() * 40) + 10 },
-            { name: 'Social', value: Math.floor(Math.random() * 30) + 5 },
-            { name: 'Referrals', value: Math.floor(Math.random() * 20) + 5 },
-            { name: 'Organic', value: Math.floor(Math.random() * 15) + 5 },
-            { name: 'Paid', value: Math.floor(Math.random() * 10) + 5 },
-          ],
-        },
-        campaigns: {
-          total: Math.floor(Math.random() * 20) + 10,
-          active: Math.floor(Math.random() * 10) + 5,
-          roi: (Math.random() * 4 + 1).toFixed(2),
-          best_performing: {
-            name: `Campaign ${Math.floor(Math.random() * 5) + 1}`,
-            conversion_rate: (Math.random() * 20 + 10).toFixed(1),
-            roi: (Math.random() * 5 + 2).toFixed(2),
-          },
-        },
-        leads: {
-          monthly_trend: Array(12).fill(null).map((_, i) => ({
-            month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-            value: Math.floor(Math.random() * 80) + 20,
-          })),
-          by_source: [
-            { name: 'Email Outreach', value: Math.floor(Math.random() * 150) + 50 },
-            { name: 'Social Media', value: Math.floor(Math.random() * 120) + 30 },
-            { name: 'Website', value: Math.floor(Math.random() * 100) + 20 },
-            { name: 'Referrals', value: Math.floor(Math.random() * 80) + 20 },
-            { name: 'Events', value: Math.floor(Math.random() * 50) + 10 },
-          ],
-          conversion_by_stage: [
-            { name: 'Awareness', value: Math.floor(Math.random() * 100) + 500 },
-            { name: 'Interest', value: Math.floor(Math.random() * 100) + 300 },
-            { name: 'Consideration', value: Math.floor(Math.random() * 100) + 150 },
-            { name: 'Intent', value: Math.floor(Math.random() * 100) + 70 },
-            { name: 'Evaluation', value: Math.floor(Math.random() * 100) + 40 },
-            { name: 'Purchase', value: Math.floor(Math.random() * 100) + 20 },
-          ],
-        },
-      };
-    
-    case 'email-outreach':
-      return Array(10).fill(null).map((_, i) => ({
-        id: i + 1,
-        template_name: `Template ${i + 1}`,
-        subject: `Subject for Template ${i + 1}`,
-        sent_count: Math.floor(Math.random() * 200) + 50,
-        open_rate: (Math.random() * 40 + 20).toFixed(1),
-        click_rate: (Math.random() * 20 + 5).toFixed(1),
-        response_rate: (Math.random() * 10 + 2).toFixed(1),
-        last_sent: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: ['active', 'draft', 'archived'][Math.floor(Math.random() * 3)],
-        category: ['cold-outreach', 'follow-up', 'nurture', 'promotional'][Math.floor(Math.random() * 4)],
-      }));
-    
-    case 'leads':
-      return Array(15).fill(null).map((_, i) => ({
-        id: i + 1,
-        name: `Lead ${i + 1}`,
-        company: `Company ${i + 1}`,
-        position: ['CEO', 'Marketing Director', 'Operations Manager', 'CTO', 'Business Owner'][Math.floor(Math.random() * 5)],
-        email: `lead${i + 1}@company${i + 1}.com`,
-        phone: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-        source: ['Website', 'Referral', 'LinkedIn', 'Email Campaign', 'Event'][Math.floor(Math.random() * 5)],
-        status: ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'][Math.floor(Math.random() * 7)],
-        last_contact: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        next_follow_up: new Date(Date.now() + Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        estimated_value: Math.floor(Math.random() * 10000) + 1000,
-        probability: Math.floor(Math.random() * 100),
-        notes: `Notes about Lead ${i + 1}`,
-      }));
-    
-    case 'marketing-plans':
-      return Array(5).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: `Marketing Plan ${i + 1}`,
-        description: `Description for Marketing Plan ${i + 1}`,
-        start_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        end_date: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: ['active', 'draft', 'completed', 'on_hold'][Math.floor(Math.random() * 4)],
-        budget: Math.floor(Math.random() * 50000) + 10000,
-        goals: Array(3).fill(null).map((_, j) => ({
-          id: j + 1,
-          title: ['Increase Website Traffic', 'Generate Leads', 'Improve Conversion Rate', 'Boost Social Media Presence', 'Launch New Product'][Math.floor(Math.random() * 5)],
-          target: `${Math.floor(Math.random() * 100) + 20}%`,
-          current: `${Math.floor(Math.random() * 50) + 10}%`,
-        })),
-        channels: ['Email', 'Social Media', 'Content Marketing', 'SEO', 'Paid Ads'].slice(0, Math.floor(Math.random() * 5) + 1),
-        target_audience: ['Small Businesses', 'Enterprise Companies', 'Startups', 'E-commerce', 'B2B Services'].slice(0, Math.floor(Math.random() * 5) + 1),
-        milestones: Array(4).fill(null).map((_, j) => ({
-          id: j + 1,
-          title: `Milestone ${j + 1}`,
-          date: new Date(Date.now() + j * 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: ['pending', 'completed', 'in_progress', 'delayed'][Math.floor(Math.random() * 4)],
-        })),
-      }));
-    
-    case 'marketing-trends':
-      return Array(8).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: ['AI in Marketing', 'Video Content', 'Personalization', 'Voice Search', 'Social Commerce', 'Sustainability Marketing', 'Influencer Marketing', 'Interactive Content'][i],
-        description: `Trend description for ${['AI in Marketing', 'Video Content', 'Personalization', 'Voice Search', 'Social Commerce', 'Sustainability Marketing', 'Influencer Marketing', 'Interactive Content'][i]}`,
-        relevance_score: Math.floor(Math.random() * 10) + 1,
-        adoption_level: ['early', 'growing', 'mainstream', 'mature'][Math.floor(Math.random() * 4)],
-        expected_impact: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
-        suggested_actions: Array(3).fill(null).map((_, j) => `Action ${j + 1} for trend ${i + 1}`),
-        resources_needed: ['budget', 'training', 'tools', 'expertise'].slice(0, Math.floor(Math.random() * 4) + 1),
-        implementation_timeline: ['immediate', 'short-term', 'mid-term', 'long-term'][Math.floor(Math.random() * 4)],
-        industry_examples: Array(2).fill(null).map((_, j) => `Example ${j + 1} for trend ${i + 1}`),
-      }));
-    
-    case 'competitor-insights':
-      return Array(5).fill(null).map((_, i) => ({
-        id: i + 1,
-        competitor_name: `Competitor ${i + 1}`,
-        website: `https://competitor${i + 1}.com`,
-        strengths: Array(3).fill(null).map((_, j) => `Strength ${j + 1} for competitor ${i + 1}`),
-        weaknesses: Array(3).fill(null).map((_, j) => `Weakness ${j + 1} for competitor ${i + 1}`),
-        recent_activities: Array(3).fill(null).map((_, j) => `Activity ${j + 1} for competitor ${i + 1}`),
-        target_audience: ['Small Businesses', 'Enterprise Companies', 'Startups', 'E-commerce', 'B2B Services'].slice(0, Math.floor(Math.random() * 5) + 1),
-        pricing_strategy: ['premium', 'competitive', 'economy', 'freemium', 'subscription'][Math.floor(Math.random() * 5)],
-        market_share: (Math.random() * 30).toFixed(1),
-        growth_rate: (Math.random() * 20 - 5).toFixed(1),
-        threat_level: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
-        opportunity_areas: Array(2).fill(null).map((_, j) => `Opportunity ${j + 1} for differentiating from competitor ${i + 1}`),
-      }));
-    
-    case 'marketing-metrics':
-      return {
-        website_traffic: {
-          total_visits: Math.floor(Math.random() * 100000) + 20000,
-          growth_rate: (Math.random() * 30 - 5).toFixed(1),
-          bounce_rate: (Math.random() * 30 + 20).toFixed(1),
-          avg_session_duration: (Math.random() * 5 + 1).toFixed(2),
-          by_source: [
-            { name: 'Organic', value: Math.floor(Math.random() * 50000) + 10000 },
-            { name: 'Paid', value: Math.floor(Math.random() * 30000) + 5000 },
-            { name: 'Social', value: Math.floor(Math.random() * 20000) + 3000 },
-            { name: 'Referral', value: Math.floor(Math.random() * 10000) + 2000 },
-            { name: 'Direct', value: Math.floor(Math.random() * 5000) + 1000 },
-          ],
-          monthly_trend: Array(12).fill(null).map((_, i) => ({
-            month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-            value: Math.floor(Math.random() * 10000) + 5000,
-          })),
-        },
-        social_media: {
-          followers: Math.floor(Math.random() * 50000) + 10000,
-          growth_rate: (Math.random() * 20).toFixed(1),
-          engagement_rate: (Math.random() * 5 + 1).toFixed(2),
-          reach: Math.floor(Math.random() * 200000) + 50000,
-          by_platform: [
-            { name: 'LinkedIn', value: Math.floor(Math.random() * 20000) + 5000, growth: (Math.random() * 20).toFixed(1) },
-            { name: 'Twitter', value: Math.floor(Math.random() * 15000) + 3000, growth: (Math.random() * 15).toFixed(1) },
-            { name: 'Facebook', value: Math.floor(Math.random() * 10000) + 2000, growth: (Math.random() * 10).toFixed(1) },
-            { name: 'Instagram', value: Math.floor(Math.random() * 5000) + 1000, growth: (Math.random() * 25).toFixed(1) },
-          ],
-          top_posts: Array(3).fill(null).map((_, i) => ({
-            id: i + 1,
-            platform: ['LinkedIn', 'Twitter', 'Facebook', 'Instagram'][Math.floor(Math.random() * 4)],
-            content: `Content snippet for post ${i + 1}`,
-            engagement: Math.floor(Math.random() * 1000) + 100,
-            reach: Math.floor(Math.random() * 5000) + 500,
-            date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          })),
-        },
-        email_marketing: {
-          total_subscribers: Math.floor(Math.random() * 20000) + 5000,
-          growth_rate: (Math.random() * 15).toFixed(1),
-          avg_open_rate: (Math.random() * 30 + 15).toFixed(1),
-          avg_click_rate: (Math.random() * 10 + 2).toFixed(1),
-          unsubscribe_rate: (Math.random() * 2).toFixed(2),
-          best_performing_campaign: {
-            name: `Campaign ${Math.floor(Math.random() * 5) + 1}`,
-            open_rate: (Math.random() * 50 + 20).toFixed(1),
-            click_rate: (Math.random() * 30 + 5).toFixed(1),
-            conversion_rate: (Math.random() * 15 + 2).toFixed(1),
-          },
-        },
-        content_marketing: {
-          total_content_pieces: Math.floor(Math.random() * 200) + 50,
-          avg_engagement: (Math.random() * 500 + 100).toFixed(0),
-          conversion_rate: (Math.random() * 5 + 1).toFixed(2),
-          by_type: [
-            { name: 'Blog Posts', value: Math.floor(Math.random() * 100) + 20 },
-            { name: 'Case Studies', value: Math.floor(Math.random() * 50) + 10 },
-            { name: 'Whitepapers', value: Math.floor(Math.random() * 30) + 5 },
-            { name: 'Videos', value: Math.floor(Math.random() * 20) + 5 },
-            { name: 'Infographics', value: Math.floor(Math.random() * 10) + 5 },
-          ],
-          top_performing: Array(3).fill(null).map((_, i) => ({
-            id: i + 1,
-            title: `Content ${i + 1}`,
-            type: ['Blog Post', 'Case Study', 'Whitepaper', 'Video', 'Infographic'][Math.floor(Math.random() * 5)],
-            views: Math.floor(Math.random() * 5000) + 1000,
-            engagement: Math.floor(Math.random() * 500) + 100,
-            conversion_rate: (Math.random() * 10 + 1).toFixed(2),
-          })),
-        },
-      };
-        
-    case 'meeting-transcript':
-      return {
-        summary: "The meeting focused on the client's needs for a new marketing campaign targeting small business owners. The client wants to increase brand awareness and generate leads through social media and email marketing.",
-        key_points: [
-          "Client is looking for a comprehensive marketing strategy",
-          "Target audience is small business owners in the tech sector",
-          "Budget is around $10,000-$15,000 for the initial campaign",
-          "Timeline is 3 months with a potential extension",
-          "Client prefers data-driven approach with regular reporting"
-        ],
-        action_items: [
-          { task: "Create initial campaign proposal", assignee: "Marketing Team", deadline: "Next Friday" },
-          { task: "Research similar campaigns in tech sector", assignee: "Research Team", deadline: "Wednesday" },
-          { task: "Develop budget breakdown", assignee: "Finance Team", deadline: "Monday" },
-          { task: "Draft email templates", assignee: "Content Team", deadline: "Next Tuesday" }
-        ],
-        client_pain_points: [
-          "Previous agencies didn't provide enough reporting",
-          "Struggled to track ROI from marketing efforts",
-          "Limited success with previous social media campaigns",
-          "Needs help with messaging and positioning"
-        ],
-        opportunities: [
-          "Client has untapped email list of 5,000+ contacts",
-          "Client has good content that can be repurposed",
-          "Client is open to testimonial videos",
-          "Client has budget for paid social campaigns"
-        ],
-        follow_up_schedule: {
-          next_meeting: "Two weeks from today",
-          deliverables: [
-            "Initial campaign proposal",
-            "Budget breakdown",
-            "Timeline for implementation",
-            "KPI tracking methodology"
-          ]
-        }
-      };
+/**
+ * Service for marketing data
+ */
+const marketingService = {
+  /**
+   * Get all marketing campaigns
+   */
+  getCampaigns: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_campaigns')
+        .select('*');
       
-    case 'email-templates':
-      return [
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
         {
           id: 1,
-          name: "Cold Outreach - Initial Contact",
-          subject: "Quick question about your [business area] goals",
-          body: "Hi {first_name},\n\nI noticed [company_name]'s recent [achievement/news] and wanted to reach out. We've helped similar businesses in [industry] achieve [specific result] through our [service].\n\nWould you be open to a brief conversation about how we might help [company_name] with [specific goal]?\n\nBest regards,\n{sender_name}",
-          variables: ["first_name", "company_name", "industry", "specific_result", "service", "specific_goal", "sender_name"],
-          category: "cold-outreach",
-          performance: {
-            open_rate: 35,
-            response_rate: 12,
-            meetings_booked: 5
-          }
+          title: 'Summer Promotion',
+          type: 'Email',
+          status: 'Active',
+          start_date: '2023-06-01',
+          end_date: '2023-08-31',
+          budget: 5000,
+          roi: '320%',
+          leads_generated: 127,
+          conversion_rate: '3.5%'
         },
         {
           id: 2,
-          name: "Follow-up - After No Response",
-          subject: "Following up: [specific topic]",
-          body: "Hi {first_name},\n\nI wanted to follow up on my previous email about helping [company_name] with [specific goal].\n\nI understand you're busy, but I thought you might be interested in this [case study/resource] showing how we helped [similar company] achieve [specific result].\n\nWould you have 15 minutes this week to discuss how we could achieve similar results for [company_name]?\n\nBest regards,\n{sender_name}",
-          variables: ["first_name", "company_name", "specific_goal", "case_study/resource", "similar_company", "specific_result", "sender_name"],
-          category: "follow-up",
-          performance: {
-            open_rate: 42,
-            response_rate: 15,
-            meetings_booked: 7
-          }
+          title: 'Product Launch',
+          type: 'Social Media',
+          status: 'Planning',
+          start_date: '2023-09-15',
+          end_date: '2023-10-15',
+          budget: 10000,
+          roi: 'N/A',
+          leads_generated: 0,
+          conversion_rate: '0%'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      toast.error('Failed to load campaigns');
+      return [];
+    }
+  },
+
+  /**
+   * Create a new marketing campaign
+   * @param campaignData - Campaign data
+   */
+  createCampaign: async (campaignData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_campaigns')
+        .insert(campaignData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast.success('Campaign created successfully');
+      return data;
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast.error('Failed to create campaign');
+      throw error;
+    }
+  },
+
+  /**
+   * Get all marketing meetings
+   */
+  getMeetings: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_meetings')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
+        {
+          id: 1,
+          title: 'Client Onboarding',
+          type: 'New Client',
+          date: '2023-08-15',
+          time: '14:00',
+          contact_name: 'John Smith',
+          company: 'ABC Tech',
+          status: 'Scheduled',
+          notes: 'Discuss project requirements and timeline'
         },
         {
-          id: 3,
-          name: "Meeting Confirmation",
-          subject: "Confirmed: Our meeting on [date]",
-          body: "Hi {first_name},\n\nI'm looking forward to our conversation on {meeting_date} at {meeting_time}.\n\nTo make our time most valuable, I've prepared a few questions:\n\n1. What are your current challenges with [business area]?\n2. What have you tried so far to address these challenges?\n3. What would success look like for you in the next [timeframe]?\n\nFeel free to share any specific topics you'd like to discuss.\n\nBest regards,\n{sender_name}\n\nP.S. Here's a calendar invite for your convenience: {calendar_link}",
-          variables: ["first_name", "meeting_date", "meeting_time", "business_area", "timeframe", "sender_name", "calendar_link"],
-          category: "meeting",
-          performance: {
-            open_rate: 82,
-            response_rate: 65,
-            meetings_booked: 0
+          id: 2,
+          title: 'Strategy Review',
+          type: 'Existing Client',
+          date: '2023-08-18',
+          time: '10:30',
+          contact_name: 'Sarah Johnson',
+          company: 'XYZ Corp',
+          status: 'Completed',
+          notes: 'Reviewed campaign performance and planned next steps'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching meetings:', error);
+      toast.error('Failed to load meetings');
+      return [];
+    }
+  },
+
+  /**
+   * Create a new marketing meeting
+   * @param meetingData - Meeting data
+   */
+  createMeeting: async (meetingData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_meetings')
+        .insert(meetingData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast.success('Meeting created successfully');
+      return data;
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      toast.error('Failed to create meeting');
+      throw error;
+    }
+  },
+
+  /**
+   * Get marketing analytics
+   * @param startDate - Start date for the analytics
+   * @param endDate - End date for the analytics
+   */
+  getAnalytics: async (startDate?: string, endDate?: string) => {
+    try {
+      // In a real implementation, we would filter based on startDate and endDate
+      
+      // Return mock data
+      return {
+        overview: {
+          total_leads: 256,
+          lead_growth: '+15%',
+          conversion_rate: '3.2%',
+          avg_deal_size: 5200,
+          channel_performance: [
+            { name: 'Email', value: 35 },
+            { name: 'Social', value: 25 },
+            { name: 'SEO', value: 20 },
+            { name: 'Referral', value: 15 },
+            { name: 'Direct', value: 5 }
+          ]
+        },
+        campaigns: {
+          total: 8,
+          active: 3,
+          roi: '275%',
+          best_performing: {
+            name: 'Summer Promotion',
+            roi: '320%',
+            leads: 127
           }
         },
+        website: {
+          visitors: 12500,
+          growth: '+8%',
+          avg_session: '2:15',
+          bounce_rate: '38%',
+          top_pages: [
+            { path: '/features', visits: 3200 },
+            { path: '/pricing', visits: 2800 },
+            { path: '/about', visits: 1500 }
+          ]
+        },
+        social_media: {
+          followers: 45000,
+          engagement: '4.2%',
+          growth: '+12%',
+          top_platforms: [
+            { name: 'LinkedIn', followers: 22000, growth: '+15%' },
+            { name: 'Twitter', followers: 18000, growth: '+8%' },
+            { name: 'Instagram', followers: 5000, growth: '+20%' }
+          ]
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      toast.error('Failed to load analytics');
+      return {};
+    }
+  },
+
+  /**
+   * Get email templates
+   */
+  getEmailTemplates: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_templates')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
         {
-          id: 4,
-          name: "Proposal Follow-up",
-          subject: "Next steps for [company_name]'s [project/solution]",
-          body: "Hi {first_name},\n\nI hope you've had a chance to review the proposal I sent on {sent_date}.\n\nBased on our conversation, I believe the [specific solution] we outlined would help [company_name] achieve [specific goal] within [timeframe].\n\nDo you have any questions about the proposal or would you like to discuss any adjustments to better meet your needs?\n\nBest regards,\n{sender_name}",
-          variables: ["first_name", "company_name", "sent_date", "specific_solution", "specific_goal", "timeframe", "sender_name"],
-          category: "proposal",
+          id: 1,
+          name: 'Welcome Email',
+          subject: 'Welcome to Our Service!',
+          body: 'Dear {{name}},\n\nWelcome to our service! We are excited to have you on board...',
+          variables: ['name', 'company'],
+          category: 'Onboarding',
           performance: {
-            open_rate: 78,
-            response_rate: 45,
-            meetings_booked: 0
-          }
+            open_rate: 65.2,
+            response_rate: 12.5,
+            meetings_booked: 8
+          },
+          improvements: [
+            'Add more personalization',
+            'Include case study links'
+          ]
         },
         {
-          id: 5,
-          name: "Client Onboarding - Welcome",
-          subject: "Welcome to [company_name]!",
-          body: "Hi {first_name},\n\nWe're thrilled to have [client_company] join us as a client!\n\nHere's what happens next:\n\n1. Your account manager, {account_manager}, will reach out within 24 hours to schedule your kickoff meeting.\n2. You'll receive access to our client portal at {portal_link}.\n3. We'll begin working on [initial_deliverable] as discussed.\n\nIf you have any questions in the meantime, feel free to reach out.\n\nWe're excited to help [client_company] achieve [specific_goal]!\n\nBest regards,\n{sender_name}",
-          variables: ["first_name", "client_company", "account_manager", "portal_link", "initial_deliverable", "specific_goal", "sender_name"],
-          category: "onboarding",
+          id: 2,
+          name: 'Follow-up After Meeting',
+          subject: 'Great Meeting Today, {{name}}',
+          body: 'Hi {{name}},\n\nThank you for your time today. As discussed...',
+          variables: ['name', 'meeting_date', 'next_steps'],
+          category: 'Follow-up',
           performance: {
-            open_rate: 95,
-            response_rate: 72,
-            meetings_booked: 0
+            open_rate: 72.8,
+            response_rate: 35.4,
+            meetings_booked: 12
           }
         }
       ];
-      
-    default:
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      toast.error('Failed to load email templates');
       return [];
-  }
-};
+    }
+  },
 
-const marketingService = {
-  // Campaign-related methods
-  getCampaigns: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/campaigns');
-      
-      // Mock data for development
-      return generateMockData('campaigns');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  createCampaign: async (campaignData: any) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post('/marketing/campaigns', campaignData);
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Campaign created successfully', 
-        campaign: { id: Date.now(), ...campaignData } 
-      };
-    } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to create campaign' });
-    }
-  },
-  
-  // Meeting-related methods
-  getMeetings: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/meetings');
-      
-      // Mock data for development
-      return generateMockData('meetings');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  createMeeting: async (meetingData: any) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post('/marketing/meetings', meetingData);
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Meeting created successfully', 
-        meeting: { id: Date.now(), ...meetingData } 
-      };
-    } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to create meeting' });
-    }
-  },
-  
-  // Analytics-related methods
-  getAnalytics: async (startDate?: string, endDate?: string) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/analytics', { params: { startDate, endDate } });
-      
-      // Mock data for development
-      return generateMockData('analytics');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  // Email Outreach
+  /**
+   * Get email outreach data
+   */
   getEmailOutreach: async () => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/email-outreach');
+      const { data, error } = await supabase
+        .from('email_outreach')
+        .select('*');
       
-      // Mock data for development
-      return generateMockData('email-outreach');
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
+        {
+          id: 1,
+          campaign_name: 'Q3 Prospecting',
+          status: 'Active',
+          sent_date: '2023-07-10',
+          recipients: 500,
+          open_rate: '42%',
+          click_rate: '12%',
+          response_rate: '8%',
+          meetings_booked: 15
+        },
+        {
+          id: 2,
+          campaign_name: 'Event Follow-up',
+          status: 'Completed',
+          sent_date: '2023-06-22',
+          recipients: 250,
+          open_rate: '58%',
+          click_rate: '24%',
+          response_rate: '18%',
+          meetings_booked: 22
+        }
+      ];
     } catch (error) {
-      return handleApiError(error, []);
+      console.error('Error fetching email outreach data:', error);
+      toast.error('Failed to load email outreach data');
+      return [];
     }
   },
-  
-  // Leads
+
+  /**
+   * Get leads
+   */
   getLeads: async () => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/leads');
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*');
       
-      // Mock data for development
-      return generateMockData('leads');
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
+        {
+          id: 1,
+          name: 'John Smith',
+          company: 'ABC Tech',
+          position: 'CTO',
+          email: 'john.smith@abctech.com',
+          phone: '+1-555-123-4567',
+          source: 'Website',
+          status: 'New',
+          last_contact: '2023-08-10',
+          next_follow_up: '2023-08-15',
+          estimated_value: 10000,
+          probability: 30,
+          notes: 'Showed interest in our enterprise solution'
+        },
+        {
+          id: 2,
+          name: 'Sarah Johnson',
+          company: 'XYZ Corp',
+          position: 'Marketing Director',
+          email: 'sarah.j@xyzcorp.com',
+          phone: '+1-555-987-6543',
+          source: 'Referral',
+          status: 'Qualified',
+          last_contact: '2023-08-05',
+          next_follow_up: '2023-08-12',
+          estimated_value: 25000,
+          probability: 50,
+          notes: 'Looking to revamp their digital marketing strategy'
+        }
+      ];
     } catch (error) {
-      return handleApiError(error, []);
+      console.error('Error fetching leads:', error);
+      toast.error('Failed to load leads');
+      return [];
     }
   },
-  
-  // Marketing Plans
+
+  /**
+   * Get marketing plans
+   */
   getMarketingPlans: async () => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/plans');
+      const { data, error } = await supabase
+        .from('marketing_plans')
+        .select('*');
       
-      // Mock data for development
-      return generateMockData('marketing-plans');
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
+        {
+          id: 1,
+          title: 'Q4 Growth Strategy',
+          description: 'Comprehensive plan to drive Q4 growth across all channels',
+          start_date: '2023-10-01',
+          end_date: '2023-12-31',
+          status: 'Draft',
+          budget: 50000,
+          goals: [
+            { id: 1, title: 'Increase website traffic', target: '25%', current: '0%' },
+            { id: 2, title: 'Generate qualified leads', target: '100', current: '0' }
+          ],
+          channels: ['Social Media', 'Email', 'Content Marketing', 'SEO'],
+          target_audience: ['SaaS Companies', 'E-commerce', 'Financial Services'],
+          milestones: [
+            { id: 1, title: 'Strategy finalization', date: '2023-09-15', status: 'Pending' },
+            { id: 2, title: 'Campaign launch', date: '2023-10-01', status: 'Pending' }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Product Launch Campaign',
+          description: 'Marketing plan for the launch of our new product',
+          start_date: '2023-09-15',
+          end_date: '2023-10-15',
+          status: 'In Progress',
+          budget: 35000,
+          goals: [
+            { id: 1, title: 'Product pre-orders', target: '500', current: '125' },
+            { id: 2, title: 'Press coverage', target: '10 publications', current: '3 publications' }
+          ],
+          channels: ['PR', 'Social Media', 'Influencer Marketing', 'Email'],
+          target_audience: ['Existing Customers', 'Tech Enthusiasts', 'Industry Professionals'],
+          milestones: [
+            { id: 1, title: 'Press release', date: '2023-09-01', status: 'Completed' },
+            { id: 2, title: 'Product launch event', date: '2023-09-15', status: 'Pending' }
+          ]
+        }
+      ];
     } catch (error) {
-      return handleApiError(error, []);
+      console.error('Error fetching marketing plans:', error);
+      toast.error('Failed to load marketing plans');
+      return [];
     }
   },
-  
+
+  /**
+   * Get a marketing plan by ID
+   * @param planId - Plan ID
+   */
   getMarketingPlanById: async (planId: number) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get(`/marketing/plans/${planId}`);
+      const { data, error } = await supabase
+        .from('marketing_plans')
+        .select('*')
+        .eq('id', planId)
+        .single();
       
-      // Mock data for development
-      const plans = generateMockData('marketing-plans');
-      return plans.find((plan: any) => plan.id === planId) || null;
-    } catch (error) {
-      return handleApiError(error, null);
-    }
-  },
-  
-  // Marketing Trends
-  getMarketingTrends: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/trends');
+      if (error) throw error;
       
-      // Mock data for development
-      return generateMockData('marketing-trends');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  // Competitor Insights
-  getCompetitorInsights: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/competitor-insights');
-      
-      // Mock data for development
-      return generateMockData('competitor-insights');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  // Marketing Metrics
-  getMarketingMetrics: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/metrics');
-      
-      // Mock data for development
-      return generateMockData('marketing-metrics');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  // Meeting Analysis
-  analyzeMeetingTranscript: async (transcript: string) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post('/marketing/analyze-transcript', { transcript });
-      
-      // Mock data for development
-      return generateMockData('meeting-transcript');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  // Email Templates
-  getEmailTemplates: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/marketing/email-templates');
-      
-      // Mock data for development
-      return generateMockData('email-templates');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  createEmailTemplate: async (templateData: any) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post('/marketing/email-templates', templateData);
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Email template created successfully', 
-        template: { id: Date.now(), ...templateData, performance: { open_rate: 0, response_rate: 0, meetings_booked: 0 } } 
-      };
-    } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to create email template' });
-    }
-  },
-  
-  updateEmailTemplate: async (templateId: number, templateData: any) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.put(`/marketing/email-templates/${templateId}`, templateData);
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Email template updated successfully', 
-        template: { id: templateId, ...templateData } 
-      };
-    } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to update email template' });
-    }
-  },
-  
-  improveEmailTemplate: async (templateId: number, promptConstraints: any) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post(`/marketing/email-templates/${templateId}/improve`, promptConstraints);
-      
-      // Mock response for development - simulating AI improvement
-      const templates = generateMockData('email-templates');
-      const template = templates.find((t: any) => t.id === templateId);
-      
-      if (!template) {
-        return { success: false, message: 'Template not found' };
+      // For demonstration, return first mock plan if no data
+      if (!data) {
+        return {
+          id: 1,
+          title: 'Q4 Growth Strategy',
+          description: 'Comprehensive plan to drive Q4 growth across all channels',
+          start_date: '2023-10-01',
+          end_date: '2023-12-31',
+          status: 'Draft',
+          budget: 50000,
+          goals: [
+            { id: 1, title: 'Increase website traffic', target: '25%', current: '0%' },
+            { id: 2, title: 'Generate qualified leads', target: '100', current: '0' }
+          ],
+          channels: ['Social Media', 'Email', 'Content Marketing', 'SEO'],
+          target_audience: ['SaaS Companies', 'E-commerce', 'Financial Services'],
+          milestones: [
+            { id: 1, title: 'Strategy finalization', date: '2023-09-15', status: 'Pending' },
+            { id: 2, title: 'Campaign launch', date: '2023-10-01', status: 'Pending' }
+          ]
+        };
       }
       
-      // Simulate AI improvements
-      const improved = {
-        ...template,
-        subject: template.subject + " - Enhanced",
-        body: template.body.replace("I noticed", "I recently noticed").replace("Would you be open", "I'm curious if you'd be open"),
-        improvements: [
-          "Made subject line more engaging",
-          "Improved opening sentence to create stronger connection",
-          "Added specificity to value proposition",
-          "Created more conversational tone throughout",
-          "Enhanced call to action"
-        ]
-      };
+      return data;
+    } catch (error) {
+      console.error('Error fetching marketing plan:', error);
+      toast.error('Failed to load marketing plan');
+      return null;
+    }
+  },
+
+  /**
+   * Get marketing trends
+   */
+  getMarketingTrends: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_trends')
+        .select('*');
       
-      return { 
-        success: true, 
-        message: 'Email template improved successfully', 
-        original: template,
-        improved: improved
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
+        {
+          id: 1,
+          title: 'AI-Powered Content Creation',
+          type: 'Technology',
+          description: 'AI tools are revolutionizing how marketing content is created, enabling faster production and personalization.',
+          impact: 'High',
+          discoveredAt: '2023-07-15',
+          source: 'Industry Research',
+          suggestedResponse: 'Evaluate AI content tools for our marketing department to improve efficiency'
+        },
+        {
+          id: 2,
+          title: 'Privacy-First Marketing',
+          type: 'Strategy',
+          description: 'With increasing privacy regulations, marketers are shifting towards first-party data and privacy-compliant strategies.',
+          impact: 'High',
+          discoveredAt: '2023-08-01',
+          source: 'Market Analysis',
+          suggestedResponse: 'Audit our data collection practices and enhance first-party data strategies'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching marketing trends:', error);
+      toast.error('Failed to load marketing trends');
+      return [];
+    }
+  },
+
+  /**
+   * Get competitor insights
+   */
+  getCompetitorInsights: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('competitor_insights')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || [
+        {
+          id: 1,
+          competitor_name: 'Acme Corp',
+          website: 'www.acmecorp.com',
+          strengths: ['Strong brand recognition', 'Large marketing budget', 'Extensive product line'],
+          weaknesses: ['Poor customer service', 'Outdated UI/UX', 'Slow innovation cycle'],
+          recent_activities: ['Launched new product line', 'Expanded to European market', 'Hired new CMO'],
+          target_audience: ['Enterprise customers', 'Mid-market businesses'],
+          pricing_strategy: 'Premium pricing with annual contracts',
+          market_share: '32%',
+          growth_rate: '8%',
+          threat_level: 'High',
+          opportunity_areas: ['Customer service improvements', 'SMB market expansion'],
+          impact: 'High',
+          type: 'Competitor Move',
+          description: 'Acme Corp is entering our primary market segment with competitive pricing',
+          discoveredAt: '2023-08-05',
+          source: 'Press Release',
+          suggestedResponse: 'Enhance our value proposition and prepare competitive comparison materials'
+        },
+        {
+          id: 2,
+          competitor_name: 'TechSolutions Inc',
+          website: 'www.techsolutions.com',
+          strengths: ['Cutting-edge technology', 'Strong developer community', 'Agile development process'],
+          weaknesses: ['Limited market presence', 'High pricing', 'Complex implementation'],
+          recent_activities: ['Raised $50M Series C', 'Released API platform', 'Partnered with major cloud provider'],
+          target_audience: ['Technical decision makers', 'Startups', 'Technology companies'],
+          pricing_strategy: 'Usage-based with freemium tier',
+          market_share: '15%',
+          growth_rate: '25%',
+          threat_level: 'Medium',
+          opportunity_areas: ['Non-technical user experience', 'Simplified onboarding'],
+          impact: 'Medium',
+          type: 'Product Launch',
+          description: 'TechSolutions launched a simplified version of their platform aimed at non-technical users',
+          discoveredAt: '2023-07-20',
+          source: 'Product Hunt',
+          suggestedResponse: 'Highlight our ease-of-use advantages and prepare competitive feature comparison'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching competitor insights:', error);
+      toast.error('Failed to load competitor insights');
+      return [];
+    }
+  },
+
+  /**
+   * Get marketing metrics
+   */
+  getMarketingMetrics: async () => {
+    try {
+      // Return mock data
+      return {
+        website_traffic: {
+          total_visits: 45000,
+          growth_rate: '+12%',
+          bounce_rate: '35%',
+          avg_session_duration: '2:45',
+          by_source: [
+            { name: 'Organic Search', value: 18000 },
+            { name: 'Direct', value: 12000 },
+            { name: 'Referral', value: 8000 },
+            { name: 'Social', value: 5000 },
+            { name: 'Email', value: 2000 }
+          ],
+          monthly_trend: [
+            { month: 'Jan', value: 32000 },
+            { month: 'Feb', value: 34000 },
+            { month: 'Mar', value: 38000 },
+            { month: 'Apr', value: 42000 },
+            { month: 'May', value: 40000 },
+            { month: 'Jun', value: 45000 }
+          ]
+        },
+        social_media: {
+          followers: 78000,
+          growth_rate: '+8%',
+          engagement_rate: '3.2%',
+          reach: 250000,
+          by_platform: [
+            { name: 'LinkedIn', value: 35000, growth: '+12%' },
+            { name: 'Twitter', value: 25000, growth: '+5%' },
+            { name: 'Instagram', value: 15000, growth: '+15%' },
+            { name: 'Facebook', value: 3000, growth: '-2%' }
+          ],
+          top_posts: [
+            {
+              id: 1,
+              platform: 'LinkedIn',
+              content: 'Announcement of our new product feature',
+              engagement: 1800,
+              reach: 20000,
+              date: '2023-06-15'
+            },
+            {
+              id: 2,
+              platform: 'Twitter',
+              content: 'Industry insights thread',
+              engagement: 950,
+              reach: 15000,
+              date: '2023-06-22'
+            }
+          ]
+        },
+        email_marketing: {
+          total_subscribers: 25000,
+          growth_rate: '+5%',
+          avg_open_rate: '28%',
+          avg_click_rate: '3.5%',
+          unsubscribe_rate: '0.2%',
+          best_performing_campaign: {
+            name: 'Product Update - June 2023',
+            open_rate: '35%',
+            click_rate: '5.8%',
+            conversion_rate: '2.1%'
+          }
+        },
+        content_marketing: {
+          total_content_pieces: 120,
+          avg_engagement: '250 interactions per piece',
+          conversion_rate: '1.8%',
+          by_type: [
+            { name: 'Blog Posts', value: 60 },
+            { name: 'Case Studies', value: 25 },
+            { name: 'Whitepapers', value: 15 },
+            { name: 'Videos', value: 20 }
+          ],
+          top_performing: [
+            {
+              id: 1,
+              title: 'Ultimate Guide to Digital Transformation',
+              type: 'Whitepaper',
+              views: 8500,
+              engagement: 450,
+              conversion_rate: '3.2%'
+            },
+            {
+              id: 2,
+              title: '5 Ways to Improve Your Marketing ROI',
+              type: 'Blog Post',
+              views: 12000,
+              engagement: 350,
+              conversion_rate: '2.5%'
+            }
+          ]
+        }
       };
     } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to improve email template' });
+      console.error('Error fetching marketing metrics:', error);
+      toast.error('Failed to load marketing metrics');
+      return {};
+    }
+  },
+
+  /**
+   * Analyze meeting transcript
+   * @param transcript - Meeting transcript
+   */
+  analyzeMeetingTranscript: async (transcript: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-meeting', {
+        body: { transcript },
+      });
+      
+      if (error) throw error;
+      
+      // Return mock data if no data is returned
+      return data || {
+        summary: 'The meeting focused on discussing the client\'s needs for a new marketing campaign targeting their B2B audience. The client expressed interest in our content marketing services and had specific requirements regarding timeline and budget.',
+        key_points: [
+          'Client needs a B2B-focused campaign',
+          'Budget range is $25,000-$30,000',
+          'Timeline: launch by Q4 2023',
+          'Main goals: lead generation and brand awareness',
+          'Previous campaign had mixed results'
+        ],
+        action_items: [
+          {
+            task: 'Prepare campaign proposal',
+            assignee: 'Marketing Team',
+            deadline: '2023-08-20'
+          },
+          {
+            task: 'Send case studies relevant to B2B marketing',
+            assignee: 'Account Manager',
+            deadline: '2023-08-15'
+          },
+          {
+            task: 'Schedule follow-up meeting',
+            assignee: 'Sales Team',
+            deadline: '2023-08-25'
+          }
+        ],
+        client_pain_points: [
+          'Previous marketing efforts lacked ROI tracking',
+          'Difficulty reaching decision-makers',
+          'Concerned about messaging consistency'
+        ],
+        opportunities: [
+          'Content syndication through industry partners',
+          'Account-based marketing approach',
+          'Interactive content formats'
+        ],
+        follow_up_schedule: {
+          next_meeting: '2023-08-25',
+          deliverables: [
+            'Campaign proposal',
+            'Cost breakdown',
+            'Timeline draft'
+          ]
+        }
+      };
+    } catch (error) {
+      console.error('Error analyzing meeting transcript:', error);
+      toast.error('Failed to analyze meeting transcript');
+      return null;
     }
   }
 };

@@ -1,25 +1,49 @@
 
-import apiClient, { handleApiError } from '@/utils/apiUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface ClientPreferences {
+  design_preferences?: {
+    style?: string;
+    colors?: string[];
+    fonts?: string[];
+  };
+  communication_frequency?: string;
+  preferred_contact_method?: string;
+  feedback_frequency?: string;
+  dos?: string[];
+  donts?: string[];
+  industry_specific_requirements?: {
+    compliance?: string[];
+    accessibility?: string;
+    other?: string[];
+  };
+}
 
 const clientService = {
-  // Get all clients
+  /**
+   * Get all clients
+   */
   getClients: async () => {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
-        .order('client_name', { ascending: true });
+        .select('*');
       
       if (error) throw error;
-      return data;
+      
+      return data || [];
     } catch (error) {
       console.error('Error fetching clients:', error);
-      return handleApiError(error, []);
+      toast.error('Failed to load clients');
+      return [];
     }
   },
-  
-  // Get client by ID
+
+  /**
+   * Get a specific client by ID
+   * @param clientId - Client ID
+   */
   getClientById: async (clientId: number) => {
     try {
       const { data, error } = await supabase
@@ -29,64 +53,115 @@ const clientService = {
         .single();
       
       if (error) throw error;
+      
       return data;
     } catch (error) {
       console.error('Error fetching client details:', error);
-      return handleApiError(error, null);
+      toast.error('Failed to load client details');
+      return null;
     }
   },
-  
-  // Create a new client
+
+  /**
+   * Get a specific client by ID
+   * @param clientId - Client ID
+   */
+  getClientDetails: async (clientId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('client_id', clientId)
+        .single();
+      
+      if (error) throw error;
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching client details:', error);
+      toast.error('Failed to load client details');
+      return null;
+    }
+  },
+
+  /**
+   * Create a new client
+   * @param clientData - Client data
+   */
   createClient: async (clientData: any) => {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .insert([clientData])
-        .select();
+        .insert(clientData)
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0];
+      
+      toast.success('Client created successfully');
+      return data;
     } catch (error) {
       console.error('Error creating client:', error);
-      return handleApiError(error, null);
+      toast.error('Failed to create client');
+      throw error;
     }
   },
-  
-  // Update client
+
+  /**
+   * Update an existing client
+   * @param clientId - Client ID
+   * @param clientData - Updated client data
+   */
   updateClient: async (clientId: number, clientData: any) => {
     try {
       const { data, error } = await supabase
         .from('clients')
         .update(clientData)
         .eq('client_id', clientId)
-        .select();
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0];
+      
+      toast.success('Client updated successfully');
+      return data;
     } catch (error) {
       console.error('Error updating client:', error);
-      return handleApiError(error, null);
+      toast.error('Failed to update client');
+      throw error;
     }
   },
-  
-  // Delete client
-  deleteClient: async (clientId: number) => {
+
+  /**
+   * Get tasks for a specific client
+   * @param clientId - Client ID
+   */
+  getClientTasks: async (clientId: number) => {
     try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          clients (client_name),
+          users:assigned_to (name)
+        `)
         .eq('client_id', clientId);
       
       if (error) throw error;
-      return { success: true };
+      
+      return data || [];
     } catch (error) {
-      console.error('Error deleting client:', error);
-      return handleApiError(error, { success: false });
+      console.error('Error fetching client tasks:', error);
+      toast.error('Failed to load client tasks');
+      return [];
     }
   },
-  
-  // Get client preferences
-  getClientPreferences: async (clientId: number) => {
+
+  /**
+   * Get client preferences
+   * @param clientId - Client ID
+   */
+  getClientPreferences: async (clientId: number): Promise<ClientPreferences> => {
     try {
       const { data, error } = await supabase
         .from('client_preferences')
@@ -94,20 +169,40 @@ const clientService = {
         .eq('client_id', clientId)
         .single();
       
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned" which is fine
+      if (error) throw error;
       
-      return data || { client_id: clientId, design_preferences: {}, industry_specific_requirements: {} };
+      // If no preferences exist, return defaults
+      return data || {
+        design_preferences: {
+          style: 'Modern',
+          colors: ['#4287f5', '#f54242', '#42f5a7'],
+          fonts: ['Roboto', 'Open Sans']
+        },
+        communication_frequency: 'Weekly',
+        preferred_contact_method: 'Email',
+        feedback_frequency: 'Bi-weekly',
+        dos: ['Provide regular updates', 'Focus on user experience'],
+        donts: ['Miss deadlines', 'Change scope without approval'],
+        industry_specific_requirements: {
+          compliance: ['GDPR', 'WCAG 2.1'],
+          accessibility: 'AA standard'
+        }
+      };
     } catch (error) {
       console.error('Error fetching client preferences:', error);
-      return handleApiError(error, { client_id: clientId, design_preferences: {}, industry_specific_requirements: {} });
+      return {};
     }
   },
-  
-  // Update client preferences
-  updateClientPreferences: async (clientId: number, preferencesData: any) => {
+
+  /**
+   * Update client preferences
+   * @param clientId - Client ID
+   * @param preferences - Client preferences
+   */
+  updateClientPreferences: async (clientId: number, preferences: ClientPreferences) => {
     try {
-      // Check if preferences exist
-      const { data: existingData, error: checkError } = await supabase
+      // First check if preferences exist
+      const { data: existing } = await supabase
         .from('client_preferences')
         .select('id')
         .eq('client_id', clientId)
@@ -115,157 +210,184 @@ const clientService = {
       
       let result;
       
-      if (existingData) {
+      if (existing) {
         // Update existing preferences
         const { data, error } = await supabase
           .from('client_preferences')
-          .update({
-            ...preferencesData,
-            updated_at: new Date().toISOString()
-          })
+          .update(preferences)
           .eq('client_id', clientId)
-          .select();
+          .select()
+          .single();
         
         if (error) throw error;
-        result = data[0];
+        result = data;
       } else {
-        // Create new preferences
+        // Insert new preferences
         const { data, error } = await supabase
           .from('client_preferences')
-          .insert([{
-            client_id: clientId,
-            ...preferencesData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }])
-          .select();
+          .insert({ ...preferences, client_id: clientId })
+          .select()
+          .single();
         
         if (error) throw error;
-        result = data[0];
+        result = data;
       }
       
+      toast.success('Client preferences updated successfully');
       return result;
     } catch (error) {
       console.error('Error updating client preferences:', error);
-      return handleApiError(error, null);
+      toast.error('Failed to update client preferences');
+      throw error;
     }
   },
-  
-  // Get client communication logs
-  getClientCommunicationLogs: async (clientId: number) => {
+
+  /**
+   * Get client billing history
+   * @param clientId - Client ID
+   */
+  getClientBilling: async (clientId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('client_id', clientId);
+      
+      if (error) throw error;
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching client billing:', error);
+      toast.error('Failed to load client billing');
+      return [];
+    }
+  },
+
+  /**
+   * Get client communication logs
+   * @param clientId - Client ID
+   */
+  getClientCommunication: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('communication_logs')
         .select(`
-          log_id,
-          client_id,
-          sender_id,
-          users:sender_id (name),
-          channel,
-          message,
-          created_at
+          *,
+          users:sender_id (name)
         `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+        .eq('client_id', clientId);
       
       if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching client communication logs:', error);
-      return handleApiError(error, []);
-    }
-  },
-  
-  // Add client communication log
-  addClientCommunicationLog: async (logData: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('communication_logs')
-        .insert([logData])
-        .select();
       
-      if (error) throw error;
-      return data[0];
+      return data || [];
     } catch (error) {
-      console.error('Error adding client communication log:', error);
-      return handleApiError(error, null);
+      console.error('Error fetching client communication:', error);
+      toast.error('Failed to load client communication');
+      return [];
     }
   },
-  
-  // Get client brands
+
+  /**
+   * Get client brands
+   * @param clientId - Client ID
+   */
   getClientBrands: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('brands')
         .select('*')
-        .eq('client_id', clientId)
-        .order('name', { ascending: true });
+        .eq('client_id', clientId);
       
       if (error) throw error;
-      return data;
+      
+      return data || [];
     } catch (error) {
       console.error('Error fetching client brands:', error);
-      return handleApiError(error, []);
+      toast.error('Failed to load client brands');
+      return [];
     }
   },
-  
-  // Create client brand
-  createClientBrand: async (brandData: any) => {
+
+  /**
+   * Create a new brand for a client
+   * @param brandData - Brand data
+   */
+  createBrand: async (brandData: any) => {
     try {
       const { data, error } = await supabase
         .from('brands')
-        .insert([brandData])
-        .select();
+        .insert(brandData)
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0];
+      
+      toast.success('Brand created successfully');
+      return data;
     } catch (error) {
-      console.error('Error creating client brand:', error);
-      return handleApiError(error, null);
+      console.error('Error creating brand:', error);
+      toast.error('Failed to create brand');
+      throw error;
     }
   },
-  
-  // Get client tasks
-  getClientTasks: async (clientId: number) => {
+
+  /**
+   * Get tasks for a specific brand
+   * @param brandId - Brand ID
+   */
+  getBrandTasks: async (brandId: number) => {
     try {
+      // Since we don't have a direct brand_id in tasks, we'll need to get the client_id first
+      const { data: brand, error: brandError } = await supabase
+        .from('brands')
+        .select('client_id')
+        .eq('id', brandId)
+        .single();
+      
+      if (brandError) throw brandError;
+      
+      if (!brand) {
+        throw new Error('Brand not found');
+      }
+      
+      // Now get tasks for this client with brand metadata
       const { data, error } = await supabase
         .from('tasks')
         .select(`
-          task_id,
-          title,
-          description,
-          status,
-          assigned_to,
-          users:assigned_to (name),
-          start_time,
-          end_time,
-          created_at
+          *,
+          clients (client_name),
+          users:assigned_to (name)
         `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+        .eq('client_id', brand.client_id);
       
       if (error) throw error;
-      return data;
+      
+      return data || [];
     } catch (error) {
-      console.error('Error fetching client tasks:', error);
-      return handleApiError(error, []);
+      console.error('Error fetching brand tasks:', error);
+      toast.error('Failed to load brand tasks');
+      return [];
     }
   },
-  
-  // Get client invoices
+
+  /**
+   * Get client invoices
+   * @param clientId - Client ID
+   */
   getClientInvoices: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('invoices')
         .select('*')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+        .eq('client_id', clientId);
       
       if (error) throw error;
-      return data;
+      
+      return data || [];
     } catch (error) {
       console.error('Error fetching client invoices:', error);
-      return handleApiError(error, []);
+      toast.error('Failed to load client invoices');
+      return [];
     }
   }
 };

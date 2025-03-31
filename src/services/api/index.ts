@@ -7,7 +7,6 @@ import hrService from './hrService';
 import marketingService from './marketingService';
 import taskService from './taskService';
 import userService from './userService';
-import dashboardService from './dashboardService';
 
 export {
   aiService,
@@ -17,6 +16,5 @@ export {
   hrService,
   marketingService,
   taskService,
-  userService,
-  dashboardService
+  userService
 };

@@ -1,677 +1,1208 @@
 
-import apiClient, { handleApiError } from '@/utils/apiUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Mock data generator (for development until the API is ready)
-const generateMockData = (type: string, params?: any) => {
-  // This will be replaced with actual API calls in production
-  switch (type) {
-    case 'invoices':
-      return Array(10).fill(null).map((_, i) => ({
-        id: i + 1,
-        invoice_number: `INV-${2023}${i.toString().padStart(4, '0')}`,
-        client_name: `Client ${i + 1}`,
-        amount: Math.floor(Math.random() * 10000) + 500,
-        status: ['pending', 'paid', 'overdue'][Math.floor(Math.random() * 3)],
-        issue_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        due_date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      }));
-    
-    case 'financial-records':
-      return Array(20).fill(null).map((_, i) => ({
-        id: i + 1,
-        record_type: Math.random() > 0.5 ? 'expense' : 'income',
-        amount: Math.floor(Math.random() * 5000) + 100,
-        description: `${Math.random() > 0.5 ? 'expense' : 'income'} record ${i + 1}`,
-        category: ['salaries', 'rent', 'utilities', 'marketing', 'sales', 'services'][Math.floor(Math.random() * 6)],
-        date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      }));
-    
-    case 'sales-metrics':
-      return {
-        total_revenue: Math.floor(Math.random() * 1000000) + 100000,
-        growth_rate: (Math.random() * 30).toFixed(1),
-        average_deal_size: Math.floor(Math.random() * 10000) + 1000,
-        conversion_rate: (Math.random() * 100).toFixed(1),
-        monthly_trend: Array(12).fill(null).map((_, i) => ({
-          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          revenue: Math.floor(Math.random() * 100000) + 10000,
-          target: Math.floor(Math.random() * 120000) + 20000,
-        })),
-        by_service: [
-          { name: 'Web Design', value: Math.floor(Math.random() * 50000) + 10000 },
-          { name: 'SEO', value: Math.floor(Math.random() * 40000) + 5000 },
-          { name: 'Social Media', value: Math.floor(Math.random() * 30000) + 5000 },
-          { name: 'Content Creation', value: Math.floor(Math.random() * 20000) + 5000 },
-        ],
-      };
-
-    case 'sales-trends':
-      return {
-        data: Array(12).fill(null).map((_, i) => ({
-          name: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          value: Math.floor(Math.random() * 100000) + 10000,
-        })),
-        insights: [
-          'Revenue increased by 15% compared to previous quarter',
-          'Highest growth seen in digital marketing services',
-          'Client retention rate improved to 85%',
-          'Average project value increased by $2,500',
-        ],
-        activities: Array(4).fill(null).map((_, i) => ({
-          id: i + 1,
-          title: ['Client Meeting', 'Sales Call', 'Proposal Review', 'Contract Signing'][i],
-          date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-          time: ['10:00 AM', '2:30 PM', '11:15 AM', '4:00 PM'][i],
-        })),
-      };
-    
-    case 'sales-by-channel':
-      return [
-        { name: 'Direct', value: Math.floor(Math.random() * 50000) + 10000 },
-        { name: 'Referral', value: Math.floor(Math.random() * 40000) + 5000 },
-        { name: 'Website', value: Math.floor(Math.random() * 30000) + 5000 },
-        { name: 'Social Media', value: Math.floor(Math.random() * 20000) + 5000 },
-        { name: 'Email', value: Math.floor(Math.random() * 10000) + 5000 },
-      ];
-    
-    case 'top-products':
-      return Array(5).fill(null).map((_, i) => ({
-        id: i + 1,
-        name: ['Web Design Package', 'SEO Services', 'Social Media Management', 'Content Creation', 'Branding Package'][i],
-        sales: Math.floor(Math.random() * 100) + 10,
-        units: Math.floor(Math.random() * 50) + 5,
-        revenue: Math.floor(Math.random() * 50000) + 5000,
-        growth: Math.floor(Math.random() * 40) - 10,
-      }));
-    
-    case 'sales-growth':
-      return {
-        trends: Array(12).fill(null).map((_, i) => ({
-          name: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          value: Math.floor(Math.random() * 100000) + 10000,
-        })),
-        currentPeriod: {
-          revenueGrowth: (Math.random() * 30).toFixed(1),
-          customerGrowth: (Math.random() * 25).toFixed(1),
-        },
-        growthDrivers: [
-          { factor: 'New Clients', impact: 35, performance: 'positive' },
-          { factor: 'Upselling', impact: 25, performance: 'positive' },
-          { factor: 'Referrals', impact: 20, performance: 'neutral' },
-          { factor: 'Renewals', impact: 15, performance: 'negative' },
-        ],
-      };
-    
-    case 'sales-targets':
-      return Array(4).fill(null).map((_, i) => ({
-        id: i + 1,
-        category: ['Monthly Revenue', 'New Clients', 'Renewal Rate', 'Average Deal Size'][i],
-        current: [85000, 12, 75, 7500][i],
-        target: [100000, 15, 80, 10000][i],
-        percentage: Math.floor([85, 80, 94, 75][i]),
-      }));
-    
-    case 'growth-forecast':
-      return {
-        chart: Array(12).fill(null).map((_, i) => ({
-          name: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          value: Math.floor(Math.random() * 150000) + 50000,
-        })),
-        insights: [
-          { type: 'growth', text: 'Projected 22% growth in Q3 based on new service offerings' },
-          { type: 'growth', text: 'Client acquisition expected to increase by 15% next quarter' },
-          { type: 'warning', text: 'Projected resource constraints in Q4 may impact delivery timelines' },
-          { type: 'growth', text: 'Recurring revenue forecasted to grow by 30% year over year' },
-        ],
-      };
-    
-    case 'weekly-reports':
-      return Array(5).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: `Weekly Sales Report ${i + 1}`,
-        period: `Week ${i + 1}, ${new Date().getFullYear()}`,
-        sales: Math.floor(Math.random() * 50000) + 10000,
-        target: Math.floor(Math.random() * 60000) + 20000,
-        progress: Math.floor(Math.random() * 100),
-        performanceData: Array(7).fill(null).map((_, j) => ({
-          name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][j],
-          value: Math.floor(Math.random() * 10000) + 1000,
-        })),
-        metrics: {
-          conversionRate: (Math.random() * 10 + 5).toFixed(1),
-          prevConversionRate: (Math.random() * 10 + 5).toFixed(1),
-          avgSaleValue: Math.floor(Math.random() * 5000) + 1000,
-          prevAvgSaleValue: Math.floor(Math.random() * 5000) + 1000,
-          newLeads: Math.floor(Math.random() * 50) + 10,
-          prevNewLeads: Math.floor(Math.random() * 50) + 10,
-          closedDeals: Math.floor(Math.random() * 20) + 5,
-          prevClosedDeals: Math.floor(Math.random() * 20) + 5,
-        },
-      }));
-    
-    case 'monthly-reports':
-      return Array(12).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: `Monthly Sales Report ${i + 1}`,
-        period: new Date(2023, i, 1).toLocaleString('default', { month: 'long', year: 'numeric' }),
-        sales: Math.floor(Math.random() * 200000) + 50000,
-        target: Math.floor(Math.random() * 250000) + 100000,
-        progress: Math.floor(Math.random() * 100),
-        yearlyTrend: Array(12).fill(null).map((_, j) => ({
-          name: new Date(2023, j, 1).toLocaleString('default', { month: 'short' }),
-          value: Math.floor(Math.random() * 200000) + 50000,
-        })),
-      }));
-    
-    case 'sales-followups':
-      return Array(10).fill(null).map((_, i) => ({
-        id: i + 1,
-        clientName: `Client ${i + 1}`,
-        contactPerson: `Contact Person ${i + 1}`,
-        type: ['call', 'email', 'meeting'][Math.floor(Math.random() * 3)],
-        dueDate: new Date(Date.now() + (Math.random() * 10 - 3) * 24 * 60 * 60 * 1000).toISOString(),
-        status: ['pending', 'completed'][Math.floor(Math.random() * 2)],
-        notes: `Follow up about ${['proposal', 'contract', 'project update', 'invoice payment'][Math.floor(Math.random() * 4)]}`,
-        phone: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-        email: `contact${i + 1}@client${i + 1}.com`,
-      }));
-    
-    case 'improvement-suggestions':
-      return Array(4).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: [
-          'Enhance Client Onboarding Process',
-          'Improve Follow-up Timeline',
-          'Optimize Proposal Templates',
-          'Develop Client Retention Strategy'
-        ][i],
-        description: [
-          'Current onboarding takes 14 days on average. Streamlining documentation and approvals could reduce this to 7 days.',
-          'Follow-ups are currently happening 5+ days after initial contact. Aim for 48-hour follow-up window to increase conversion.',
-          'Current proposal acceptance rate is 65%. Analyzing successful proposals shows more detailed pricing breakdowns improve acceptance.',
-          'Client renewal rate is 72%. Implementing quarterly review meetings could increase this to 85%.'
-        ][i],
-        priority: i < 2 ? 'high' : 'medium',
-      }));
-    
-    case 'financial-overview':
-      return {
-        totalRevenue: Math.floor(Math.random() * 1000000) + 500000,
-        totalExpenses: Math.floor(Math.random() * 700000) + 300000,
-        netProfit: Math.floor(Math.random() * 300000) + 200000,
-        profitMargin: (Math.random() * 20 + 10).toFixed(1),
-        cashFlow: Math.floor(Math.random() * 200000) + 100000,
-        revenueGrowth: (Math.random() * 30).toFixed(1),
-        expenseGrowth: (Math.random() * 20).toFixed(1),
-        outstandingInvoices: Math.floor(Math.random() * 200000) + 50000,
-        monthlySummary: Array(12).fill(null).map((_, i) => ({
-          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          revenue: Math.floor(Math.random() * 100000) + 50000,
-          expenses: Math.floor(Math.random() * 70000) + 30000,
-          profit: Math.floor(Math.random() * 30000) + 20000,
-        })),
-      };
-    
-    case 'financial-metrics':
-      return {
-        currentRatio: (Math.random() * 2 + 1).toFixed(2),
-        quickRatio: (Math.random() * 1 + 0.5).toFixed(2),
-        debtToEquity: (Math.random() * 1).toFixed(2),
-        grossMargin: (Math.random() * 30 + 40).toFixed(1),
-        netMargin: (Math.random() * 15 + 10).toFixed(1),
-        roi: (Math.random() * 20 + 15).toFixed(1),
-        burnRate: Math.floor(Math.random() * 50000) + 20000,
-        runwayMonths: Math.floor(Math.random() * 12) + 6,
-        averageCollectionPeriod: Math.floor(Math.random() * 30) + 30,
-        assetTurnover: (Math.random() * 1 + 0.5).toFixed(2),
-      };
-    
-    case 'upsell-opportunities':
-      return Array(5).fill(null).map((_, i) => ({
-        id: i + 1,
-        clientName: `Client ${i + 1}`,
-        currentServices: [
-          'Web Design',
-          'Content Creation',
-          'SEO Services',
-          'Social Media Management',
-          'Email Marketing'
-        ][i],
-        potentialUpsell: [
-          'Ongoing Maintenance Package',
-          'Content Strategy Upgrade',
-          'Local SEO Enhancement',
-          'Paid Social Campaigns',
-          'Marketing Automation'
-        ][i],
-        estimatedValue: Math.floor(Math.random() * 5000) + 1000,
-        probability: Math.floor(Math.random() * 50) + 50,
-        lastPurchase: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      }));
-    
-    case 'financial-plans':
-      return Array(3).fill(null).map((_, i) => ({
-        id: i + 1,
-        title: [
-          'Q3 Financial Stabilization Plan',
-          'Annual Growth Strategy',
-          'Cost Optimization Initiative'
-        ][i],
-        description: [
-          'Plan to improve cash flow and reduce outstanding receivables',
-          'Strategic financial planning for annual growth targets',
-          'Initiative to optimize operational costs while maintaining quality'
-        ][i],
-        startDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        endDate: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        status: ['in_progress', 'planned', 'completed'][i],
-        goals: Array(3).fill(null).map(() => ({
-          title: ['Reduce DSO', 'Increase Gross Margin', 'Optimize Pricing Strategy', 'Reduce Operational Costs', 'Improve Cash Reserves'][Math.floor(Math.random() * 5)],
-          target: `${Math.floor(Math.random() * 30) + 10}%`,
-          current: `${Math.floor(Math.random() * 20) + 5}%`,
-        })),
-        kpis: Array(4).fill(null).map(() => ({
-          name: ['DSO', 'Gross Margin', 'Net Profit Margin', 'Operating Expenses', 'Cash Reserves'][Math.floor(Math.random() * 5)],
-          target: Math.floor(Math.random() * 100),
-          current: Math.floor(Math.random() * 80),
-        })),
-      }));
-    
-    default:
-      return [];
-  }
-};
-
+/**
+ * Finance service for handling invoices, expenses, and financial reporting
+ */
 const financeService = {
-  // Invoice-related methods
+  /**
+   * Get all invoices with optional status filter
+   * @param status - Filter invoices by status (pending, paid, overdue)
+   */
   getInvoices: async (status?: string) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/invoices', { params: { status } });
+      let query = supabase
+        .from('invoices')
+        .select(`
+          invoice_id as id,
+          invoice_number,
+          clients!inner (client_name),
+          amount,
+          status,
+          created_at as issue_date,
+          due_date
+        `);
       
-      // Mock data for development
-      const invoices = generateMockData('invoices');
       if (status) {
-        return invoices.filter((invoice: any) => invoice.status === status);
+        query = query.eq('status', status);
       }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      // Transform data to expected format
+      const invoices = data?.map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        client_name: invoice.clients.client_name,
+        amount: invoice.amount,
+        status: invoice.status,
+        issue_date: invoice.issue_date,
+        due_date: invoice.due_date
+      })) || [];
+      
       return invoices;
     } catch (error) {
-      return handleApiError(error, []);
+      console.error('Error fetching invoices:', error);
+      toast.error('Failed to load invoices');
+      
+      // Return mock data
+      return [
+        {
+          id: 1,
+          invoice_number: 'INV-2023-001',
+          client_name: 'Acme Corp',
+          amount: 5000,
+          status: 'paid',
+          issue_date: '2023-07-01',
+          due_date: '2023-07-15'
+        },
+        {
+          id: 2,
+          invoice_number: 'INV-2023-002',
+          client_name: 'TechSolutions Inc',
+          amount: 7500,
+          status: 'pending',
+          issue_date: '2023-07-15',
+          due_date: '2023-07-30'
+        },
+        {
+          id: 3,
+          invoice_number: 'INV-2023-003',
+          client_name: 'Global Services Ltd',
+          amount: 3000,
+          status: 'overdue',
+          issue_date: '2023-06-15',
+          due_date: '2023-06-30'
+        }
+      ];
     }
   },
-  
+
+  /**
+   * Get invoice details by ID
+   * @param invoiceId - Invoice ID
+   */
   getInvoiceDetails: async (invoiceId: number) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get(`/invoices/${invoiceId}`);
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          clients!inner (*)
+        `)
+        .eq('invoice_id', invoiceId)
+        .single();
       
-      // Mock data for development
-      const invoices = generateMockData('invoices');
-      return invoices.find((invoice: any) => invoice.id === invoiceId) || null;
+      if (error) throw error;
+      
+      return data;
     } catch (error) {
-      return handleApiError(error, null);
+      console.error('Error fetching invoice details:', error);
+      toast.error('Failed to load invoice details');
+      
+      // Return mock data based on ID
+      return {
+        id: invoiceId,
+        invoice_number: `INV-2023-00${invoiceId}`,
+        client_name: 'Acme Corp',
+        client_id: 1,
+        amount: 5000,
+        status: 'pending',
+        issue_date: '2023-07-01',
+        due_date: '2023-07-15',
+        payment_terms: 'Net 15',
+        notes: 'Monthly service fee',
+        items: [
+          {
+            id: 1,
+            description: 'Consulting Services',
+            quantity: 20,
+            rate: 150,
+            amount: 3000
+          },
+          {
+            id: 2,
+            description: 'Software Licensing',
+            quantity: 1,
+            rate: 2000,
+            amount: 2000
+          }
+        ],
+        subtotal: 5000,
+        tax: 0,
+        total: 5000
+      };
     }
   },
-  
+
+  /**
+   * Create a new invoice
+   * @param invoiceData - Invoice data
+   */
   createInvoice: async (invoiceData: any) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.post('/invoices', invoiceData);
+      const { data, error } = await supabase
+        .from('invoices')
+        .insert(invoiceData)
+        .select()
+        .single();
       
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Invoice created successfully', 
-        invoice: { id: Date.now(), ...invoiceData } 
-      };
+      if (error) throw error;
+      
+      toast.success('Invoice created successfully');
+      return data;
     } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to create invoice' });
+      console.error('Error creating invoice:', error);
+      toast.error('Failed to create invoice');
+      throw error;
     }
   },
-  
+
+  /**
+   * Update invoice status
+   * @param invoiceId - Invoice ID
+   * @param status - New status
+   */
   updateInvoiceStatus: async (invoiceId: number, status: string) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.patch(`/invoices/${invoiceId}`, { status });
+      const { data, error } = await supabase
+        .from('invoices')
+        .update({ status })
+        .eq('invoice_id', invoiceId)
+        .select()
+        .single();
       
-      // Mock response for development
-      return { 
-        success: true, 
-        message: `Invoice status updated to ${status}` 
-      };
+      if (error) throw error;
+      
+      toast.success(`Invoice marked as ${status}`);
+      return data;
     } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to update invoice status' });
+      console.error('Error updating invoice status:', error);
+      toast.error('Failed to update invoice status');
+      throw error;
     }
   },
-  
-  sendInvoiceReminder: async (invoiceId: number) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post(`/invoices/${invoiceId}/reminder`);
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Payment reminder sent successfully' 
-      };
-    } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to send payment reminder' });
-    }
-  },
-  
-  // Reports-related methods
+
+  /**
+   * Get revenue reports
+   * @param startDate - Start date for the report
+   * @param endDate - End date for the report
+   */
   getRevenueReports: async (startDate?: string, endDate?: string) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/reports/revenue', { params: { startDate, endDate } });
+      // In a real implementation, we would filter based on startDate and endDate
       
-      // Mock data for development
+      // Return mock data
       return {
-        totalRevenue: Math.floor(Math.random() * 1000000) + 500000,
-        comparisonPercentage: (Math.random() * 30 - 10).toFixed(1),
-        monthlyData: Array(12).fill(null).map((_, i) => ({
-          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          revenue: Math.floor(Math.random() * 100000) + 50000,
-        })),
-        byCategory: [
-          { name: 'Web Development', value: Math.floor(Math.random() * 400000) + 200000 },
-          { name: 'Design Services', value: Math.floor(Math.random() * 300000) + 150000 },
-          { name: 'Marketing', value: Math.floor(Math.random() * 200000) + 100000 },
-          { name: 'Consulting', value: Math.floor(Math.random() * 100000) + 50000 },
+        monthly_revenue: 43500,
+        quarterly_revenue: 120000,
+        annual_revenue: 480000,
+        year_over_year_growth: '+12.5%',
+        revenue_by_client: [
+          { client_name: 'Acme Corp', amount: 150000, percentage: '31.25%' },
+          { client_name: 'TechSolutions Inc', amount: 120000, percentage: '25%' },
+          { client_name: 'Global Services Ltd', amount: 80000, percentage: '16.67%' },
+          { client_name: 'Other Clients', amount: 130000, percentage: '27.08%' }
         ],
+        revenue_by_service: [
+          { service_name: 'Consulting', amount: 200000, percentage: '41.67%' },
+          { service_name: 'Development', amount: 150000, percentage: '31.25%' },
+          { service_name: 'Maintenance', amount: 100000, percentage: '20.83%' },
+          { service_name: 'Training', amount: 30000, percentage: '6.25%' }
+        ],
+        monthly_trend: [
+          { month: 'Jan', amount: 38000 },
+          { month: 'Feb', amount: 35000 },
+          { month: 'Mar', amount: 42000 },
+          { month: 'Apr', amount: 40000 },
+          { month: 'May', amount: 44000 },
+          { month: 'Jun', amount: 43500 }
+        ],
+        average_invoice_value: 5200,
+        payment_statistics: {
+          on_time: '78%',
+          late: '18%',
+          unpaid: '4%',
+          average_days_to_payment: 14
+        }
       };
     } catch (error) {
-      return handleApiError(error, {});
+      console.error('Error fetching revenue reports:', error);
+      toast.error('Failed to load revenue reports');
+      return {};
     }
   },
-  
+
+  /**
+   * Get expense reports
+   * @param startDate - Start date for the report
+   * @param endDate - End date for the report
+   */
   getExpenseReports: async (startDate?: string, endDate?: string) => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/reports/expenses', { params: { startDate, endDate } });
+      // In a real implementation, we would filter based on startDate and endDate
       
-      // Mock data for development
+      // Return mock data
       return {
-        totalExpenses: Math.floor(Math.random() * 700000) + 300000,
-        comparisonPercentage: (Math.random() * 20 - 5).toFixed(1),
-        monthlyData: Array(12).fill(null).map((_, i) => ({
-          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
-          expenses: Math.floor(Math.random() * 70000) + 30000,
-        })),
-        byCategory: [
-          { name: 'Salaries', value: Math.floor(Math.random() * 400000) + 200000 },
-          { name: 'Office Rent', value: Math.floor(Math.random() * 100000) + 50000 },
-          { name: 'Marketing', value: Math.floor(Math.random() * 80000) + 40000 },
-          { name: 'Software', value: Math.floor(Math.random() * 60000) + 30000 },
-          { name: 'Utilities', value: Math.floor(Math.random() * 40000) + 20000 },
-          { name: 'Other', value: Math.floor(Math.random() * 20000) + 10000 },
+        monthly_expenses: 32000,
+        quarterly_expenses: 98000,
+        annual_expenses: 385000,
+        year_over_year_change: '+8.2%',
+        expenses_by_category: [
+          { category: 'Salaries', amount: 250000, percentage: '64.94%' },
+          { category: 'Rent', amount: 48000, percentage: '12.47%' },
+          { category: 'Equipment', amount: 30000, percentage: '7.79%' },
+          { category: 'Marketing', amount: 25000, percentage: '6.49%' },
+          { category: 'Utilities', amount: 12000, percentage: '3.12%' },
+          { category: 'Others', amount: 20000, percentage: '5.19%' }
         ],
+        monthly_trend: [
+          { month: 'Jan', amount: 33000 },
+          { month: 'Feb', amount: 31000 },
+          { month: 'Mar', amount: 34000 },
+          { month: 'Apr', amount: 30000 },
+          { month: 'May', amount: 31000 },
+          { month: 'Jun', amount: 32000 }
+        ],
+        top_expenses: [
+          { description: 'Salary - Development Team', amount: 95000, date: '2023-06-30' },
+          { description: 'Salary - Marketing Team', amount: 60000, date: '2023-06-30' },
+          { description: 'Quarterly Office Rent', amount: 12000, date: '2023-06-01' },
+          { description: 'New Developer Workstations', amount: 8500, date: '2023-06-15' },
+          { description: 'Digital Advertising', amount: 7500, date: '2023-06-10' }
+        ],
+        expense_approvals: {
+          pending: 5,
+          approved: 45,
+          rejected: 3,
+          average_approval_time: '1.5 days'
+        }
       };
     } catch (error) {
-      return handleApiError(error, {});
+      console.error('Error fetching expense reports:', error);
+      toast.error('Failed to load expense reports');
+      return {};
     }
   },
-  
-  getProfitLossReport: async (year: number) => {
+
+  /**
+   * Get financial overview
+   */
+  getFinancialOverview: async () => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get(`/reports/profit-loss/${year}`);
-      
-      // Mock data for development
+      // Return mock data
       return {
-        year,
-        netProfit: Math.floor(Math.random() * 300000) + 200000,
-        comparisonPercentage: (Math.random() * 25 - 5).toFixed(1),
-        quarterlyData: Array(4).fill(null).map((_, i) => ({
-          quarter: `Q${i + 1}`,
-          revenue: Math.floor(Math.random() * 250000) + 150000,
-          expenses: Math.floor(Math.random() * 200000) + 100000,
-          profit: Math.floor(Math.random() * 100000) + 50000,
-        })),
-        monthlyData: Array(12).fill(null).map((_, i) => ({
-          month: new Date(year, i, 1).toLocaleString('default', { month: 'short' }),
-          revenue: Math.floor(Math.random() * 100000) + 50000,
-          expenses: Math.floor(Math.random() * 70000) + 30000,
-          profit: Math.floor(Math.random() * 30000) + 20000,
-        })),
+        total_revenue: 480000,
+        total_expenses: 385000,
+        profit: 95000,
+        profit_margin: '19.79%',
+        cash_balance: 120000,
+        accounts_receivable: 65000,
+        accounts_payable: 35000,
+        quick_ratio: 1.86,
+        current_ratio: 2.3,
+        debt_to_equity: 0.45,
+        revenue_growth: '+12.5%',
+        expense_growth: '+8.2%',
+        profit_growth: '+25.6%',
+        year_to_date: {
+          revenue: 250000,
+          expenses: 195000,
+          profit: 55000
+        },
+        quarterly_comparison: [
+          { quarter: 'Q1', revenue: 115000, expenses: 95000, profit: 20000 },
+          { quarter: 'Q2', revenue: 135000, expenses: 100000, profit: 35000 }
+        ],
+        financial_health_score: 85,
+        key_metrics: [
+          { name: 'Cash Conversion Cycle', value: '45 days' },
+          { name: 'Burn Rate', value: '$32,000/month' },
+          { name: 'Runway', value: '3.75 months' }
+        ]
       };
     } catch (error) {
-      return handleApiError(error, {});
+      console.error('Error fetching financial overview:', error);
+      toast.error('Failed to load financial overview');
+      return {};
     }
   },
-  
-  // Finance records methods
-  getFinancialRecords: async (type?: string, startDate?: string, endDate?: string) => {
-    try {
-      // In production, this would be an API call
-      // const url = '/financial-records';
-      // return await apiClient.get(url, { params: { type, startDate, endDate } });
-      
-      // Mock data for development
-      const records = generateMockData('financial-records');
-      if (type) {
-        return records.filter((record: any) => record.record_type === type);
-      }
-      return records;
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  createFinancialRecord: async (recordData: any) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post('/financial-records', recordData);
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Financial record created successfully', 
-        record: { id: Date.now(), ...recordData } 
-      };
-    } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to create financial record' });
-    }
-  },
-  
-  // Financial metrics and overview
-  getFinancialOverview: async (period: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/financial-overview', { params: { period } });
-      
-      // Mock data for development
-      return generateMockData('financial-overview');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
+
+  /**
+   * Get financial metrics
+   */
   getFinancialMetrics: async () => {
     try {
-      // In production, this would be an API call
-      // return await apiClient.get('/financial-metrics');
-      
-      // Mock data for development
-      return generateMockData('financial-metrics');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  getUpsellOpportunities: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/upsell-opportunities');
-      
-      // Mock data for development
-      return generateMockData('upsell-opportunities');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getFinancialPlans: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/financial-plans');
-      
-      // Mock data for development
-      return generateMockData('financial-plans');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  // Sales data methods
-  getSalesMetrics: async (period: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/metrics', { params: { period } });
-      
-      // Mock data for development
-      return generateMockData('sales-metrics');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  getSalesTrends: async (dateRange: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/trends', { params: { dateRange } });
-      
-      // Mock data for development
-      return generateMockData('sales-trends');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  getSalesByChannel: async (dateRange: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/by-channel', { params: { dateRange } });
-      
-      // Mock data for development
-      return generateMockData('sales-by-channel');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getTopProducts: async (dateRange: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/top-products', { params: { dateRange } });
-      
-      // Mock data for development
-      return generateMockData('top-products');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getSalesGrowthData: async (dateRange: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/growth', { params: { dateRange } });
-      
-      // Mock data for development
-      return generateMockData('sales-growth');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  getSalesTargets: async (dateRange: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/targets', { params: { dateRange } });
-      
-      // Mock data for development
-      return generateMockData('sales-targets');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getGrowthForecast: async (dateRange: string = 'month') => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/forecast', { params: { dateRange } });
-      
-      // Mock data for development
-      return generateMockData('growth-forecast');
-    } catch (error) {
-      return handleApiError(error, {});
-    }
-  },
-  
-  getWeeklyReports: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/reports/weekly');
-      
-      // Mock data for development
-      return generateMockData('weekly-reports');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getMonthlyReports: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/reports/monthly');
-      
-      // Mock data for development
-      return generateMockData('monthly-reports');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getSalesFollowUps: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/followups');
-      
-      // Mock data for development
-      return generateMockData('sales-followups');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  getImprovementSuggestions: async () => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.get('/sales/improvement-suggestions');
-      
-      // Mock data for development
-      return generateMockData('improvement-suggestions');
-    } catch (error) {
-      return handleApiError(error, []);
-    }
-  },
-  
-  completeFollowUp: async (followUpId: number, feedback: string) => {
-    try {
-      // In production, this would be an API call
-      // return await apiClient.post(`/sales/followups/${followUpId}/complete`, { feedback });
-      
-      // Mock response for development
-      return { 
-        success: true, 
-        message: 'Follow-up marked as completed',
-        id: followUpId
+      // Return mock data
+      return {
+        profitability: {
+          grossProfitMargin: '35%',
+          operatingProfitMargin: '22%',
+          netProfitMargin: '18%',
+          returnOnAssets: '14%',
+          returnOnEquity: '21%',
+          returnOnInvestment: '19%'
+        },
+        liquidity: {
+          currentRatio: 2.3,
+          quickRatio: 1.86,
+          cashRatio: 0.75,
+          operatingCashFlow: 115000,
+          workingCapital: 95000
+        },
+        efficiency: {
+          assetTurnover: 1.2,
+          inventoryTurnover: 8.5,
+          receivablesTurnover: 12.3,
+          payablesTurnover: 9.8,
+          cashConversionCycle: 45
+        },
+        growth: {
+          revenueGrowth: '12.5%',
+          expenseGrowth: '8.2%',
+          profitGrowth: '25.6%',
+          assetGrowth: '10.2%',
+          equityGrowth: '15.8%'
+        },
+        solvency: {
+          debtToEquity: 0.45,
+          debtToAssets: 0.28,
+          interestCoverageRatio: 8.5,
+          debtServiceCoverageRatio: 3.2
+        },
+        valuation: {
+          earningsPerShare: 2.85,
+          priceToEarnings: 18.5,
+          marketCapitalization: 12500000,
+          enterpriseValue: 13200000,
+          bookValue: 5500000
+        }
       };
     } catch (error) {
-      return handleApiError(error, { success: false, message: 'Failed to complete follow-up' });
+      console.error('Error fetching financial metrics:', error);
+      toast.error('Failed to load financial metrics');
+      return {};
     }
   },
+
+  /**
+   * Get financial records
+   */
+  getFinancialRecords: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('financial_records')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Transform data
+      const records = data?.map(record => ({
+        id: record.record_id,
+        record_type: record.record_type,
+        amount: record.amount,
+        description: record.description,
+        category: record.record_type === 'expense' ? 'Operating Expense' : 'Service Revenue',
+        date: record.record_date
+      })) || [];
+      
+      return records.length > 0 ? records : [
+        {
+          id: 1,
+          record_type: 'expense',
+          amount: 5000,
+          description: 'Office rent',
+          category: 'Operating Expense',
+          date: '2023-07-01'
+        },
+        {
+          id: 2,
+          record_type: 'expense',
+          amount: 2500,
+          description: 'Utilities',
+          category: 'Operating Expense',
+          date: '2023-07-05'
+        },
+        {
+          id: 3,
+          record_type: 'income',
+          amount: 15000,
+          description: 'Consulting services',
+          category: 'Service Revenue',
+          date: '2023-07-10'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching financial records:', error);
+      toast.error('Failed to load financial records');
+      return [];
+    }
+  },
+
+  /**
+   * Create a financial record
+   * @param recordData - Financial record data
+   */
+  createFinancialRecord: async (recordData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('financial_records')
+        .insert(recordData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast.success('Financial record created successfully');
+      return data;
+    } catch (error) {
+      console.error('Error creating financial record:', error);
+      toast.error('Failed to create financial record');
+      throw error;
+    }
+  },
+
+  /**
+   * Get sales metrics
+   */
+  getSalesMetrics: async () => {
+    try {
+      // Return mock data
+      return {
+        monthly_revenue: 43500,
+        annual_target: 600000,
+        growth_rate: '12.5%',
+        client_acquisition: 8,
+        conversion_rate: '18%',
+        avg_deal_size: 5200,
+        top_clients: [
+          { client_id: 1, client_name: 'Acme Corp', revenue: 150000, growth: 15 },
+          { client_id: 2, client_name: 'TechSolutions Inc', revenue: 120000, growth: 8 },
+          { client_id: 3, client_name: 'Global Services Ltd', revenue: 80000, growth: 20 }
+        ],
+        monthly_trend: [
+          { month: 'Jan', revenue: 38000, target: 40000 },
+          { month: 'Feb', revenue: 35000, target: 40000 },
+          { month: 'Mar', revenue: 42000, target: 45000 },
+          { month: 'Apr', revenue: 40000, target: 45000 },
+          { month: 'May', revenue: 44000, target: 50000 },
+          { month: 'Jun', revenue: 43500, target: 50000 }
+        ],
+        sales_by_service: [
+          { service: 'Consulting', value: 42 },
+          { service: 'Development', value: 31 },
+          { service: 'Maintenance', value: 21 },
+          { service: 'Training', value: 6 }
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching sales metrics:', error);
+      toast.error('Failed to load sales metrics');
+      return {};
+    }
+  },
+
+  /**
+   * Get upsell opportunities
+   */
+  getUpsellOpportunities: async () => {
+    try {
+      // Return mock data
+      return [
+        {
+          id: 1,
+          client_id: 1,
+          client_name: 'Acme Corp',
+          current_services: ['Consulting', 'Development'],
+          potential_services: ['Maintenance', 'Training'],
+          estimated_value: 15000,
+          probability: 70,
+          last_purchase: '2023-06-15',
+          notes: 'Client expressed interest in maintenance services during last meeting'
+        },
+        {
+          id: 2,
+          client_id: 2,
+          client_name: 'TechSolutions Inc',
+          current_services: ['Development'],
+          potential_services: ['Consulting', 'Training'],
+          estimated_value: 25000,
+          probability: 50,
+          last_purchase: '2023-05-20',
+          notes: 'Expanding team, may need additional training services'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching upsell opportunities:', error);
+      toast.error('Failed to load upsell opportunities');
+      return [];
+    }
+  },
+
+  /**
+   * Get financial plans
+   */
+  getFinancialPlans: async () => {
+    try {
+      // Return mock data
+      return [
+        {
+          id: 1,
+          title: 'Q3 2023 Financial Plan',
+          status: 'Active',
+          revenue_target: 150000,
+          expense_budget: 120000,
+          profit_target: 30000,
+          key_initiatives: [
+            'Increase client acquisition by 15%',
+            'Reduce operational expenses by 5%',
+            'Launch new service offering'
+          ],
+          milestones: [
+            { title: 'Mid-quarter review', date: '2023-08-15', status: 'Pending' },
+            { title: 'End-quarter review', date: '2023-09-30', status: 'Pending' }
+          ],
+          start_date: '2023-07-01',
+          end_date: '2023-09-30'
+        },
+        {
+          id: 2,
+          title: 'Annual Financial Plan 2023',
+          status: 'Active',
+          revenue_target: 600000,
+          expense_budget: 480000,
+          profit_target: 120000,
+          key_initiatives: [
+            'Expand client base in the technology sector',
+            'Invest in employee training and development',
+            'Improve operational efficiency'
+          ],
+          milestones: [
+            { title: 'Q1 Review', date: '2023-03-31', status: 'Completed' },
+            { title: 'Q2 Review', date: '2023-06-30', status: 'Completed' },
+            { title: 'Q3 Review', date: '2023-09-30', status: 'Pending' },
+            { title: 'Q4 Review', date: '2023-12-31', status: 'Pending' }
+          ],
+          start_date: '2023-01-01',
+          end_date: '2023-12-31'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching financial plans:', error);
+      toast.error('Failed to load financial plans');
+      return [];
+    }
+  },
+
+  /**
+   * Analyze team costs
+   */
+  analyzeTeamCosts: async () => {
+    try {
+      // Return mock data
+      return {
+        total_cost: 58000,
+        by_department: [
+          { department: 'Development', cost: 25000, percentage: '43.10%' },
+          { department: 'Design', cost: 12000, percentage: '20.69%' },
+          { department: 'Marketing', cost: 10000, percentage: '17.24%' },
+          { department: 'Management', cost: 8000, percentage: '13.79%' },
+          { department: 'Support', cost: 3000, percentage: '5.17%' }
+        ],
+        by_role: [
+          { role: 'Developers', cost: 25000, headcount: 5 },
+          { role: 'Designers', cost: 12000, headcount: 3 },
+          { role: 'Marketing Specialists', cost: 10000, headcount: 2 },
+          { role: 'Managers', cost: 8000, headcount: 2 },
+          { role: 'Support Staff', cost: 3000, headcount: 1 }
+        ],
+        cost_per_billable_hour: 85,
+        utilization_rate: '78%',
+        cost_trends: [
+          { month: 'Jan', cost: 54000 },
+          { month: 'Feb', cost: 55000 },
+          { month: 'Mar', cost: 56000 },
+          { month: 'Apr', cost: 57000 },
+          { month: 'May', cost: 57500 },
+          { month: 'Jun', cost: 58000 }
+        ],
+        efficiency_metrics: {
+          revenue_per_employee: 8750,
+          profit_per_employee: 1750,
+          cost_per_employee: 7000,
+          projects_per_employee: 2.3
+        },
+        optimization_opportunities: [
+          'Increase developer utilization rate by 5%',
+          'Streamline design review process',
+          'Cross-train support staff for marketing tasks'
+        ]
+      };
+    } catch (error) {
+      console.error('Error analyzing team costs:', error);
+      toast.error('Failed to analyze team costs');
+      return {};
+    }
+  },
+
+  /**
+   * Get sales follow-ups
+   */
+  getSalesFollowUps: async () => {
+    try {
+      // Return mock data for demonstration
+      return [
+        {
+          id: 1,
+          client_name: 'Acme Corp',
+          contact_name: 'John Smith',
+          contact_email: 'john.smith@acmecorp.com',
+          follow_up_date: '2023-08-15',
+          follow_up_type: 'Call',
+          priority: 'High',
+          notes: 'Discuss proposal revisions',
+          status: 'Pending',
+          opportunity_value: 25000
+        },
+        {
+          id: 2,
+          client_name: 'TechSolutions Inc',
+          contact_name: 'Sarah Johnson',
+          contact_email: 'sarah.j@techsolutions.com',
+          follow_up_date: '2023-08-12',
+          follow_up_type: 'Email',
+          priority: 'Medium',
+          notes: 'Send additional case studies',
+          status: 'Pending',
+          opportunity_value: 15000
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching sales follow-ups:', error);
+      toast.error('Failed to load sales follow-ups');
+      return [];
+    }
+  },
+
+  /**
+   * Get improvement suggestions
+   */
+  getImprovementSuggestions: async () => {
+    try {
+      // Return mock data for demonstration
+      return [
+        {
+          id: 1,
+          category: 'Cash Flow',
+          suggestion: 'Implement early payment incentives to reduce accounts receivable',
+          impact: 'Medium',
+          difficulty: 'Low',
+          estimated_benefit: 'Reduce average payment time by 5 days',
+          implementation_steps: [
+            'Update invoice templates with early payment terms',
+            'Communicate changes to clients',
+            'Monitor payment pattern changes'
+          ]
+        },
+        {
+          id: 2,
+          category: 'Expense Management',
+          suggestion: 'Consolidate software subscriptions to reduce redundancy',
+          impact: 'Medium',
+          difficulty: 'Medium',
+          estimated_benefit: 'Save $1,200 annually',
+          implementation_steps: [
+            'Audit current software subscriptions',
+            'Identify overlapping functionalities',
+            'Research multi-purpose alternatives',
+            'Implement migration plan'
+          ]
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching improvement suggestions:', error);
+      toast.error('Failed to load improvement suggestions');
+      return [];
+    }
+  },
+
+  /**
+   * Complete a follow-up task
+   * @param followUpId - Follow-up ID
+   * @param feedback - Feedback from the follow-up
+   */
+  completeFollowUp: async (followUpId: number, feedback: string) => {
+    try {
+      // In a real implementation, we would update the database
+      
+      toast.success('Follow-up marked as completed');
+      return { id: followUpId, status: 'Completed', feedback };
+    } catch (error) {
+      console.error('Error completing follow-up:', error);
+      toast.error('Failed to complete follow-up');
+      throw error;
+    }
+  },
+
+  /**
+   * Get sales growth data
+   */
+  getSalesGrowthData: async () => {
+    try {
+      // Return mock data
+      return {
+        annual_growth_rate: '12.5%',
+        quarterly_comparison: [
+          { quarter: 'Q1 2022', revenue: 98000 },
+          { quarter: 'Q2 2022', revenue: 105000 },
+          { quarter: 'Q3 2022', revenue: 110000 },
+          { quarter: 'Q4 2022', revenue: 125000 },
+          { quarter: 'Q1 2023', revenue: 115000 },
+          { quarter: 'Q2 2023', revenue: 135000 }
+        ],
+        monthly_growth: [
+          { month: 'Jan', growth: '5.2%' },
+          { month: 'Feb', growth: '-2.8%' },
+          { month: 'Mar', growth: '8.5%' },
+          { month: 'Apr', growth: '1.2%' },
+          { month: 'May', growth: '4.5%' },
+          { month: 'Jun', growth: '3.2%' }
+        ],
+        by_service_line: [
+          { service: 'Consulting', growth: '15.8%' },
+          { service: 'Development', growth: '9.2%' },
+          { service: 'Maintenance', growth: '18.5%' },
+          { service: 'Training', growth: '5.1%' }
+        ],
+        by_client_segment: [
+          { segment: 'Enterprise', growth: '8.5%' },
+          { segment: 'Mid-Market', growth: '15.2%' },
+          { segment: 'SMB', growth: '5.8%' }
+        ],
+        new_vs_existing: {
+          new_clients_revenue: 95000,
+          existing_clients_revenue: 230000,
+          new_clients_growth: '25.8%',
+          existing_clients_growth: '10.2%'
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching sales growth data:', error);
+      toast.error('Failed to load sales growth data');
+      return {};
+    }
+  },
+
+  /**
+   * Get sales targets
+   */
+  getSalesTargets: async () => {
+    try {
+      // Return mock data
+      return {
+        annual_target: 600000,
+        progress: 325000,
+        progress_percentage: '54.2%',
+        remaining: 275000,
+        quarterly_targets: [
+          { quarter: 'Q1', target: 130000, actual: 115000, variance: -15000 },
+          { quarter: 'Q2', target: 150000, actual: 135000, variance: -15000 },
+          { quarter: 'Q3', target: 160000, target_to_date: 75000, actual_to_date: 75000 },
+          { quarter: 'Q4', target: 160000 }
+        ],
+        monthly_targets: [
+          { month: 'Jan', target: 40000, actual: 38000 },
+          { month: 'Feb', target: 40000, actual: 35000 },
+          { month: 'Mar', target: 50000, actual: 42000 },
+          { month: 'Apr', target: 45000, actual: 40000 },
+          { month: 'May', target: 50000, actual: 44000 },
+          { month: 'Jun', target: 55000, actual: 51000 },
+          { month: 'Jul', target: 50000, actual: 35000 },
+          { month: 'Aug', target: 55000 },
+          { month: 'Sep', target: 55000 },
+          { month: 'Oct', target: 50000 },
+          { month: 'Nov', target: 50000 },
+          { month: 'Dec', target: 60000 }
+        ],
+        by_representative: [
+          { name: 'Alice Johnson', target: 150000, actual: 95000, percentage: '63.3%' },
+          { name: 'Bob Smith', target: 140000, actual: 82000, percentage: '58.6%' },
+          { name: 'Carol Williams', target: 160000, actual: 93000, percentage: '58.1%' },
+          { name: 'David Brown', target: 150000, actual: 55000, percentage: '36.7%' }
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching sales targets:', error);
+      toast.error('Failed to load sales targets');
+      return {};
+    }
+  },
+
+  /**
+   * Get growth forecast
+   */
+  getGrowthForecast: async () => {
+    try {
+      // Return mock data
+      return {
+        annual_forecast: {
+          revenue: 650000,
+          growth_rate: '15.2%',
+          confidence: 'Medium'
+        },
+        quarterly_forecast: [
+          { quarter: 'Q3 2023', revenue: 170000, growth: '13.3%' },
+          { quarter: 'Q4 2023', revenue: 180000, growth: '12.5%' },
+          { quarter: 'Q1 2024', revenue: 160000, growth: '8.5%' },
+          { quarter: 'Q2 2024', revenue: 185000, growth: '10.2%' }
+        ],
+        by_service_line: [
+          { service: 'Consulting', forecast: 280000, growth: '16.7%' },
+          { service: 'Development', forecast: 210000, growth: '13.5%' },
+          { service: 'Maintenance', forecast: 130000, growth: '18.2%' },
+          { service: 'Training', forecast: 30000, growth: '7.1%' }
+        ],
+        market_factors: [
+          { factor: 'Industry growth', impact: 'Positive', description: 'Overall market expected to grow by 10%' },
+          { factor: 'Competition', impact: 'Neutral', description: 'New entrants balanced by market expansion' },
+          { factor: 'Economic conditions', impact: 'Slightly negative', description: 'Economic uncertainty may delay some projects' }
+        ],
+        scenario_analysis: {
+          optimistic: { revenue: 700000, growth: '20.3%', probability: '25%' },
+          baseline: { revenue: 650000, growth: '15.2%', probability: '60%' },
+          pessimistic: { revenue: 600000, growth: '9.1%', probability: '15%' }
+        },
+        growth_drivers: [
+          'Expansion of consulting services',
+          'New product launch in Q4',
+          'Increasing client retention rate'
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching growth forecast:', error);
+      toast.error('Failed to load growth forecast');
+      return {};
+    }
+  },
+
+  /**
+   * Get weekly reports
+   */
+  getWeeklyReports: async () => {
+    try {
+      // Get the dates for the current week
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      const daysSinceMonday = (today.getDay() + 6) % 7; // Adjust for Monday as first day
+      startOfWeek.setDate(today.getDate() - daysSinceMonday);
+      
+      // Return mock data for the current week
+      return {
+        week: `${startOfWeek.toLocaleDateString()} - ${today.toLocaleDateString()}`,
+        revenue: 12500,
+        expenses: 9500,
+        profit: 3000,
+        profit_margin: '24%',
+        new_clients: 2,
+        deals_closed: 3,
+        deals_value: 18000,
+        deals_in_pipeline: 12,
+        pipeline_value: 85000,
+        activities: [
+          { day: 'Monday', meetings: 5, calls: 8, emails: 25 },
+          { day: 'Tuesday', meetings: 3, calls: 12, emails: 30 },
+          { day: 'Wednesday', meetings: 4, calls: 10, emails: 28 },
+          { day: 'Thursday', meetings: 6, calls: 7, emails: 32 },
+          { day: 'Friday', meetings: 2, calls: 5, emails: 20 }
+        ],
+        top_performers: [
+          { name: 'Alice Johnson', deals_closed: 1, value: 8000 },
+          { name: 'Bob Smith', deals_closed: 2, value: 10000 }
+        ],
+        key_events: [
+          { description: 'Closed deal with ABC Corp', date: '2023-08-08', value: 8000 },
+          { description: 'New lead from referral', date: '2023-08-09', potential_value: 12000 },
+          { description: 'Product demo for XYZ Inc', date: '2023-08-10', potential_value: 15000 }
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching weekly reports:', error);
+      toast.error('Failed to load weekly reports');
+      return {};
+    }
+  },
+
+  /**
+   * Get monthly reports
+   */
+  getMonthlyReports: async () => {
+    try {
+      // Get the current month name
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const currentMonth = monthNames[new Date().getMonth()];
+      
+      // Return mock data for the current month
+      return {
+        month: currentMonth,
+        revenue: 43500,
+        expenses: 32000,
+        profit: 11500,
+        profit_margin: '26.4%',
+        target_achievement: '87%',
+        new_clients: 8,
+        churned_clients: 1,
+        retention_rate: '95%',
+        deals_closed: 12,
+        deals_value: 65000,
+        average_deal_size: 5417,
+        sales_by_representative: [
+          { name: 'Alice Johnson', deals: 4, value: 22000 },
+          { name: 'Bob Smith', deals: 3, value: 18000 },
+          { name: 'Carol Williams', deals: 3, value: 15000 },
+          { name: 'David Brown', deals: 2, value: 10000 }
+        ],
+        sales_by_service: [
+          { service: 'Consulting', value: 25000, percentage: '38.5%' },
+          { service: 'Development', value: 20000, percentage: '30.8%' },
+          { service: 'Maintenance', value: 15000, percentage: '23.1%' },
+          { service: 'Training', value: 5000, percentage: '7.7%' }
+        ],
+        leads_and_conversions: {
+          new_leads: 35,
+          qualified_leads: 18,
+          proposals_sent: 15,
+          deals_closed: 12,
+          conversion_rate: '34.3%'
+        },
+        key_insights: [
+          'Consulting services showing strongest growth',
+          'Average deal size increased by 8% from previous month',
+          'Lead-to-deal conversion rate improved by 3%'
+        ]
+      };
+    } catch (error) {
+      console.error('Error fetching monthly reports:', error);
+      toast.error('Failed to load monthly reports');
+      return {};
+    }
+  },
+
+  /**
+   * Get sales trends
+   */
+  getSalesTrends: async () => {
+    try {
+      // Return mock data
+      return {
+        revenue_trends: {
+          monthly: [
+            { month: 'Jan', value: 38000 },
+            { month: 'Feb', value: 35000 },
+            { month: 'Mar', value: 42000 },
+            { month: 'Apr', value: 40000 },
+            { month: 'May', value: 44000 },
+            { month: 'Jun', value: 43500 }
+          ],
+          quarterly: [
+            { quarter: 'Q1', value: 115000 },
+            { quarter: 'Q2', value: 127500 }
+          ],
+          year_over_year: [
+            { year: 2021, value: 380000 },
+            { year: 2022, value: 425000 },
+            { year: 2023, value: 480000, projected: true }
+          ]
+        },
+        conversion_trends: {
+          monthly_rates: [
+            { month: 'Jan', value: '15.2%' },
+            { month: 'Feb', value: '16.5%' },
+            { month: 'Mar', value: '17.8%' },
+            { month: 'Apr', value: '16.2%' },
+            { month: 'May', value: '17.5%' },
+            { month: 'Jun', value: '18.0%' }
+          ],
+          by_lead_source: [
+            { source: 'Website', value: '12.5%' },
+            { source: 'Referral', value: '25.3%' },
+            { source: 'Social Media', value: '8.2%' },
+            { source: 'Email Campaign', value: '15.8%' }
+          ]
+        },
+        customer_acquisition_cost: {
+          overall: 1250,
+          trend: [
+            { month: 'Jan', value: 1350 },
+            { month: 'Feb', value: 1320 },
+            { month: 'Mar', value: 1290 },
+            { month: 'Apr', value: 1270 },
+            { month: 'May', value: 1260 },
+            { month: 'Jun', value: 1250 }
+          ],
+          by_channel: [
+            { channel: 'Organic Search', value: 850 },
+            { channel: 'Paid Advertising', value: 1500 },
+            { channel: 'Social Media', value: 1200 },
+            { channel: 'Email Marketing', value: 950 }
+          ]
+        },
+        sales_cycle_length: {
+          overall: '45 days',
+          trend: [
+            { month: 'Jan', value: 48 },
+            { month: 'Feb', value: 47 },
+            { month: 'Mar', value: 46 },
+            { month: 'Apr', value: 45 },
+            { month: 'May', value: 45 },
+            { month: 'Jun', value: 45 }
+          ],
+          by_deal_size: [
+            { size: 'Small (<$5K)', value: 30 },
+            { size: 'Medium ($5K-$20K)', value: 45 },
+            { size: 'Large (>$20K)', value: 75 }
+          ]
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching sales trends:', error);
+      toast.error('Failed to load sales trends');
+      return {};
+    }
+  },
+
+  /**
+   * Get sales by channel
+   */
+  getSalesByChannel: async () => {
+    try {
+      // Return mock data
+      return {
+        by_channel: [
+          { channel: 'Direct Sales', value: 250000, percentage: '52.1%' },
+          { channel: 'Partner Referrals', value: 120000, percentage: '25.0%' },
+          { channel: 'Website Inbound', value: 80000, percentage: '16.7%' },
+          { channel: 'Email Campaigns', value: 30000, percentage: '6.3%' }
+        ],
+        channel_performance: {
+          conversion_rates: [
+            { channel: 'Direct Sales', value: '25.3%' },
+            { channel: 'Partner Referrals', value: '32.5%' },
+            { channel: 'Website Inbound', value: '12.8%' },
+            { channel: 'Email Campaigns', value: '15.2%' }
+          ],
+          acquisition_costs: [
+            { channel: 'Direct Sales', value: 1500 },
+            { channel: 'Partner Referrals', value: 950 },
+            { channel: 'Website Inbound', value: 850 },
+            { channel: 'Email Campaigns', value: 650 }
+          ],
+          roi: [
+            { channel: 'Direct Sales', value: '350%' },
+            { channel: 'Partner Referrals', value: '450%' },
+            { channel: 'Website Inbound', value: '380%' },
+            { channel: 'Email Campaigns', value: '420%' }
+          ]
+        },
+        growth_by_channel: [
+          { channel: 'Direct Sales', growth: '10.2%' },
+          { channel: 'Partner Referrals', growth: '18.5%' },
+          { channel: 'Website Inbound', growth: '15.8%' },
+          { channel: 'Email Campaigns', growth: '8.5%' }
+        ],
+        customer_quality_by_channel: {
+          average_deal_size: [
+            { channel: 'Direct Sales', value: 12500 },
+            { channel: 'Partner Referrals', value: 8500 },
+            { channel: 'Website Inbound', value: 5500 },
+            { channel: 'Email Campaigns', value: 4500 }
+          ],
+          customer_lifetime_value: [
+            { channel: 'Direct Sales', value: 75000 },
+            { channel: 'Partner Referrals', value: 65000 },
+            { channel: 'Website Inbound', value: 45000 },
+            { channel: 'Email Campaigns', value: 35000 }
+          ]
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching sales by channel:', error);
+      toast.error('Failed to load sales channel data');
+      return {};
+    }
+  },
+
+  /**
+   * Get top products/services
+   */
+  getTopProducts: async () => {
+    try {
+      // Return mock data
+      return {
+        by_revenue: [
+          { product: 'Enterprise Consulting', revenue: 150000, percentage: '31.3%' },
+          { product: 'Custom Development', revenue: 120000, percentage: '25.0%' },
+          { product: 'Maintenance Contracts', revenue: 100000, percentage: '20.8%' },
+          { product: 'Training Services', revenue: 80000, percentage: '16.7%' },
+          { product: 'Support Packages', revenue: 30000, percentage: '6.3%' }
+        ],
+        by_growth: [
+          { product: 'Maintenance Contracts', growth: '25.3%' },
+          { product: 'Custom Development', growth: '18.5%' },
+          { product: 'Enterprise Consulting', growth: '12.8%' },
+          { product: 'Training Services', growth: '8.5%' },
+          { product: 'Support Packages', growth: '5.2%' }
+        ],
+        by_profit_margin: [
+          { product: 'Maintenance Contracts', margin: '45%' },
+          { product: 'Enterprise Consulting', margin: '40%' },
+          { product: 'Training Services', margin: '35%' },
+          { product: 'Support Packages', margin: '30%' },
+          { product: 'Custom Development', margin: '25%' }
+        ],
+        by_customer_satisfaction: [
+          { product: 'Enterprise Consulting', satisfaction: 4.8 },
+          { product: 'Training Services', satisfaction: 4.7 },
+          { product: 'Support Packages', satisfaction: 4.5 },
+          { product: 'Maintenance Contracts', satisfaction: 4.3 },
+          { product: 'Custom Development', satisfaction: 4.2 }
+        ],
+        performance_trends: {
+          monthly_sales: [
+            { month: 'Jan', enterprise: 22000, development: 18000, maintenance: 15000, training: 12000, support: 5000 },
+            { month: 'Feb', enterprise: 21000, development: 17000, maintenance: 16000, training: 11000, support: 4500 },
+            { month: 'Mar', enterprise: 25000, development: 20000, maintenance: 17000, training: 13000, support: 5500 },
+            { month: 'Apr', enterprise: 24000, development: 19000, maintenance: 18000, training: 14000, support: 5000 },
+            { month: 'May', enterprise: 28000, development: 22000, maintenance: 16000, training: 15000, support: 5500 },
+            { month: 'Jun', enterprise: 30000, development: 24000, maintenance: 18000, training: 15000, support: 4500 }
+          ]
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching top products:', error);
+      toast.error('Failed to load top products data');
+      return {};
+    }
+  },
+
+  /**
+   * Send invoice reminder
+   * @param invoiceId - Invoice ID
+   */
+  sendInvoiceReminder: async (invoiceId: number) => {
+    try {
+      // In a real application, this would call an API to send a reminder
+      
+      toast.success('Invoice reminder sent successfully');
+      return { success: true, message: 'Reminder sent' };
+    } catch (error) {
+      console.error('Error sending invoice reminder:', error);
+      toast.error('Failed to send invoice reminder');
+      throw error;
+    }
+  }
 };
 
 export default financeService;

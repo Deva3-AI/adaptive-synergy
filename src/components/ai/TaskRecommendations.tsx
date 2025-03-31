@@ -9,7 +9,7 @@ import { Clock, Calendar, CheckCircle, PlusCircle, Sparkles, ChevronRight } from
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import aiService from "@/services/api/aiService";
 import taskService from "@/services/api/taskService";
-import { Task } from '@/interfaces/task';
+import { Task } from '@/interfaces/tasks';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
