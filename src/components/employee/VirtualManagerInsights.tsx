@@ -1,97 +1,118 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Clock, CheckCircle, CalendarDays, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BrainCircuit, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import aiService from '@/services/api/aiService';
-import { cn } from '@/lib/utils';
+import { VirtualManagerInsightsProps } from '@/types';
 
-interface VirtualManagerInsightsProps {
-  taskId: number;
-  className?: string;
-}
-
-const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ taskId, className }) => {
-  // Fetch insights for a specific task
+const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ userId, clientId }) => {
   const { data: insights, isLoading, error } = useQuery({
-    queryKey: ['manager-insights', taskId],
-    queryFn: () => aiService.generateManagerInsights(taskId),
-    enabled: !!taskId,
+    queryKey: ['manager-insights', userId, clientId],
+    queryFn: () => aiService.generateManagerInsights(userId),
+    enabled: !!userId,
   });
 
-  const getIconForType = (type: string) => {
-    switch (type) {
-      case 'deadline':
-        return <Clock className="h-4 w-4 text-amber-500" />;
-      case 'quality':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'planning':
-        return <CalendarDays className="h-4 w-4 text-blue-500" />;
-      case 'risk':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
+  if (isLoading) {
+    return (
+      <Card className="overflow-hidden animate-pulse">
+        <CardHeader className="bg-muted/40 pb-2">
+          <CardTitle className="text-lg font-medium flex items-center">
+            <BrainCircuit className="h-5 w-5 mr-2 text-primary" />
+            Virtual Manager Insights
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="h-6 bg-muted rounded w-3/4 mb-4"></div>
+          <div className="h-4 bg-muted rounded w-full mb-2"></div>
+          <div className="h-4 bg-muted rounded w-5/6 mb-2"></div>
+          <div className="h-4 bg-muted rounded w-4/5 mb-4"></div>
+          <div className="h-6 bg-muted rounded w-2/3 mb-4"></div>
+          <div className="h-4 bg-muted rounded w-full mb-2"></div>
+          <div className="h-4 bg-muted rounded w-3/4"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const getBadgeVariant = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'default';
-      case 'low':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
+  if (error || !insights) {
+    return (
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-muted/40 pb-2">
+          <CardTitle className="text-lg font-medium flex items-center">
+            <BrainCircuit className="h-5 w-5 mr-2 text-primary" />
+            Virtual Manager Insights
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="flex items-center text-destructive">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            Failed to load manager insights
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className={cn(className)}>
-      <CardHeader>
-        <CardTitle className="text-base">Virtual Manager Insights</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="bg-muted/40 pb-2">
+        <CardTitle className="text-lg font-medium flex items-center">
+          <BrainCircuit className="h-5 w-5 mr-2 text-primary" />
+          Virtual Manager Insights
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <>
-            <Skeleton className="h-16 w-full mb-3" />
-            <Skeleton className="h-16 w-full mb-3" />
-            <Skeleton className="h-16 w-full" />
-          </>
-        ) : error ? (
-          <div className="text-center p-4">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Failed to load insights</p>
-            <Button variant="outline" size="sm" className="mt-2">Retry</Button>
+      <CardContent className="p-4">
+        <div className="space-y-4">
+          {/* Client Tendencies Section */}
+          <div>
+            <h3 className="font-medium text-md mb-2 flex items-center">
+              <Badge variant="outline" className="mr-2">Client</Badge>
+              Client Tendencies
+            </h3>
+            <ul className="space-y-2">
+              {insights.clientTendencies.map((item: string, index: number) => (
+                <li key={index} className="flex items-start">
+                  <CheckCircle className="h-4 w-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        ) : !insights || insights.length === 0 ? (
-          <div className="text-center p-4">
-            <p className="text-sm text-muted-foreground">No insights available for this task</p>
+
+          {/* Performance Insights Section */}
+          <div>
+            <h3 className="font-medium text-md mb-2 flex items-center">
+              <Badge variant="outline" className="mr-2">Performance</Badge>
+              Your Performance Insights
+            </h3>
+            <ul className="space-y-2">
+              {insights.performanceInsights.map((item: string, index: number) => (
+                <li key={index} className="flex items-start">
+                  <Clock className="h-4 w-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {insights.map((insight: any, i: number) => (
-              <div key={i} className="p-3 bg-muted rounded-lg flex items-start">
-                <div className="flex-shrink-0 p-1">
-                  {getIconForType(insight.type)}
-                </div>
-                <div className="ml-2 flex-grow">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-medium">{insight.title}</h4>
-                    <Badge variant={getBadgeVariant(insight.priority)} className="text-[10px]">
-                      {insight.priority}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{insight.description}</p>
-                </div>
-              </div>
-            ))}
+
+          {/* Recommendations Section */}
+          <div>
+            <h3 className="font-medium text-md mb-2 flex items-center">
+              <Badge variant="outline" className="mr-2">Action</Badge>
+              Recommended Actions
+            </h3>
+            <ul className="space-y-2">
+              {insights.recommendedActions.map((item: string, index: number) => (
+                <li key={index} className="flex items-start">
+                  <CheckCircle className="h-4 w-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

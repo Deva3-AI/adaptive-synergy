@@ -12,25 +12,37 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-export interface DateRangePickerProps {
-  className?: string
-  value?: DateRange
-  onChange?: (date: DateRange | undefined) => void
-}
+import { DateRangePickerProps } from "@/types"
 
 export function DateRangePicker({
   className,
   value,
-  onChange
+  onChange,
+  date,
+  setDate
 }: DateRangePickerProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(value)
+  // Use either the controlled (value/onChange) or uncontrolled (date/setDate) props
+  const [internalDate, setInternalDate] = React.useState<DateRange | undefined>(value || date);
 
   React.useEffect(() => {
     if (value) {
-      setDate(value)
+      setInternalDate(value);
+    } else if (date) {
+      setInternalDate(date);
     }
-  }, [value])
+  }, [value, date]);
+
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    setInternalDate(newDate);
+    
+    if (onChange) {
+      onChange(newDate);
+    }
+    
+    if (setDate) {
+      setDate(newDate);
+    }
+  };
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -41,18 +53,18 @@ export function DateRangePicker({
             variant={"outline"}
             className={cn(
               "w-[300px] justify-start text-left font-normal",
-              !date && "text-muted-foreground"
+              !internalDate && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
+            {internalDate?.from ? (
+              internalDate.to ? (
                 <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
+                  {format(internalDate.from, "LLL dd, y")} -{" "}
+                  {format(internalDate.to, "LLL dd, y")}
                 </>
               ) : (
-                format(date.from, "LLL dd, y")
+                format(internalDate.from, "LLL dd, y")
               )
             ) : (
               <span>Pick a date range</span>
@@ -63,14 +75,9 @@ export function DateRangePicker({
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={(newDate) => {
-              setDate(newDate)
-              if (onChange) {
-                onChange(newDate)
-              }
-            }}
+            defaultMonth={internalDate?.from}
+            selected={internalDate}
+            onSelect={(newDate) => handleDateChange(newDate)}
             numberOfMonths={2}
           />
         </PopoverContent>

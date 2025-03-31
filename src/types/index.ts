@@ -35,3 +35,41 @@ export interface LeaveRequest {
   leaveType: string;
   days: number;
 }
+
+export interface DateRangePickerProps {
+  className?: string;
+  value?: DateRange;
+  onChange?: (date: DateRange | undefined) => void;
+  date?: DateRange;
+  setDate?: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
+}
+
+export interface DateRange {
+  from: Date;
+  to?: Date;
+}
+
+export interface VirtualManagerInsightsProps {
+  userId: number;
+  clientId?: number;
+}
+
+export interface TeamCostsAnalysisProps {
+  period?: 'month' | 'quarter' | 'year';
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface PlatformConfig {
+  platform: string;
+  name: string;
+  connected: boolean;
+  lastSync?: string;
+  icon: string;
+}
+
+export interface PlatformType {
+  id: string;
+  name: string;
+  icon: string;
+}

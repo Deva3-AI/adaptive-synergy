@@ -1,132 +1,163 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Download, Paperclip, FileText, FileImage, FileArchive, Film, X } from "lucide-react";
-import { useQuery } from '@tanstack/react-query';
-import taskService from "@/services/api/taskService";
-
-interface TaskAttachment {
-  id: number;
-  task_id: number;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  url: string;
-  uploaded_by: string;
-  uploaded_at: string;
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FileUp, FileText, Download, Trash2 } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
+import { taskService } from '@/services/api/taskService';
 
 interface TaskAttachmentsPanelProps {
   taskId: number;
+  attachments?: Array<{
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+    uploadedAt: string;
+    uploadedBy: string;
+  }>;
   className?: string;
 }
 
-const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({ taskId, className }) => {
-  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const TaskAttachmentsPanel: React.FC<TaskAttachmentsPanelProps> = ({
+  taskId,
+  attachments = [],
+  className,
+}) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Mock function to simulate fetching attachments
-  const fetchAttachments = async (taskId: number) => {
-    setIsLoading(true);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      handleFileUpload(acceptedFiles);
+    },
+    multiple: true,
+  });
+
+  const handleFileUpload = async (files: File[]) => {
+    if (files.length === 0) return;
+    
+    setUploading(true);
+    setUploadProgress(0);
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Simulate upload progress
+      const interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return 95;
+          }
+          return prev + 5;
+        });
+      }, 100);
       
-      // Mock attachment data
-      const mockAttachments: TaskAttachment[] = [
-        {
-          id: 1,
-          task_id: taskId,
-          file_name: 'Project_Brief.pdf',
-          file_type: 'pdf',
-          file_size: 256,
-          url: '/example-files/Project_Brief.pdf',
-          uploaded_by: 'John Doe',
-          uploaded_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          task_id: taskId,
-          file_name: 'Design_Mockup.png',
-          file_type: 'png',
-          file_size: 1024,
-          url: '/example-files/Design_Mockup.png',
-          uploaded_by: 'Jane Smith',
-          uploaded_at: new Date().toISOString()
-        }
-      ];
+      // Simulate upload delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       
-      setAttachments(mockAttachments);
-      setError(null);
-    } catch (e: any) {
-      setError(e.message || 'Failed to load attachments');
-      setAttachments([]);
-    } finally {
-      setIsLoading(false);
+      // Call API to upload files
+      await taskService.uploadTaskAttachments(taskId, files);
+      
+      clearInterval(interval);
+      setUploadProgress(100);
+      
+      toast.success('Files uploaded successfully');
+      
+      // Reset progress after a delay
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+      }, 1000);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error('Failed to upload files');
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
-  // Load attachments on component mount
-  React.useEffect(() => {
-    if (taskId) {
-      fetchAttachments(taskId);
+  const handleDelete = async (attachmentId: string) => {
+    try {
+      await taskService.deleteTaskAttachment(taskId, attachmentId);
+      toast.success('Attachment deleted successfully');
+    } catch (error) {
+      console.error('Error deleting attachment:', error);
+      toast.error('Failed to delete attachment');
     }
-  }, [taskId]);
+  };
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Task Attachments</CardTitle>
-          <Button size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            Add File
-          </Button>
-        </div>
-        <CardDescription>
-          Files and documents related to this task
-        </CardDescription>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-md font-medium">Attachments & Files</CardTitle>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
+      <CardContent className="space-y-4">
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+            isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+          }`}
+        >
+          <input {...getInputProps()} />
+          <FileUp className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-sm font-medium">
+            {isDragActive ? 'Drop files here' : 'Drag & drop files here, or click to select files'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Supported file types: PDF, Word, Excel, JPG, PNG (max 10MB)
+          </p>
+        </div>
+
+        {uploading && (
           <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Uploading... {uploadProgress}%</p>
           </div>
-        ) : error ? (
-          <div className="text-red-500">{error}</div>
-        ) : attachments.length === 0 ? (
-          <div className="text-muted-foreground text-center py-4">
-            No attachments found
-          </div>
-        ) : (
-          <div className="space-y-4">
+        )}
+
+        {attachments.length > 0 ? (
+          <div className="space-y-2">
             {attachments.map((attachment) => (
-              <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-md">
-                <div className="flex items-center">
-                  {attachment.file_type === 'pdf' && <FileText className="h-5 w-5 mr-2 text-blue-500" />}
-                  {attachment.file_type === 'png' && <FileImage className="h-5 w-5 mr-2 text-green-500" />}
-                  {attachment.file_type === 'zip' && <FileArchive className="h-5 w-5 mr-2 text-yellow-500" />}
-                  {attachment.file_type === 'mp4' && <Film className="h-5 w-5 mr-2 text-purple-500" />}
-                  <span className="font-medium">{attachment.file_name}</span>
-                </div>
+              <div
+                key={attachment.id}
+                className="flex items-center justify-between py-2 px-3 bg-muted rounded-md"
+              >
                 <div className="flex items-center space-x-2">
-                  <Button size="sm" variant="ghost">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{attachment.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(attachment.size / 1024).toFixed(1)} KB • Uploaded{' '}
+                      {new Date(attachment.uploadedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Button variant="ghost" size="icon">
+                    <Download className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost">
-                    <X className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(attachment.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No attachments yet
+          </p>
         )}
       </CardContent>
     </Card>

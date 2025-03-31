@@ -59,6 +59,52 @@ const mockInsights = {
   ]
 };
 
+const mockManagerInsights = {
+  clientTendencies: [
+    'Prefers detailed progress reports',
+    'Often requests last-minute changes',
+    'Responds best to visual presentations',
+    'Values timely communication above all'
+  ],
+  performanceInsights: [
+    'Task completion rate is 15% above average',
+    'Quality ratings consistently above 4.5/5',
+    'Response time to client queries could be improved'
+  ],
+  recommendedActions: [
+    'Schedule bi-weekly progress reviews',
+    'Allocate buffer time for revision cycles',
+    'Prepare visual mockups for all major deliverables'
+  ]
+};
+
+const mockTaskRecommendations = [
+  {
+    task_id: 1,
+    title: 'Revise homepage wireframes',
+    description: 'Update the design based on recent client feedback',
+    priority: 'high',
+    estimated_time: 4,
+    client_id: 1
+  },
+  {
+    task_id: 2,
+    title: 'Prepare monthly performance report',
+    description: 'Compile analytics data and create visualization dashboard',
+    priority: 'medium',
+    estimated_time: 3,
+    client_id: 1
+  },
+  {
+    task_id: 3,
+    title: 'Schedule strategy meeting',
+    description: 'Align on Q3 marketing objectives with client team',
+    priority: 'low',
+    estimated_time: 2,
+    client_id: 2
+  }
+];
+
 const aiService = {
   analyzeRequirements: async (requirements: string) => {
     // Simulate API call
@@ -76,6 +122,25 @@ const aiService = {
       tasks: mockAIResponse.suggestedTasks,
       client_id: clientId
     };
+  },
+  
+  // Adding the missing methods that cause TypeScript errors
+  getResponse: async (query: string) => {
+    // Simulate AI response
+    return {
+      content: `Here's my analysis of your query: "${query.substring(0, 30)}..."\n\nBased on the context provided, I recommend focusing on client communication and deadline management. The client has previously expressed concerns about timeline visibility.`,
+      response: `Here's my analysis of your query: "${query.substring(0, 30)}..."\n\nBased on the context provided, I recommend focusing on client communication and deadline management. The client has previously expressed concerns about timeline visibility.`
+    };
+  },
+  
+  generateManagerInsights: async (userId: number) => {
+    // Simulate API call for virtual manager insights
+    return mockManagerInsights;
+  },
+  
+  generateAITaskRecommendations: async (userId: number) => {
+    // Simulate API call for AI task recommendations
+    return mockTaskRecommendations;
   }
 };
 

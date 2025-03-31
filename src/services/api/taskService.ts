@@ -1,286 +1,480 @@
 
-import { toast } from "sonner";
-import { mockUserData } from "@/utils/mockData";
+// Import necessary dependencies
+import { mockUserData } from '@/utils/mockData';
 
-// Define Task interface
-export interface Task {
-  id?: number;
-  task_id: number;
-  title: string;
-  description: string;
-  client_id?: number;
-  client_name?: string;
-  client?: string;
-  assigned_to?: number;
-  assignee_name?: string;
-  status: string;
-  priority: string;
-  due_date?: string;
-  created_at?: string;
-  updated_at?: string;
-  progress: number;
-  estimated_hours?: number;
-  actual_hours?: number;
-  comments?: any[];
-}
-
-export interface TaskComment {
-  id?: number;
-  task_id: number;
-  user_id: number;
-  user_name: string;
-  content: string;
-  created_at: string;
-}
-
-// Mock tasks data
-const mockTasks = [
-  {
-    task_id: 1,
-    id: 1,
-    title: "Create homepage design",
-    description: "Design the homepage layout for the new website",
-    client_id: 1,
-    client_name: "Acme Corp",
-    assigned_to: 2,
-    assignee_name: "John Designer",
-    status: "in_progress",
-    priority: "high",
-    due_date: "2023-06-15",
-    created_at: "2023-06-01",
-    updated_at: "2023-06-05",
-    progress: 65,
-    estimated_hours: 10,
-    actual_hours: 6.5,
-    comments: [
-      {
-        id: 1,
-        task_id: 1,
-        user_id: 1,
-        user_name: "Admin User",
-        content: "Please make sure to follow the brand guidelines",
-        created_at: "2023-06-02T10:30:00"
-      }
-    ]
-  },
-  {
-    task_id: 2,
-    id: 2,
-    title: "Implement user authentication",
-    description: "Create login and registration functionality",
-    client_id: 2,
-    client_name: "TechStart Inc",
-    assigned_to: 3,
-    assignee_name: "Jane Developer",
-    status: "pending",
-    priority: "medium",
-    due_date: "2023-06-20",
-    created_at: "2023-06-03",
-    updated_at: "2023-06-03",
-    progress: 0,
-    estimated_hours: 15,
-    actual_hours: 0,
-    comments: []
-  },
-  {
-    task_id: 3,
-    id: 3,
-    title: "Create content for about page",
-    description: "Write copy for the about us section",
-    client_id: 1,
-    client_name: "Acme Corp",
-    assigned_to: 4,
-    assignee_name: "David Writer",
-    status: "completed",
-    priority: "low",
-    due_date: "2023-06-10",
-    created_at: "2023-06-01",
-    updated_at: "2023-06-08",
-    progress: 100,
-    estimated_hours: 5,
-    actual_hours: 4.5,
-    comments: [
-      {
-        id: 2,
-        task_id: 3,
-        user_id: 4,
-        user_name: "David Writer",
-        content: "First draft completed, awaiting feedback",
-        created_at: "2023-06-05T15:45:00"
-      },
-      {
-        id: 3,
-        task_id: 3,
-        user_id: 1,
-        user_name: "Admin User",
-        content: "Looks good, just minor edits needed",
-        created_at: "2023-06-06T11:20:00"
-      }
-    ]
-  }
-];
-
-// Task service functions
+// Task service 
 export const taskService = {
-  // Get all tasks
-  getTasks: async () => {
-    try {
-      // In a real app, this would be an API call
-      return [...mockTasks];
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      throw error;
-    }
+  getTasks: async (filters?: any) => {
+    // Simulate API call with delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would be an API call with filters
+        let tasks = [
+          {
+            id: 1,
+            task_id: 1,
+            title: 'Redesign homepage',
+            description: 'Create a responsive design for the company website homepage',
+            client_id: 1,
+            client_name: 'Acme Corp',
+            assigned_to: 1,
+            assignee_name: 'John Doe',
+            status: 'in_progress',
+            priority: 'high',
+            due_date: '2023-07-20',
+            created_at: '2023-07-01',
+            updated_at: '2023-07-05',
+            progress: 65,
+            estimated_time: 12,
+            actual_time: 8
+          },
+          {
+            id: 2,
+            task_id: 2,
+            title: 'Develop API endpoints',
+            description: 'Create RESTful API endpoints for user authentication',
+            client_id: 2,
+            client_name: 'TechStart Inc',
+            assigned_to: 2,
+            assignee_name: 'Jane Smith',
+            status: 'pending',
+            priority: 'medium',
+            due_date: '2023-07-25',
+            created_at: '2023-07-02',
+            updated_at: '2023-07-02',
+            progress: 0,
+            estimated_time: 16,
+            actual_time: 0
+          },
+          {
+            id: 3,
+            task_id: 3,
+            title: 'QA Testing',
+            description: 'Perform quality assurance testing on the new features',
+            client_id: 1,
+            client_name: 'Acme Corp',
+            assigned_to: 3,
+            assignee_name: 'Mike Johnson',
+            status: 'completed',
+            priority: 'low',
+            due_date: '2023-07-10',
+            created_at: '2023-07-01',
+            updated_at: '2023-07-08',
+            progress: 100,
+            estimated_time: 8,
+            actual_time: 7
+          }
+        ];
+        
+        // Apply filters if provided
+        if (filters) {
+          if (filters.status) {
+            tasks = tasks.filter(task => task.status === filters.status);
+          }
+          
+          if (filters.priority) {
+            tasks = tasks.filter(task => task.priority === filters.priority);
+          }
+          
+          if (filters.assignedTo) {
+            tasks = tasks.filter(task => task.assigned_to === filters.assignedTo);
+          }
+          
+          if (filters.clientId) {
+            tasks = tasks.filter(task => task.client_id === filters.clientId);
+          }
+        }
+        
+        resolve(tasks);
+      }, 500);
+    });
   },
-
-  // Get task by ID
+  
   getTaskById: async (taskId: number) => {
-    try {
-      const task = mockTasks.find(t => t.task_id === taskId || t.id === taskId);
-      if (!task) {
-        throw new Error('Task not found');
-      }
-      return task;
-    } catch (error) {
-      console.error(`Error fetching task #${taskId}:`, error);
-      throw error;
-    }
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const tasks = [
+          {
+            id: 1,
+            task_id: 1,
+            title: 'Redesign homepage',
+            description: 'Create a responsive design for the company website homepage',
+            client_id: 1,
+            client_name: 'Acme Corp',
+            assigned_to: 1,
+            assignee_name: 'John Doe',
+            status: 'in_progress',
+            priority: 'high',
+            due_date: '2023-07-20',
+            created_at: '2023-07-01',
+            updated_at: '2023-07-05',
+            progress: 65,
+            estimated_time: 12,
+            actual_time: 8,
+            comments: [
+              {
+                id: 1,
+                user: 'Jane Smith',
+                text: 'I think we should use a mobile-first approach for this redesign.',
+                created_at: '2023-07-02T14:30:00'
+              },
+              {
+                id: 2,
+                user: 'John Doe',
+                text: 'Agreed, I'll start with the mobile layouts first.',
+                created_at: '2023-07-02T15:45:00'
+              }
+            ]
+          },
+          {
+            id: 2,
+            task_id: 2,
+            title: 'Develop API endpoints',
+            description: 'Create RESTful API endpoints for user authentication',
+            client_id: 2,
+            client_name: 'TechStart Inc',
+            assigned_to: 2,
+            assignee_name: 'Jane Smith',
+            status: 'pending',
+            priority: 'medium',
+            due_date: '2023-07-25',
+            created_at: '2023-07-02',
+            updated_at: '2023-07-02',
+            progress: 0,
+            estimated_time: 16,
+            actual_time: 0,
+            comments: []
+          }
+        ];
+        
+        const task = tasks.find(t => t.task_id === taskId);
+        
+        if (task) {
+          resolve(task);
+        } else {
+          reject(new Error('Task not found'));
+        }
+      }, 500);
+    });
   },
-
-  // Get tasks by status
-  getTasksByStatus: async (status: string) => {
-    try {
-      return mockTasks.filter(task => task.status === status);
-    } catch (error) {
-      console.error(`Error fetching tasks with status "${status}":`, error);
-      throw error;
-    }
+  
+  createTask: async (taskData: any) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would send data to an API
+        const newTask = {
+          id: Math.floor(Math.random() * 1000) + 10,
+          task_id: Math.floor(Math.random() * 1000) + 10,
+          ...taskData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          progress: 0
+        };
+        
+        resolve(newTask);
+      }, 500);
+    });
   },
-
-  // Get tasks by assigned user
-  getTasksByUser: async (userId: number) => {
-    try {
-      return mockTasks.filter(task => task.assigned_to === userId);
-    } catch (error) {
-      console.error(`Error fetching tasks for user #${userId}:`, error);
-      throw error;
-    }
+  
+  updateTask: async (taskId: number, taskData: any) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would update data via an API
+        const updatedTask = {
+          id: taskId,
+          task_id: taskId,
+          ...taskData,
+          updated_at: new Date().toISOString()
+        };
+        
+        resolve(updatedTask);
+      }, 500);
+    });
   },
-
-  // Get tasks by client
-  getTasksByClient: async (clientId: number) => {
-    try {
-      return mockTasks.filter(task => task.client_id === clientId);
-    } catch (error) {
-      console.error(`Error fetching tasks for client #${clientId}:`, error);
-      throw error;
-    }
-  },
-
-  // Create a new task
-  createTask: async (taskData: Partial<Task>) => {
-    try {
-      const newTask = {
-        task_id: Math.max(...mockTasks.map(t => t.task_id)) + 1,
-        id: Math.max(...mockTasks.map(t => t.id || 0)) + 1,
-        title: taskData.title || '',
-        description: taskData.description || '',
-        client_id: taskData.client_id,
-        client_name: taskData.client_name || 'Unknown Client',
-        assigned_to: taskData.assigned_to,
-        assignee_name: taskData.assignee_name || 'Unassigned',
-        status: taskData.status || 'pending',
-        priority: taskData.priority || 'medium',
-        due_date: taskData.due_date,
-        created_at: new Date().toISOString().split('T')[0],
-        updated_at: new Date().toISOString().split('T')[0],
-        progress: taskData.progress || 0,
-        estimated_hours: taskData.estimated_hours,
-        actual_hours: taskData.actual_hours || 0,
-        comments: []
-      };
-      
-      // In a real app, this would be an API call
-      mockTasks.push(newTask as any);
-      
-      return newTask;
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
-    }
-  },
-
-  // Update a task
-  updateTask: async (taskId: number, taskData: Partial<Task>) => {
-    try {
-      const taskIndex = mockTasks.findIndex(t => t.task_id === taskId || t.id === taskId);
-      
-      if (taskIndex === -1) {
-        throw new Error('Task not found');
-      }
-      
-      // Update task
-      mockTasks[taskIndex] = {
-        ...mockTasks[taskIndex],
-        ...taskData,
-        updated_at: new Date().toISOString().split('T')[0]
-      };
-      
-      return mockTasks[taskIndex];
-    } catch (error) {
-      console.error(`Error updating task #${taskId}:`, error);
-      throw error;
-    }
-  },
-
-  // Delete a task
+  
   deleteTask: async (taskId: number) => {
-    try {
-      const taskIndex = mockTasks.findIndex(t => t.task_id === taskId || t.id === taskId);
-      
-      if (taskIndex === -1) {
-        throw new Error('Task not found');
-      }
-      
-      // Remove task
-      mockTasks.splice(taskIndex, 1);
-      
-      return { success: true };
-    } catch (error) {
-      console.error(`Error deleting task #${taskId}:`, error);
-      throw error;
-    }
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would delete a task via an API
+        resolve({ success: true, message: 'Task deleted successfully' });
+      }, 500);
+    });
   },
-
-  // Add a comment to a task
-  addTaskComment: async (taskId: number, comment: Omit<TaskComment, 'id' | 'created_at'>) => {
-    try {
-      const taskIndex = mockTasks.findIndex(t => t.task_id === taskId || t.id === taskId);
-      
-      if (taskIndex === -1) {
-        throw new Error('Task not found');
-      }
-      
-      const newComment = {
-        id: Math.max(...mockTasks.flatMap(t => t.comments?.map(c => c.id) || [0])) + 1,
-        task_id: taskId,
-        user_id: comment.user_id,
-        user_name: comment.user_name,
-        content: comment.content,
-        created_at: new Date().toISOString()
-      };
-      
-      // Add comment
-      if (!mockTasks[taskIndex].comments) {
-        mockTasks[taskIndex].comments = [];
-      }
-      
-      mockTasks[taskIndex].comments?.push(newComment);
-      
-      return newComment;
-    } catch (error) {
-      console.error(`Error adding comment to task #${taskId}:`, error);
-      throw error;
-    }
+  
+  startTask: async (taskId: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would update a task's status via an API
+        const updatedTask = {
+          id: taskId,
+          task_id: taskId,
+          status: 'in_progress',
+          start_time: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        resolve(updatedTask);
+      }, 500);
+    });
+  },
+  
+  completeTask: async (taskId: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would update a task's status via an API
+        const updatedTask = {
+          id: taskId,
+          task_id: taskId,
+          status: 'completed',
+          progress: 100,
+          end_time: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        resolve(updatedTask);
+      }, 500);
+    });
+  },
+  
+  updateTaskProgress: async (taskId: number, progress: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would update a task's progress via an API
+        const updatedTask = {
+          id: taskId,
+          task_id: taskId,
+          progress,
+          updated_at: new Date().toISOString()
+        };
+        
+        resolve(updatedTask);
+      }, 500);
+    });
+  },
+  
+  addTaskComment: async (taskId: number, comment: string) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would add a comment via an API
+        const newComment = {
+          id: Math.floor(Math.random() * 1000) + 10,
+          task_id: taskId,
+          user: 'Current User',
+          text: comment,
+          created_at: new Date().toISOString()
+        };
+        
+        resolve(newComment);
+      }, 500);
+    });
+  },
+  
+  getTaskComments: async (taskId: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would fetch comments via an API
+        const comments = [
+          {
+            id: 1,
+            task_id: taskId,
+            user: 'Jane Smith',
+            text: 'I think we should use a mobile-first approach for this redesign.',
+            created_at: '2023-07-02T14:30:00'
+          },
+          {
+            id: 2,
+            task_id: taskId,
+            user: 'John Doe',
+            text: 'Agreed, I'll start with the mobile layouts first.',
+            created_at: '2023-07-02T15:45:00'
+          }
+        ];
+        
+        resolve(comments);
+      }, 500);
+    });
+  },
+  
+  uploadTaskAttachments: async (taskId: number, files: File[]) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would upload files via an API
+        const attachments = files.map((file, index) => ({
+          id: `${taskId}-${Date.now()}-${index}`,
+          task_id: taskId,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: URL.createObjectURL(file),
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: 'Current User'
+        }));
+        
+        resolve(attachments);
+      }, 1000);
+    });
+  },
+  
+  getTaskAttachments: async (taskId: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would fetch attachments via an API
+        const attachments = [
+          {
+            id: `${taskId}-1`,
+            task_id: taskId,
+            name: 'requirements.pdf',
+            size: 2456000,
+            type: 'application/pdf',
+            url: '#',
+            uploadedAt: '2023-07-01T10:30:00',
+            uploadedBy: 'Jane Smith'
+          },
+          {
+            id: `${taskId}-2`,
+            task_id: taskId,
+            name: 'mockup.png',
+            size: 1234000,
+            type: 'image/png',
+            url: '#',
+            uploadedAt: '2023-07-02T14:15:00',
+            uploadedBy: 'John Doe'
+          }
+        ];
+        
+        resolve(attachments);
+      }, 500);
+    });
+  },
+  
+  deleteTaskAttachment: async (taskId: number, attachmentId: string) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would delete an attachment via an API
+        resolve({ success: true, message: 'Attachment deleted successfully' });
+      }, 500);
+    });
+  },
+  
+  getTasksByClient: async (clientId: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would fetch tasks via an API
+        const tasks = [
+          {
+            id: 1,
+            task_id: 1,
+            title: 'Redesign homepage',
+            description: 'Create a responsive design for the company website homepage',
+            client_id: clientId,
+            client_name: 'Acme Corp',
+            assigned_to: 1,
+            assignee_name: 'John Doe',
+            status: 'in_progress',
+            priority: 'high',
+            due_date: '2023-07-20',
+            created_at: '2023-07-01',
+            updated_at: '2023-07-05',
+            progress: 65,
+            estimated_time: 12,
+            actual_time: 8
+          },
+          {
+            id: 3,
+            task_id: 3,
+            title: 'QA Testing',
+            description: 'Perform quality assurance testing on the new features',
+            client_id: clientId,
+            client_name: 'Acme Corp',
+            assigned_to: 3,
+            assignee_name: 'Mike Johnson',
+            status: 'completed',
+            priority: 'low',
+            due_date: '2023-07-10',
+            created_at: '2023-07-01',
+            updated_at: '2023-07-08',
+            progress: 100,
+            estimated_time: 8,
+            actual_time: 7
+          }
+        ].filter(task => task.client_id === clientId);
+        
+        resolve(tasks);
+      }, 500);
+    });
+  },
+  
+  getTasksByEmployee: async (employeeId: number) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would fetch tasks via an API
+        const tasks = [
+          {
+            id: 1,
+            task_id: 1,
+            title: 'Redesign homepage',
+            description: 'Create a responsive design for the company website homepage',
+            client_id: 1,
+            client_name: 'Acme Corp',
+            assigned_to: employeeId,
+            assignee_name: 'John Doe',
+            status: 'in_progress',
+            priority: 'high',
+            due_date: '2023-07-20',
+            created_at: '2023-07-01',
+            updated_at: '2023-07-05',
+            progress: 65,
+            estimated_time: 12,
+            actual_time: 8
+          },
+          {
+            id: 2,
+            task_id: 2,
+            title: 'Develop API endpoints',
+            description: 'Create RESTful API endpoints for user authentication',
+            client_id: 2,
+            client_name: 'TechStart Inc',
+            assigned_to: employeeId,
+            assignee_name: 'John Doe',
+            status: 'pending',
+            priority: 'medium',
+            due_date: '2023-07-25',
+            created_at: '2023-07-02',
+            updated_at: '2023-07-02',
+            progress: 0,
+            estimated_time: 16,
+            actual_time: 0
+          }
+        ].filter(task => task.assigned_to === employeeId);
+        
+        resolve(tasks);
+      }, 500);
+    });
+  },
+  
+  getTasksSummary: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would fetch summary data via an API
+        const summary = {
+          total: 12,
+          completed: 5,
+          in_progress: 4,
+          pending: 3,
+          overdue: 2,
+          by_priority: {
+            high: 4,
+            medium: 6,
+            low: 2
+          },
+          by_client: [
+            { client_id: 1, client_name: 'Acme Corp', count: 5 },
+            { client_id: 2, client_name: 'TechStart Inc', count: 7 }
+          ]
+        };
+        
+        resolve(summary);
+      }, 500);
+    });
   }
 };

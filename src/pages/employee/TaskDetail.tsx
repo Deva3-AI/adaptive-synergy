@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -7,10 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { MessageSquare, Paperclip, Calendar, Clock, ArrowLeft } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import taskService from '@/services/api/taskService';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Link } from 'react-router-dom';
+import { taskService } from "@/services/api/taskService";
 
 interface Comment {
   id: number;
@@ -19,24 +21,54 @@ interface Comment {
   created_at: string;
 }
 
+interface TaskData {
+  task_id: number;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  progress: number;
+  estimated_time: number;
+  actual_time: number;
+  assigned_to: number;
+  assignee_name: string;
+  client_name: string;
+  created_at: string;
+  updated_at: string;
+  end_time: string;
+  comments: Comment[];
+}
+
 const TaskDetail = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const [comment, setComment] = useState('');
-  const queryClient = useQueryClient();
 
+  // Fetch task details
   const { data: task, isLoading, error } = useQuery({
     queryKey: ['task-detail', taskId],
     enabled: !!taskId,
     queryFn: async () => {
       try {
-        const taskData = await taskService.getTaskById(parseInt(taskId || '0'));
+        const data = await taskService.getTaskById(parseInt(taskId || '0'));
         
+        // Format data to match TaskData interface
         return {
-          ...taskData,
-          priority: 'Medium',
-          progress: 70,
-          comments: [],
-        };
+          task_id: data.task_id,
+          title: data.title,
+          description: data.description,
+          status: data.status,
+          priority: data.priority || 'Medium', // Default priority
+          progress: data.progress || 0, // Default progress
+          estimated_time: data.estimated_time || 0,
+          actual_time: data.actual_time || 0,
+          assigned_to: data.assigned_to,
+          assignee_name: data.assignee_name || 'Unassigned',
+          client_name: data.client_name || 'Unknown Client',
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          end_time: data.end_time,
+          comments: data.comments || [] // Mock comments
+        } as TaskData;
       } catch (error) {
         console.error('Error fetching task details:', error);
         throw error;
@@ -44,33 +76,11 @@ const TaskDetail = () => {
     }
   });
 
-  const addCommentMutation = useMutation({
-    mutationFn: async (commentText: string) => {
-      const mockComment = {
-        id: Date.now(),
-        task_id: parseInt(taskId || '0'),
-        user_id: 1,
-        comment: commentText,
-        created_at: new Date().toISOString(),
-        user: { name: 'Current User' }
-      };
-      
-      return mockComment;
-    },
-    onSuccess: () => {
-      setComment('');
-      toast.success('Comment added');
-      queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] });
-    },
-    onError: (error) => {
-      console.error('Error adding comment:', error);
-      toast.error('Failed to add comment');
-    }
-  });
-
   const handleAddComment = () => {
     if (comment.trim() !== '') {
-      addCommentMutation.mutate(comment);
+      // In a real app, we would save the comment to the database
+      toast.success('Comment added');
+      setComment(''); // Clear the input after adding the comment
     }
   };
 
@@ -158,7 +168,7 @@ const TaskDetail = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Client:</span>
-                  <div className="text-sm font-medium">{task.client_name || "No client assigned"}</div>
+                  <span>{task.client_name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Estimated Hours:</span>
@@ -185,9 +195,9 @@ const TaskDetail = () => {
               <h4 className="text-lg font-semibold mb-2">Assigned To</h4>
               <div className="flex items-center">
                 <Avatar className="mr-2">
-                  <AvatarFallback>{(task.users?.name || 'User').charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{task.assignee_name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span>{task.users?.name || 'Unassigned'}</span>
+                <span>{task.assignee_name}</span>
               </div>
             </div>
           </div>
@@ -196,7 +206,7 @@ const TaskDetail = () => {
             <h4 className="text-lg font-semibold mb-2">Comments</h4>
             {task.comments && task.comments.length > 0 ? (
               <div className="space-y-4">
-                {task.comments.map((comment: Comment, index: number) => (
+                {task.comments.map((comment, index) => (
                   <div key={index} className="flex items-start text-sm">
                     <Avatar className="mr-2 h-8 w-8">
                       <AvatarFallback>{comment.user.charAt(0)}</AvatarFallback>
@@ -219,9 +229,7 @@ const TaskDetail = () => {
                 className="flex-grow mr-2"
                 icon={<MessageSquare className="h-4 w-4 text-gray-500" />}
               />
-              <Button onClick={handleAddComment} disabled={addCommentMutation.isPending}>
-                {addCommentMutation.isPending ? 'Posting...' : 'Post'}
-              </Button>
+              <Button onClick={handleAddComment}>Post</Button>
             </div>
           </div>
         </CardContent>

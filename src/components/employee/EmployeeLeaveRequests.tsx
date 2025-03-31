@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar, Clock, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -34,7 +35,7 @@ const EmployeeLeaveRequests = () => {
     
     setLoading(true);
     try {
-      const data = await hrService.getEmployeeLeaveRequests();
+      const data = await hrService.getLeaveRequests();
       setRequests(data);
     } catch (error) {
       console.error('Error fetching leave requests:', error);
@@ -86,6 +87,11 @@ const EmployeeLeaveRequests = () => {
     });
   };
 
+  const handleSubmitRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmit(e);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="lg:col-span-1">
@@ -94,48 +100,56 @@ const EmployeeLeaveRequests = () => {
           <CardDescription>Fill in the details below to request time off</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="start_date">Start Date</Label>
-            <Input
-              type="date"
-              id="start_date"
-              name="start_date"
-              value={newRequest.start_date}
-              onChange={handleInputChange}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="end_date">End Date</Label>
-            <Input
-              type="date"
-              id="end_date"
-              name="end_date"
-              value={newRequest.end_date}
-              onChange={handleInputChange}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason</Label>
-            <Input
-              id="reason"
-              name="reason"
-              placeholder="Enter reason for leave"
-              value={newRequest.reason}
-              onChange={handleInputChange}
-            />
-          </div>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select leave type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="vacation">Vacation</SelectItem>
-              <SelectItem value="sick">Sick</SelectItem>
-              <SelectItem value="maternity">Maternity</SelectItem>
-              <SelectItem value="paternity">Paternity</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={() => handleSubmit(newRequest)}>Submit Request</Button>
+          <form onSubmit={handleSubmitRequest}>
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Start Date</Label>
+              <Input
+                type="date"
+                id="start_date"
+                name="start_date"
+                value={newRequest.start_date}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end_date">End Date</Label>
+              <Input
+                type="date"
+                id="end_date"
+                name="end_date"
+                value={newRequest.end_date}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason</Label>
+              <Input
+                id="reason"
+                name="reason"
+                placeholder="Enter reason for leave"
+                value={newRequest.reason}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leaveType">Leave Type</Label>
+              <Select
+                onValueChange={(value) => setNewRequest({...newRequest, leaveType: value})}
+                defaultValue={newRequest.leaveType}
+              >
+                <SelectTrigger id="leaveType">
+                  <SelectValue placeholder="Select leave type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vacation">Vacation</SelectItem>
+                  <SelectItem value="sick">Sick</SelectItem>
+                  <SelectItem value="maternity">Maternity</SelectItem>
+                  <SelectItem value="paternity">Paternity</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="mt-4">Submit Request</Button>
+          </form>
         </CardContent>
       </Card>
 

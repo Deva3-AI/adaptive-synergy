@@ -9,6 +9,16 @@ export interface PlatformMessage {
   client_id: number;
 }
 
+export type PlatformType = 'slack' | 'discord' | 'email' | 'trello';
+
+export interface PlatformConfig {
+  platform: PlatformType;
+  name: string;
+  connected: boolean;
+  lastSync?: string;
+  icon: string;
+}
+
 const mockMessages: PlatformMessage[] = [
   {
     id: '1',
@@ -36,6 +46,36 @@ const mockMessages: PlatformMessage[] = [
   }
 ];
 
+const mockPlatforms: PlatformConfig[] = [
+  {
+    platform: 'slack',
+    name: 'Slack',
+    connected: true,
+    lastSync: '2023-06-06T12:30:00',
+    icon: 'slack-icon'
+  },
+  {
+    platform: 'discord',
+    name: 'Discord',
+    connected: true,
+    lastSync: '2023-06-06T10:15:00',
+    icon: 'discord-icon'
+  },
+  {
+    platform: 'email',
+    name: 'Email',
+    connected: true,
+    lastSync: '2023-06-06T09:00:00',
+    icon: 'mail-icon'
+  },
+  {
+    platform: 'trello',
+    name: 'Trello',
+    connected: false,
+    icon: 'trello-icon'
+  }
+];
+
 export const platformService = {
   fetchAllClientMessages: async (clientId: number): Promise<PlatformMessage[]> => {
     // Simulate API call
@@ -53,5 +93,26 @@ export const platformService = {
     mockMessages.push(newMessage);
     
     return newMessage;
+  },
+
+  // Adding missing methods for platform integrations
+  getPlatforms: async () => {
+    return mockPlatforms;
+  },
+  
+  configurePlatform: async (platform: PlatformType, config: any) => {
+    const index = mockPlatforms.findIndex(p => p.platform === platform);
+    if (index >= 0) {
+      mockPlatforms[index] = { ...mockPlatforms[index], ...config, connected: true };
+    }
+    return mockPlatforms;
+  },
+  
+  disconnectPlatform: async (platform: PlatformType) => {
+    const index = mockPlatforms.findIndex(p => p.platform === platform);
+    if (index >= 0) {
+      mockPlatforms[index] = { ...mockPlatforms[index], connected: false };
+    }
+    return mockPlatforms;
   }
 };
