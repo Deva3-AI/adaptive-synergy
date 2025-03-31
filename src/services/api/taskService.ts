@@ -2,6 +2,29 @@
 // Import necessary dependencies
 import { mockUserData } from '@/utils/mockData';
 
+// Define Task interface to avoid TypeScript errors
+export interface Task {
+  id: number;
+  task_id: number;
+  title: string;
+  description: string;
+  client_id: number;
+  client_name: string;
+  assigned_to: number;
+  assignee_name: string;
+  status: string;
+  priority: string;
+  due_date: string;
+  created_at: string;
+  updated_at: string;
+  progress: number;
+  estimated_time: number;
+  actual_time: number;
+  comments?: any[];
+  start_time?: string;
+  end_time?: string;
+}
+
 // Task service 
 export const taskService = {
   getTasks: async (filters?: any) => {
@@ -286,7 +309,7 @@ export const taskService = {
             id: 2,
             task_id: taskId,
             user: 'John Doe',
-            text: 'Agreed, I'll start with the mobile layouts first.',
+            text: 'Agreed, I\'ll start with the mobile layouts first.',
             created_at: '2023-07-02T15:45:00'
           }
         ];
