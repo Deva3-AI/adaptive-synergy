@@ -144,7 +144,7 @@ export const taskService = {
               {
                 id: 2,
                 user: 'John Doe',
-                text: 'Agreed, I'll start with the mobile layouts first.',
+                text: 'Agreed, I\'ll start with the mobile layouts first.',
                 created_at: '2023-07-02T15:45:00'
               }
             ]
