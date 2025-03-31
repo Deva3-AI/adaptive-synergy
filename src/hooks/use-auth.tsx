@@ -1,307 +1,200 @@
 
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authService } from '@/services/api';
 import { supabase } from '@/lib/supabase';
-import { mockUserData } from '@/utils/mockData';
+import { toast } from 'sonner';
 
-interface User {
-  id: number;
+export interface User {
+  id: string | number;
   name: string;
   email: string;
   role: string;
+  client_id?: number;
+  roles?: { role_name: any; role_id?: number }[];
+  permissions?: string[];
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  error: Error | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  isAuthenticated: boolean;
+  isClient: boolean;
+  hasRole: (role: string) => boolean;
+  hasPermission: (permission: string) => boolean;
+  login: (email: string, password: string) => Promise<any>;
+  register: (name: string, email: string, password: string) => Promise<any>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  isAdmin: boolean;
-  isHR: boolean;
-  isFinance: boolean;
-  isMarketing: boolean;
-  isEmployee: boolean;
+  resetPassword: (email: string) => Promise<any>;
+  setNewPassword: (token: string, password: string) => Promise<any>;
+  signup: (name: string, email: string, password: string) => Promise<any>;
+  requestPasswordReset: (email: string) => Promise<any>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  isAuthenticated: false,
+  isClient: false,
+  hasRole: () => false,
+  hasPermission: () => false,
+  login: async () => ({}),
+  register: async () => ({}),
+  logout: () => {},
+  resetPassword: async () => ({}),
+  setNewPassword: async () => ({}),
+  signup: async () => ({}),
+  requestPasswordReset: async () => ({}),
+});
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const navigate = useNavigate();
 
-  // Check for existing session on mount
+  // Check if user has a specific role
+  const hasRole = (role: string): boolean => {
+    if (!user) return false;
+    
+    // First check if user.role is directly what we're looking for
+    if (user.role === role) return true;
+    
+    // If user has a roles array, check there too
+    if (user.roles && user.roles.length > 0) {
+      // Check if role exists in the array
+      return user.roles.some(r => r.role_name === role);
+    }
+    
+    return false;
+  };
+  
+  // Check if user has a specific permission
+  const hasPermission = (permission: string): boolean => {
+    if (!user || !user.permissions) return false;
+    return user.permissions.includes(permission);
+  };
+  
+  // Initialize auth state
   useEffect(() => {
-    const checkUser = async () => {
+    const initAuth = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
+        // First check if we have user info in localStorage
+        const storedUser = authService.getCurrentUser();
         
-        // Get the current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw sessionError;
-        }
-        
-        if (session?.user) {
-          // Get user details from our database
-          const { data, error: userError } = await supabase
-            .from('users')
-            .select(`
-              user_id,
-              name,
-              email,
-              role_id,
-              roles:role_id(role_name)
-            `)
-            .eq('email', session.user.email)
-            .single();
+        if (storedUser) {
+          // User is already authenticated according to localStorage
+          setUser(storedUser);
           
-          if (userError) {
-            console.error('Error fetching user data:', userError);
-            
-            // For demo, use mock data
-            const mockUser = mockUserData.users.find(u => u.email === session.user?.email);
-            
-            if (mockUser) {
-              const mockRole = mockUserData.roles.find(r => r.role_id === mockUser.role_id);
-              
-              setUser({
-                id: mockUser.user_id,
-                name: mockUser.name,
-                email: mockUser.email,
-                role: mockRole?.role_name || 'unknown'
-              });
-            } else {
-              throw userError;
-            }
-          } else if (data) {
-            setUser({
-              id: data.user_id,
-              name: data.name,
-              email: data.email,
-              role: data.roles?.role_name || 'unknown'
-            });
-          }
-        } else {
-          setUser(null);
+          // Optionally refresh or verify token here
+          // ...
         }
-      } catch (err) {
-        console.error('Error in auth check:', err);
-        setError(err instanceof Error ? err : new Error('Authentication error'));
-        setUser(null);
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        // Clear potentially corrupt localStorage data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       } finally {
         setLoading(false);
       }
     };
-
-    checkUser();
     
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
-      
-      if (event === 'SIGNED_IN' && session) {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .select(`
-              user_id,
-              name,
-              email,
-              role_id,
-              roles:role_id(role_name)
-            `)
-            .eq('email', session.user.email)
-            .single();
-          
-          if (error) {
-            console.error('Error fetching user data after sign in:', error);
-            
-            // For demo, use mock data
-            const mockUser = mockUserData.users.find(u => u.email === session.user?.email);
-            
-            if (mockUser) {
-              const mockRole = mockUserData.roles.find(r => r.role_id === mockUser.role_id);
-              
-              setUser({
-                id: mockUser.user_id,
-                name: mockUser.name,
-                email: mockUser.email,
-                role: mockRole?.role_name || 'unknown'
-              });
-            } else {
-              throw error;
-            }
-          } else if (data) {
-            setUser({
-              id: data.user_id,
-              name: data.name,
-              email: data.email,
-              role: data.roles?.role_name || 'unknown'
-            });
-          }
-        } catch (err) {
-          console.error('Error handling sign in:', err);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
+    initAuth();
   }, []);
-
+  
   const login = async (email: string, password: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      const result = await authService.login(email, password);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        toast.error(error.message);
-        return { success: false, error: error.message };
-      }
-      
-      if (data.user) {
-        // For demo purposes, let's simulate fetching user data
-        const mockUser = mockUserData.users.find(u => u.email === email);
+      if (result.success && result.data) {
+        // Set user in state
+        const userData = {
+          id: result.data.user_id,
+          name: result.data.name,
+          email: result.data.email,
+          role: result.data.role,
+        };
         
-        if (mockUser) {
-          const mockRole = mockUserData.roles.find(r => r.role_id === mockUser.role_id);
-          
-          setUser({
-            id: mockUser.user_id,
-            name: mockUser.name,
-            email: mockUser.email,
-            role: mockRole?.role_name || 'unknown'
-          });
-          
-          toast.success('Logged in successfully!');
-          navigate('/dashboard');
-          return { success: true };
-        } else {
-          // If we don't have mock data for this user, create a default one
-          setUser({
-            id: Date.now(),
-            name: email.split('@')[0],
-            email,
-            role: 'employee'
-          });
-          
-          toast.success('Logged in successfully!');
-          navigate('/dashboard');
-          return { success: true };
-        }
+        setUser(userData);
+        return result;
+      } else {
+        throw new Error(result.error || 'Failed to login');
       }
-      
-      return { success: false, error: 'Unknown error occurred' };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
   };
-
+  
   const register = async (name: string, email: string, password: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      const result = await authService.register(name, email, password);
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name
-          }
-        }
-      });
-      
-      if (error) {
-        toast.error(error.message);
-        return { success: false, error: error.message };
+      if (result.success) {
+        toast.success('Registration successful! Please verify your email.');
+        return result;
+      } else {
+        throw new Error(result.error || 'Failed to register');
       }
-      
-      // In a real app, we would insert the user into our users table here
-      // For demo, we'll just set the user
-      if (data.user) {
-        setUser({
-          id: Date.now(),
-          name,
-          email,
-          role: 'employee' // Default role for new users
-        });
-        
-        toast.success('Registration successful!');
-        navigate('/dashboard');
-        return { success: true };
-      }
-      
-      return { success: false, error: 'Unknown error occurred' };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
   };
-
-  const logout = async () => {
+  
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+  };
+  
+  const resetPassword = async (email: string) => {
     try {
-      await supabase.auth.signOut();
-      setUser(null);
-      toast.success('Logged out successfully');
-      navigate('/login');
-    } catch (err) {
-      console.error('Error signing out:', err);
-      toast.error('Error logging out');
+      return await authService.resetPassword(email);
+    } catch (error) {
+      console.error('Reset password error:', error);
+      throw error;
+    }
+  };
+  
+  const setNewPassword = async (token: string, password: string) => {
+    try {
+      return await authService.setNewPassword(token, password);
+    } catch (error) {
+      console.error('Set new password error:', error);
+      throw error;
     }
   };
 
-  // Role-based helper properties
-  const isAdmin = user?.role === 'admin';
-  const isHR = user?.role === 'hr' || isAdmin;
-  const isFinance = user?.role === 'finance' || isAdmin;
-  const isMarketing = user?.role === 'marketing' || isAdmin;
-  const isEmployee = !!user; // All authenticated users are at least employees
-
+  const isAuthenticated = !!user;
+  const isClient = user?.role === 'client';
+  
+  // Adding aliases for backward compatibility
+  const signup = register;
+  const requestPasswordReset = resetPassword;
+  
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        error,
-        login,
-        logout,
-        register,
-        isAdmin,
-        isHR,
-        isFinance,
-        isMarketing,
-        isEmployee
-      }}
-    >
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      isAuthenticated,
+      isClient,
+      hasRole,
+      hasPermission,
+      login, 
+      register,
+      logout,
+      resetPassword,
+      setNewPassword,
+      signup,
+      requestPasswordReset
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

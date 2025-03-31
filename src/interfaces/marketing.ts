@@ -1,153 +1,188 @@
 
-export interface Campaign {
+// Marketing Campaign
+export interface MarketingCampaign {
   id: number;
-  name: string;
+  title: string;
   description: string;
-  status: 'draft' | 'active' | 'paused' | 'completed';
-  type: 'email' | 'social' | 'content' | 'paid' | 'event';
-  start_date: string;
-  end_date?: string;
-  budget?: number;
-  target_audience?: string;
-  created_at: string;
-  updated_at?: string;
-  metrics?: {
-    impressions?: number;
-    clicks?: number;
-    conversions?: number;
-    cost_per_conversion?: number;
+  type: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  budget: number;
+  target: {
+    audience: string;
+    location: string;
+    demographic: string[];
   };
+  kpis: {
+    name: string;
+    value: number;
+    target: number;
+    unit: string;
+  }[];
+  channels: string[];
+  owner: string;
+  team: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
+// Marketing Meeting
 export interface MarketingMeeting {
   id: number;
   title: string;
-  description?: string;
+  description: string;
   date: string;
   time: string;
-  duration: number; // in minutes
-  contact_name: string;
-  contact_email: string;
-  contact_company: string;
-  meeting_type: 'prospect' | 'client' | 'partner' | 'internal';
-  status: 'scheduled' | 'completed' | 'cancelled';
-  notes?: string;
-  location?: string;
-  platform?: string;
-  meeting_link?: string;
-  created_at: string;
-  updated_at?: string;
-  leadName?: string;
-  leadCompany?: string;
-  scheduledTime?: string;
+  duration: number;
+  platform: string;
+  participants: string[];
+  agenda: string[];
+  notes: string;
+  followUp: string[];
+  status: string;
+  leadName: string;
+  leadCompany: string;
+  scheduledTime: string;
 }
 
-export interface EmailOutreach {
-  id: number;
-  campaign_id?: number;
-  subject: string;
-  content: string;
-  status: 'draft' | 'sent' | 'scheduled';
-  scheduled_date?: string;
-  sent_date?: string;
-  recipients: string[];
-  open_rate?: number;
-  click_rate?: number;
-  response_rate?: number;
-  created_at: string;
-  updated_at?: string;
-  recipientCompany?: string;
-  source?: string;
-  follow_up_scheduled?: boolean;
-  sentDate?: string;
-}
-
+// Marketing Lead
 export interface MarketingLead {
   id: number;
   name: string;
+  company: string;
   email: string;
-  company?: string;
-  position?: string;
-  phone?: string;
-  source: 'website' | 'referral' | 'social' | 'event' | 'advertisement' | 'other';
-  status: 'new' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
-  assigned_to?: number;
-  assigned_name?: string;
-  notes?: string;
-  last_contact_date?: string;
-  next_follow_up?: string;
-  potential_value?: number;
-  created_at: string;
-  updated_at?: string;
-  interests?: string[];
+  phone: string;
+  address: string;
+  status: string;
+  source: string;
+  rating: number;
+  notes: string;
+  lastContact: string;
+  nextContact: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
+// Email Outreach
+export interface EmailOutreach {
+  id: number;
+  subject: string;
+  recipients: string[];
+  recipient: string; // For backward compatibility with existing components
+  recipientCompany: string; // For backward compatibility with existing components
+  content: string;
+  sentDate: string;
+  sentAt: string; // For backward compatibility with existing components
+  status: string;
+  openRate: number;
+  clickRate: number;
+  responseRate: number;
+  source: string;
+  followUpScheduled: boolean;
+  follow_up_scheduled: boolean; // For backward compatibility with existing components
+  follow_up_date: string;
+  tags: string[];
+}
+
+// Analytics Data
+export interface MarketingAnalytics {
+  period: string;
+  metrics: {
+    leads: number;
+    meetings: number;
+    opportunities: number;
+    conversions: number;
+    revenue: number;
+  };
+  channels: {
+    name: string;
+    value: number;
+    percentage: number;
+  }[];
+  campaigns: {
+    name: string;
+    leads: number;
+    meetings: number;
+    conversions: number;
+    roi: number;
+  }[];
+  trends: {
+    date: string;
+    leads: number;
+    meetings: number;
+    conversions: number;
+  }[];
+}
+
+// Marketing Plan
 export interface MarketingPlan {
   id: number;
   title: string;
   description: string;
   objectives: string[];
-  start_date: string;
-  end_date: string;
-  status: 'draft' | 'active' | 'completed';
-  budget?: number;
-  target_audience?: string[];
-  key_strategies: string[];
-  success_metrics: {
-    [key: string]: {
-      target: number;
-      current?: number;
-      unit: string;
-    };
+  strategy: string;
+  tactics: string[];
+  timeline: {
+    startDate: string;
+    endDate: string;
+    milestones: {
+      date: string;
+      description: string;
+    }[];
   };
-  channels: string[];
-  owner_id?: number;
-  owner_name?: string;
-  created_at: string;
-  updated_at?: string;
+  budget: number;
+  resources: string[];
+  metrics: {
+    name: string;
+    target: number;
+    unit: string;
+  }[];
+  status: string;
+  owner: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface MarketingTrends {
-  industry_trends: Array<{
-    trend: string;
-    impact: 'low' | 'medium' | 'high';
-    description: string;
-  }>;
-  platform_changes: Array<{
-    platform: string;
-    change: string;
-    impact: 'low' | 'medium' | 'high';
-  }>;
-  recommended_actions: Array<{
-    action: string;
-    priority: 'low' | 'medium' | 'high';
-  }>;
+// Marketing Metric
+export interface MarketingMetric {
+  id: number;
+  name: string;
+  value: number;
+  target: number;
+  unit: string;
+  period: string;
+  trend: number;
+  category: string;
+  source: string;
+  updatedAt: string;
 }
 
+// Marketing Trends
+export interface MarketingTrend {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  relevance_score: number;
+  relevanceScore: number; // For backward compatibility
+  source: string;
+  discoveredAt: string;
+  actionable: boolean;
+  suggestedActions: string[];
+  impact: string;
+}
+
+// Competitor Insight
 export interface CompetitorInsight {
+  id: number;
   competitor: string;
-  strengths: string[];
-  weaknesses: string[];
-  recent_activities: string[];
-  threat_level: 'low' | 'medium' | 'high';
-}
-
-export interface MarketingMetrics {
-  overall_performance: {
-    total_leads: number;
-    conversion_rate: string;
-    cost_per_lead: string;
-    roi: string;
-  };
-  channel_performance: Array<{
-    channel: string;
-    leads: number;
-    conversion_rate: string;
-    cost_per_lead: string;
-  }>;
-  trends: Array<{
-    metric: string;
-    trend: 'increasing' | 'decreasing' | 'stable';
-    value: string;
-  }>;
+  competitor_name: string; // For backward compatibility
+  description: string;
+  type: string;
+  impact: string;
+  discoveredAt: string;
+  source: string;
+  suggestedResponse: string;
 }
