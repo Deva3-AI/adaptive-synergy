@@ -1,36 +1,32 @@
-import React, { useState } from 'react';
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  Download, 
-  FileText, 
-  Filter, 
-  PlusCircle, 
-  RefreshCcw, 
-  Users 
-} from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { toast } from 'sonner';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { format, parseISO, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import {
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -46,554 +42,648 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-import LeaveRequestForm from '@/components/hr/LeaveRequestForm';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Calendar as CalendarIcon, Edit, Info, Search, Filter, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { hrService } from '@/services/api';
+import { AttendanceLeaveRequest, PaySlip } from '@/types';
 import LeaveRequestsList from '@/components/hr/LeaveRequestsList';
-import EmployeePayslip from '@/components/hr/EmployeePayslip';
-import { AttendanceLeaveRequest as LeaveRequest, PaySlip } from '@/types/index';
 
-const MOCK_EMPLOYEES = [
-  { id: 1, name: 'John Doe', department: 'Engineering', position: 'Senior Developer' },
-  { id: 2, name: 'Jane Smith', department: 'Design', position: 'UI/UX Designer' },
-  { id: 3, name: 'Mike Johnson', department: 'Marketing', position: 'Marketing Specialist' },
-  { id: 4, name: 'Sarah Williams', department: 'HR', position: 'HR Manager' },
-  { id: 5, name: 'David Brown', department: 'Finance', position: 'Financial Analyst' },
-];
+interface AttendanceRecord {
+  id: number;
+  user_id: number;
+  employee_name: string;
+  date: string;
+  login_time: string;
+  logout_time: string | null;
+  total_hours: number;
+  status: string;
+}
 
-const MOCK_ATTENDANCE_RECORDS = [
-  { id: 1, employeeId: 1, employeeName: 'John Doe', date: '2023-09-01', loginTime: '09:02:34', logoutTime: '17:05:21', status: 'present', workHours: 8.05 },
-  { id: 2, employeeId: 1, employeeName: 'John Doe', date: '2023-09-02', loginTime: '08:55:12', logoutTime: '17:15:43', status: 'present', workHours: 8.34 },
-  { id: 3, employeeId: 2, employeeName: 'Jane Smith', date: '2023-09-01', loginTime: '09:10:05', logoutTime: '17:03:11', status: 'present', workHours: 7.88 },
-  { id: 4, employeeId: 2, employeeName: 'Jane Smith', date: '2023-09-02', loginTime: null, logoutTime: null, status: 'absent', workHours: 0 },
-  { id: 5, employeeId: 3, employeeName: 'Mike Johnson', date: '2023-09-01', loginTime: '08:45:22', logoutTime: '16:50:19', status: 'present', workHours: 8.08 },
-  { id: 6, employeeId: 4, employeeName: 'Sarah Williams', date: '2023-09-01', loginTime: '09:12:45', logoutTime: '17:20:33', status: 'present', workHours: 8.13 },
-  { id: 7, employeeId: 5, employeeName: 'David Brown', date: '2023-09-01', loginTime: '09:05:11', logoutTime: '17:10:05', status: 'present', workHours: 8.08 },
-  { id: 8, employeeId: 3, employeeName: 'Mike Johnson', date: '2023-09-02', loginTime: '09:30:00', logoutTime: '17:00:00', status: 'late', workHours: 7.5 },
-];
-
-const MOCK_LEAVE_REQUESTS: LeaveRequest[] = [
-  { 
-    id: 1, 
-    employeeId: 1, 
-    employeeName: 'John Doe', 
-    leaveType: 'annual', 
-    startDate: '2023-09-15', 
-    endDate: '2023-09-20', 
-    reason: 'Family vacation', 
-    status: 'approved',
-    createdAt: '2023-09-01T10:23:45Z',
-    updatedAt: '2023-09-02T14:12:30Z'
-  },
-  { 
-    id: 2, 
-    employeeId: 2, 
-    employeeName: 'Jane Smith', 
-    leaveType: 'sick', 
-    startDate: '2023-09-05', 
-    endDate: '2023-09-06', 
-    reason: 'Feeling unwell, doctor recommended rest', 
-    status: 'approved',
-    documentUrl: '/documents/medical-note.pdf',
-    createdAt: '2023-09-04T09:15:22Z',
-    updatedAt: '2023-09-04T11:45:10Z'
-  },
-  { 
-    id: 3, 
-    employeeId: 3, 
-    employeeName: 'Mike Johnson', 
-    leaveType: 'wfh', 
-    startDate: '2023-09-10', 
-    reason: 'Internet installation at home', 
-    status: 'pending',
-    createdAt: '2023-09-08T16:30:00Z',
-    updatedAt: '2023-09-08T16:30:00Z'
-  },
-  { 
-    id: 4, 
-    employeeId: 4, 
-    employeeName: 'Sarah Williams', 
-    leaveType: 'halfDay', 
-    startDate: '2023-09-12', 
-    reason: 'Doctor appointment in the afternoon', 
-    status: 'pending',
-    createdAt: '2023-09-09T14:20:15Z',
-    updatedAt: '2023-09-09T14:20:15Z'
-  },
-  { 
-    id: 5, 
-    employeeId: 5, 
-    employeeName: 'David Brown', 
-    leaveType: 'annual', 
-    startDate: '2023-10-01', 
-    endDate: '2023-10-05', 
-    reason: 'Personal leave for family event', 
-    status: 'rejected',
-    createdAt: '2023-09-05T11:10:45Z',
-    updatedAt: '2023-09-06T09:30:20Z'
-  },
-];
-
-const MOCK_PAYSLIPS: PaySlip[] = [
-  {
-    id: 1,
-    employeeId: 1,
-    employeeName: 'John Doe',
-    month: 'August',
-    year: 2023,
-    basicSalary: 5000,
-    allowances: 800,
-    deductions: 1200,
-    netSalary: 4600,
-    paidDate: '2023-08-31',
-    status: 'paid'
-  },
-  {
-    id: 2,
-    employeeId: 1,
-    employeeName: 'John Doe',
-    month: 'July',
-    year: 2023,
-    basicSalary: 5000,
-    allowances: 750,
-    deductions: 1200,
-    netSalary: 4550,
-    paidDate: '2023-07-31',
-    status: 'paid'
-  },
-  {
-    id: 3,
-    employeeId: 2,
-    employeeName: 'Jane Smith',
-    month: 'August',
-    year: 2023,
-    basicSalary: 4500,
-    allowances: 600,
-    deductions: 1100,
-    netSalary: 4000,
-    paidDate: '2023-08-31',
-    status: 'paid'
-  },
-  {
-    id: 4,
-    employeeId: 3,
-    employeeName: 'Mike Johnson',
-    month: 'August',
-    year: 2023,
-    basicSalary: 4200,
-    allowances: 550,
-    deductions: 900,
-    netSalary: 3850,
-    paidDate: '2023-08-31',
-    status: 'paid'
-  },
-  {
-    id: 5,
-    employeeId: 4,
-    employeeName: 'Sarah Williams',
-    month: 'August',
-    year: 2023,
-    basicSalary: 5500,
-    allowances: 900,
-    deductions: 1300,
-    netSalary: 5100,
-    paidDate: '2023-08-31',
-    status: 'paid'
-  },
-  {
-    id: 6,
-    employeeId: 5,
-    employeeName: 'David Brown',
-    month: 'August',
-    year: 2023,
-    basicSalary: 4800,
-    allowances: 700,
-    deductions: 1150,
-    netSalary: 4350,
-    status: 'pending'
-  },
-];
-
-const HrAttendance = () => {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [dateRange, setDateRange] = useState({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
+const Attendance = () => {
+  // State for record filtering and modals
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [dateRange, setDateRange] = useState<{ from: Date; to?: Date }>({
+    from: startOfWeek(new Date()),
+    to: endOfWeek(new Date())
   });
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
-  const [leaveRequestDialog, setLeaveRequestDialog] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
-    queryKey: ['attendance', dateRange, selectedEmployee],
-    queryFn: async () => {
-      try {
-        const filteredData = MOCK_ATTENDANCE_RECORDS.filter(record => {
-          const recordDate = new Date(record.date);
-          const isInRange = recordDate >= dateRange.from && recordDate <= dateRange.to;
-          const isMatchingEmployee = selectedEmployee === 'all' || 
-            record.employeeId === parseInt(selectedEmployee);
-          return isInRange && isMatchingEmployee;
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        return filteredData;
-      } catch (error) {
-        console.error('Error fetching attendance data:', error);
-        return [];
-      }
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<AttendanceRecord | null>(null);
+  const [formData, setFormData] = useState({
+    login_time: '',
+    logout_time: '',
+    status: ''
+  });
+
+  // Leave requests data
+  const pendingLeaveRequests: AttendanceLeaveRequest[] = [
+    {
+      id: 1,
+      employee_id: 101,
+      employee_name: 'Alex Johnson',
+      start_date: '2023-06-15',
+      end_date: '2023-06-20',
+      reason: 'Vacation',
+      status: 'pending',
+      leaveType: 'annual'
     },
-  });
-  
-  const { data: leaveRequests, isLoading: isLoadingLeaveRequests } = useQuery({
-    queryKey: ['leaveRequests'],
-    queryFn: async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        return MOCK_LEAVE_REQUESTS;
-      } catch (error) {
-        console.error('Error fetching leave requests:', error);
-        return [];
-      }
+    {
+      id: 2,
+      employee_id: 102,
+      employee_name: 'Sarah Williams',
+      start_date: '2023-06-18',
+      end_date: '2023-06-19',
+      reason: 'Doctor appointment',
+      status: 'pending',
+      leaveType: 'sick'
     },
-  });
-  
-  const updateLeaveRequestStatus = async (id: number, status: 'approved' | 'rejected'): Promise<void> => {
+    {
+      id: 3,
+      employee_id: 103,
+      employee_name: 'Michael Brown',
+      start_date: '2023-06-25',
+      end_date: '2023-06-30',
+      reason: 'Family event',
+      status: 'pending',
+      leaveType: 'personal'
+    },
+    {
+      id: 4,
+      employee_id: 104,
+      employee_name: 'Emily Davis',
+      start_date: '2023-06-22',
+      end_date: '2023-06-22',
+      reason: 'Working from home',
+      status: 'pending',
+      leaveType: 'wfh'
+    },
+    {
+      id: 5,
+      employee_id: 105,
+      employee_name: 'David Wilson',
+      start_date: '2023-06-28',
+      end_date: '2023-06-28',
+      reason: 'Half day leave for personal work',
+      status: 'pending',
+      leaveType: 'halfDay'
+    }
+  ];
+
+  // Mock payslips data
+  const payslips: PaySlip[] = [
+    {
+      id: 1,
+      employeeId: 101,
+      employeeName: 'Alex Johnson',
+      month: 'June',
+      year: 2023,
+      basicSalary: 5000,
+      allowances: 1000,
+      deductions: 500,
+      netSalary: 5500,
+      paidDate: '2023-06-28',
+      status: 'paid'
+    },
+    {
+      id: 2,
+      employeeId: 102,
+      employeeName: 'Sarah Williams',
+      month: 'June',
+      year: 2023,
+      basicSalary: 4500,
+      allowances: 800,
+      deductions: 450,
+      netSalary: 4850,
+      paidDate: '2023-06-28',
+      status: 'paid'
+    },
+    {
+      id: 3,
+      employeeId: 103,
+      employeeName: 'Michael Brown',
+      month: 'June',
+      year: 2023,
+      basicSalary: 5200,
+      allowances: 1200,
+      deductions: 600,
+      netSalary: 5800,
+      status: 'pending'
+    },
+    {
+      id: 4,
+      employeeId: 104,
+      employeeName: 'Emily Davis',
+      month: 'June',
+      year: 2023,
+      basicSalary: 4800,
+      allowances: 900,
+      deductions: 480,
+      netSalary: 5220,
+      status: 'pending'
+    },
+    {
+      id: 5,
+      employeeId: 105,
+      employeeName: 'David Wilson',
+      month: 'June',
+      year: 2023,
+      basicSalary: 4600,
+      allowances: 850,
+      deductions: 460,
+      netSalary: 4990,
+      paidDate: '2023-06-28',
+      status: 'paid'
+    }
+  ];
+
+  // Handler for opening edit modal
+  const handleEditRecord = (record: AttendanceRecord) => {
+    setCurrentRecord(record);
+    setFormData({
+      login_time: record.login_time,
+      logout_time: record.logout_time || '',
+      status: record.status
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Handler for submitting attendance record update
+  const handleUpdateRecord = async () => {
+    if (!currentRecord) return;
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await hrService.updateAttendanceRecord(currentRecord.id, {
+        ...formData,
+        user_id: currentRecord.user_id
+      });
+      
+      setIsEditModalOpen(false);
+      toast.success('Attendance record updated successfully');
+      // In a real app, you'd refetch the data here
+    } catch (error) {
+      console.error('Error updating attendance record:', error);
+      toast.error('Failed to update attendance record');
+    }
+  };
+
+  // Handler for deleting attendance record
+  const handleDeleteRecord = async (id: number) => {
+    try {
+      await hrService.deleteAttendanceRecord(id);
+      toast.success('Attendance record deleted successfully');
+      // In a real app, you'd refetch the data here
+    } catch (error) {
+      console.error('Error deleting attendance record:', error);
+      toast.error('Failed to delete attendance record');
+    }
+  };
+
+  // Format time for display
+  const formatTime = (timeString: string | null) => {
+    if (!timeString) return '-';
+    return format(parseISO(timeString), 'hh:mm a');
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'present':
+        return <Badge className="bg-green-100 text-green-800">Present</Badge>;
+      case 'late':
+        return <Badge className="bg-yellow-100 text-yellow-800">Late</Badge>;
+      case 'absent':
+        return <Badge className="bg-red-100 text-red-800">Absent</Badge>;
+      case 'leave':
+        return <Badge className="bg-blue-100 text-blue-800">Leave</Badge>;
+      case 'wfh':
+        return <Badge className="bg-purple-100 text-purple-800">WFH</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  // Handle approve/reject leave requests
+  const handleUpdateLeaveStatus = async (id: number, status: 'approved' | 'rejected') => {
+    try {
+      // In a real app, you'd make an API call here
+      console.log(`Updating leave request ${id} to ${status}`);
       toast.success(`Leave request ${status} successfully`);
+      // Mock update for demo purposes
+      //setPendingLeaveRequests(pendingLeaveRequests.map(req => 
+      //  req.id === id ? { ...req, status } : req
+      //));
     } catch (error) {
-      console.error('Error updating leave request:', error);
-      toast.error('Failed to update leave request status');
-      throw error;
+      console.error('Error updating leave status:', error);
+      toast.error('Failed to update leave status');
     }
   };
-  
-  const handleLeaveRequestSubmit = async (formData: FormData): Promise<void> => {
-    setIsSubmitting(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Leave request submitted successfully');
-      setLeaveRequestDialog(false);
-    } catch (error) {
-      console.error('Error submitting leave request:', error);
-      toast.error('Failed to submit leave request');
-      throw error;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleGenerateReport = () => {
-    toast.success('Attendance report is being generated. It will be available for download shortly.');
-  };
-  
-  const handleRefresh = () => {
-    toast.success('Data refreshed successfully');
-  };
+
+  // Fetch attendance records
+  const { data: attendanceRecords, isLoading: isLoadingAttendance } = useQuery({
+    queryKey: ['attendance-records', dateRange],
+    queryFn: () => hrService.getAttendanceRecords(dateRange.from.toISOString(), dateRange.to?.toISOString()),
+  });
+
+  // Fetch attendance summary
+  const { data: attendanceSummary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ['attendance-summary'],
+    queryFn: () => hrService.getAttendanceSummary(),
+  });
+
+  // Filter records based on search query and status
+  const filteredRecords = attendanceRecords?.filter(record => {
+    const matchesSearch = record.employee_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || record.status.toLowerCase() === filterStatus.toLowerCase();
+    return matchesSearch && matchesStatus;
+  });
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Attendance & Leave Management</h1>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Attendance Management</h1>
         <p className="text-muted-foreground">
-          Track employee attendance, manage leave requests, and handle payroll.
+          Monitor employee attendance, manage leave requests, and generate reports
         </p>
       </div>
       
-      <div className="flex flex-wrap gap-4 justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                {selectedDate ? format(selectedDate, 'PPP') : 'Select date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          
-          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select employee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Employees</SelectItem>
-              {MOCK_EMPLOYEES.map(emp => (
-                <SelectItem key={emp.id} value={emp.id.toString()}>
-                  {emp.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" className="gap-2" onClick={handleRefresh}>
-            <RefreshCcw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Present Today</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{attendanceSummary?.presentToday || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {attendanceSummary?.presentPercentage || 0}% of total
+            </p>
+          </CardContent>
+        </Card>
         
-        <div className="flex flex-wrap gap-2">
-          <Dialog open={leaveRequestDialog} onOpenChange={setLeaveRequestDialog}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <PlusCircle className="h-4 w-4" />
-                New Leave Request
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create Leave Request</DialogTitle>
-                <DialogDescription>
-                  Submit a new leave request for an employee.
-                </DialogDescription>
-              </DialogHeader>
-              <LeaveRequestForm 
-                onSubmit={handleLeaveRequestSubmit}
-                isSubmitting={isSubmitting}
-              />
-            </DialogContent>
-          </Dialog>
-          
-          <Button variant="outline" className="gap-2" onClick={handleGenerateReport}>
-            <Download className="h-4 w-4" />
-            Export Report
-          </Button>
-        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Late Today</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{attendanceSummary?.lateToday || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {attendanceSummary?.latePercentage || 0}% of total
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Absent Today</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{attendanceSummary?.absentToday || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {attendanceSummary?.absentPercentage || 0}% of total
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">On Leave Today</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{attendanceSummary?.onLeaveToday || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {attendanceSummary?.onLeavePercentage || 0}% of total
+            </p>
+          </CardContent>
+        </Card>
       </div>
       
-      <Tabs defaultValue="attendance">
-        <TabsList className="grid grid-cols-4 w-full md:w-[400px]">
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="leave">Leave Requests</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
+      <Tabs defaultValue="attendance" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="attendance">Attendance Records</TabsTrigger>
+          <TabsTrigger value="leave-requests">Leave Requests</TabsTrigger>
+          <TabsTrigger value="payslips">Payslips</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="attendance" className="mt-4 space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Present Today</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">24/26</div>
-                <p className="text-xs text-muted-foreground mt-1">92% attendance rate</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Absent Today</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">2</div>
-                <p className="text-xs text-muted-foreground mt-1">8% absence rate</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Average Work Hours</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">7.9h</div>
-                <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
-              </CardContent>
-            </Card>
+        <TabsContent value="attendance" className="space-y-4">
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            <div className="flex flex-col md:flex-row gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search employees..."
+                  className="pl-8 w-full md:w-[250px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full md:w-auto justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd, y")} -{" "}
+                          {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <DateRangePicker
+                    date={dateRange}
+                    setDate={setDateRange}
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="leave">Leave</SelectItem>
+                  <SelectItem value="wfh">WFH</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Input 
+                type="date" 
+                className="w-full md:w-auto"
+                onChange={(e) => {
+                  const date = new Date(e.target.value);
+                  setDateRange({ from: date, to: date });
+                }}
+              />
+            </div>
+            
+            <Button>
+              Download Report
+            </Button>
           </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance Records</CardTitle>
-              <CardDescription>
-                Employee attendance data for {format(dateRange.from, 'PPP')} to {format(dateRange.to, 'PPP')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingAttendance ? (
-                <div className="flex justify-center py-8">
-                  <p className="text-muted-foreground">Loading attendance data...</p>
-                </div>
-              ) : attendanceData && attendanceData.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Login Time</TableHead>
-                      <TableHead>Logout Time</TableHead>
-                      <TableHead>Work Hours</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attendanceData.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.employeeName}</TableCell>
-                        <TableCell>{format(new Date(record.date), 'PP')}</TableCell>
-                        <TableCell>{record.loginTime || 'N/A'}</TableCell>
-                        <TableCell>{record.logoutTime || 'N/A'}</TableCell>
-                        <TableCell>{record.workHours.toFixed(2)} hrs</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              record.status === 'present' 
-                                ? 'success' 
-                                : record.status === 'late' 
-                                  ? 'warning' 
-                                  : 'destructive'
-                            }
-                            className="capitalize"
+          <ScrollArea className="h-[450px] border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Login Time</TableHead>
+                  <TableHead>Logout Time</TableHead>
+                  <TableHead>Total Hours</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingAttendance ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4">
+                      Loading attendance records...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredRecords && filteredRecords.length > 0 ? (
+                  filteredRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.employee_name}</TableCell>
+                      <TableCell>{format(parseISO(record.date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{formatTime(record.login_time)}</TableCell>
+                      <TableCell>{formatTime(record.logout_time)}</TableCell>
+                      <TableCell>{record.total_hours.toFixed(2)} hrs</TableCell>
+                      <TableCell>{getStatusBadge(record.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditRecord(record)}
                           >
-                            {record.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex justify-center py-8">
-                  <p className="text-muted-foreground">No attendance records found.</p>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-500"
+                            onClick={() => handleDeleteRecord(record.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4">
+                      No attendance records found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+          
+          <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Attendance Record</DialogTitle>
+                <DialogDescription>
+                  Update the attendance record for {currentRecord?.employee_name}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="login-time" className="text-right">
+                    Login Time
+                  </Label>
+                  <Input
+                    id="login-time"
+                    value={formData.login_time}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      login_time: e.target.value
+                    })}
+                    className="col-span-3"
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="logout-time" className="text-right">
+                    Logout Time
+                  </Label>
+                  <Input
+                    id="logout-time"
+                    value={formData.logout_time}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      logout_time: e.target.value
+                    })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    Status
+                  </Label>
+                  <Input
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      status: e.target.value
+                    })}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleUpdateRecord}>Save Changes</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
         
-        <TabsContent value="leave" className="mt-4 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>Leave Requests</CardTitle>
-                  <CardDescription>
-                    Manage employee leave requests and approvals
-                  </CardDescription>
-                </div>
-                <Button variant="outline" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingLeaveRequests ? (
-                <div className="flex justify-center py-8">
-                  <p className="text-muted-foreground">Loading leave requests...</p>
-                </div>
-              ) : (
-                <LeaveRequestsList 
-                  requests={MOCK_LEAVE_REQUESTS} 
-                  onUpdateStatus={updateLeaveRequestStatus}
-                />
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="leave-requests" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Pending Leave Requests</h3>
+            <Button variant="outline">View All Requests</Button>
+          </div>
+          
+          <LeaveRequestsList
+            requests={pendingLeaveRequests}
+            onUpdateStatus={handleUpdateLeaveStatus}
+          />
+          
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-4">Leave Balance Summary</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Annual Leave</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-2xl font-bold">15</div>
+                    <Badge className="bg-blue-100 text-blue-800">5 Used</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    10 days remaining
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Sick Leave</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-2xl font-bold">10</div>
+                    <Badge className="bg-blue-100 text-blue-800">2 Used</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    8 days remaining
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Personal Leave</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-2xl font-bold">5</div>
+                    <Badge className="bg-blue-100 text-blue-800">1 Used</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    4 days remaining
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Work From Home</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-2xl font-bold">8</div>
+                    <Badge className="bg-blue-100 text-blue-800">3 Used</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    5 days remaining
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
         
-        <TabsContent value="payroll" className="mt-4 space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div>
-                <CardTitle>Employee Payslips</CardTitle>
-                <CardDescription>
-                  Manage payroll and download employee payslips
-                </CardDescription>
-              </div>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Generate New Payslips
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <EmployeePayslip payslips={MOCK_PAYSLIPS} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="reports" className="mt-4 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Attendance Reports</CardTitle>
-              <CardDescription>
-                Generate and download attendance and leave reports
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="border border-dashed">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Monthly Attendance Summary</CardTitle>
-                    <CardDescription>
-                      Complete attendance statistics for the selected month
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground">
-                      Includes daily attendance breakdown, late arrivals, and absences
-                    </p>
-                  </CardContent>
-                  <CardFooter className="pt-2">
-                    <Button variant="outline" className="w-full gap-2">
-                      <FileText className="h-4 w-4" />
-                      Generate Report
+        <TabsContent value="payslips" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Recent Payslips</h3>
+            <Button>Generate Payslips</Button>
+          </div>
+          
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employee</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead>Basic Salary</TableHead>
+                <TableHead>Allowances</TableHead>
+                <TableHead>Deductions</TableHead>
+                <TableHead>Net Salary</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payslips.map((payslip) => (
+                <TableRow key={payslip.id}>
+                  <TableCell className="font-medium">{payslip.employeeName}</TableCell>
+                  <TableCell>{payslip.month} {payslip.year}</TableCell>
+                  <TableCell>${payslip.basicSalary.toLocaleString()}</TableCell>
+                  <TableCell>${payslip.allowances.toLocaleString()}</TableCell>
+                  <TableCell>${payslip.deductions.toLocaleString()}</TableCell>
+                  <TableCell className="font-medium">${payslip.netSalary.toLocaleString()}</TableCell>
+                  <TableCell>
+                    {payslip.status === 'paid' ? (
+                      <Badge className="bg-green-100 text-green-800">Paid</Badge>
+                    ) : (
+                      <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm">
+                      View Details
                     </Button>
-                  </CardFooter>
-                </Card>
-                
-                <Card className="border border-dashed">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Leave Balance Report</CardTitle>
-                    <CardDescription>
-                      Overview of leave balances for all employees
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground">
-                      Shows remaining annual, sick, and other leave types for each employee
-                    </p>
-                  </CardContent>
-                  <CardFooter className="pt-2">
-                    <Button variant="outline" className="w-full gap-2">
-                      <FileText className="h-4 w-4" />
-                      Generate Report
-                    </Button>
-                  </CardFooter>
-                </Card>
-                
-                <Card className="border border-dashed">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Payroll Summary</CardTitle>
-                    <CardDescription>
-                      Complete payroll information for accounting
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground">
-                      Comprehensive breakdown of salaries, allowances, and deductions
-                    </p>
-                  </CardContent>
-                  <CardFooter className="pt-2">
-                    <Button variant="outline" className="w-full gap-2">
-                      <FileText className="h-4 w-4" />
-                      Generate Report
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </TabsContent>
       </Tabs>
     </div>
   );
 };
 
-export default HrAttendance;
+export default Attendance;

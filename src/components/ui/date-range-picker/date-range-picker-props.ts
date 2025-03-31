@@ -10,7 +10,7 @@ export interface DateRangePickerProps {
   /** The selected date range. */
   value?: DateRange;
   /** Sets the selected date range. */
-  onChange?: (date: DateRange) => void;
+  onChange?: (date: DateRange | undefined) => void;
   /** Whether the date range picker should be disabled. */
   disabled?: boolean;
   /** The placeholder to show when no date is selected. */
@@ -23,4 +23,7 @@ export interface DateRangePickerProps {
   numberOfMonths?: number;
   /** Custom CSS class name. */
   className?: string;
+  /** Additional props for compatibility with components */
+  date?: DateRange;
+  setDate?: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
 }

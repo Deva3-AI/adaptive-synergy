@@ -11,7 +11,7 @@ import SalesFollowUp from '@/components/finance/sales/SalesFollowUp';
 import { CalendarRange } from 'lucide-react';
 import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
-import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 const SalesDashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -31,7 +31,10 @@ const SalesDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">Sales Dashboard</h2>
-        <DateRangePicker date={dateRange} setDate={setDateRange} />
+        <DateRangePicker 
+          value={dateRange} 
+          onChange={setDateRange} 
+        />
       </div>
 
       <Tabs defaultValue="analysis" className="space-y-4">

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -44,6 +43,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+
+import { LucideIcon } from '@/types';
 
 interface SidebarItemProps {
   icon: React.ReactNode;

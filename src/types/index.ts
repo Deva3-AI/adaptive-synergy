@@ -40,6 +40,7 @@ export interface DateRangePickerProps {
   className?: string;
   value?: DateRange;
   onChange?: (date: DateRange | undefined) => void;
+  // Add these properties to match how components are using it
   date?: DateRange;
   setDate?: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
 }

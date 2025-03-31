@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { format, addDays, subDays } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Candidate } from '@/types';
 
 interface JobOpening {
   id: number;
@@ -55,25 +56,10 @@ interface JobOpening {
   source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'other';
 }
 
-interface Candidate {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  job_id: number;
-  job_title: string;
-  resume_url: string;
-  application_date: string;
-  skills: string[];
-  experience: number;
-  education: string;
-  status: "new" | "screening" | "interview" | "offer" | "rejected" | "hired";
-  match_score: number;
-  notes: string;
-  strengths: string[];
-  gaps: string[];
-  source?: 'linkedin' | 'indeed' | 'website' | 'referral' | 'email' | 'other';
-  last_contact?: string;
+interface RecruitmentCandidate extends Candidate {
+  match_score?: number;
+  strengths?: string[];
+  gaps?: string[];
 }
 
 const RecruitmentTracker = () => {
@@ -82,11 +68,9 @@ const RecruitmentTracker = () => {
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
-  // Fetch job openings
   const { data: jobOpenings, isLoading: isLoadingJobs } = useQuery({
     queryKey: ['job-openings'],
     queryFn: async () => {
-      // This would normally call an API
       return new Promise<JobOpening[]>((resolve) => {
         setTimeout(() => {
           resolve([
@@ -180,14 +164,12 @@ const RecruitmentTracker = () => {
     }
   });
   
-  // Fetch candidates
   const { data: candidates, isLoading: isLoadingCandidates } = useQuery({
     queryKey: ['candidates', activeJobId],
     queryFn: async () => {
-      // This would normally call an API
-      return new Promise<Candidate[]>((resolve) => {
+      return new Promise<RecruitmentCandidate[]>((resolve) => {
         setTimeout(() => {
-          resolve([
+          const mockCandidates: RecruitmentCandidate[] = [
             {
               id: 1,
               name: "John Smith",
@@ -206,6 +188,7 @@ const RecruitmentTracker = () => {
               strengths: ["Technical skills", "Project experience", "Communication"],
               gaps: ["No experience with our specific tech stack"],
               source: "linkedin",
+              interview_feedback: "",
               last_contact: subDays(new Date(), 2).toISOString()
             },
             {
@@ -226,6 +209,7 @@ const RecruitmentTracker = () => {
               strengths: ["Portfolio quality", "Education"],
               gaps: ["Experience years", "No TypeScript"],
               source: "indeed",
+              interview_feedback: "",
               last_contact: subDays(new Date(), 4).toISOString()
             },
             {
@@ -246,15 +230,18 @@ const RecruitmentTracker = () => {
               strengths: ["Portfolio", "Industry experience"],
               gaps: ["No experience with our product type"],
               source: "referral",
-              last_contact: null
+              interview_feedback: "",
+              last_contact: ""
             }
           ].filter(candidate => 
             activeJobId ? candidate.job_id === activeJobId : true
-          ));
+          );
+          
+          resolve(mockCandidates);
         }, 1000);
       });
     },
-    enabled: true // We want this to run even if activeJobId is null (to show all candidates)
+    enabled: true
   });
   
   const filteredJobs = jobOpenings?.filter(job => 
@@ -656,10 +643,12 @@ const RecruitmentTracker = () => {
                       </div>
                       
                       <div className="ml-0 md:ml-auto flex flex-wrap gap-2 items-center">
-                        <Badge className="flex gap-1 items-center">
-                          <Star className="h-3 w-3" />
-                          {candidate.match_score}% Match
-                        </Badge>
+                        {candidate.match_score && (
+                          <Badge className="flex gap-1 items-center">
+                            <Star className="h-3 w-3" />
+                            {candidate.match_score}% Match
+                          </Badge>
+                        )}
                         {renderCandidateStatus(candidate.status)}
                         <Button variant="outline" size="sm" className="gap-1 ml-auto">
                           <Mail className="h-4 w-4" />
