@@ -252,15 +252,16 @@ export const taskService = {
     });
   },
   
-  addTaskComment: async (taskId: number, comment: string) => {
+  addTaskComment: async (taskId: number, commentData: any) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         // In a real app, this would add a comment via an API
         const newComment = {
           id: Math.floor(Math.random() * 1000) + 10,
           task_id: taskId,
-          user: 'Current User',
-          text: comment,
+          user_id: commentData.user_id,
+          user_name: commentData.user_name,
+          content: commentData.content,
           created_at: new Date().toISOString()
         };
         
@@ -452,6 +453,11 @@ export const taskService = {
     });
   },
   
+  // Alias for getTasksByEmployee for compatibility with existing code
+  getTasksByUser: async (userId: number) => {
+    return taskService.getTasksByEmployee(userId);
+  },
+  
   getTasksSummary: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -478,3 +484,4 @@ export const taskService = {
     });
   }
 };
+
