@@ -30,10 +30,11 @@ export interface LeaveRequest {
   days: number;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
-  leaveType: 'annual' | 'sick' | 'wfh' | 'halfDay' | 'other' | 'personal'; // Added 'personal'
+  leaveType: 'annual' | 'sick' | 'wfh' | 'halfDay' | 'personal' | 'other';
   notes?: string;
   approver_id?: number;
   approver_name?: string;
+  document_url?: string;
 }
 
 export interface PaySlip {
@@ -47,7 +48,7 @@ export interface PaySlip {
   allowances: number;
   deductions: number;
   net_salary: number;
-  status: 'pending' | 'paid' | 'draft' | 'final'; // Added 'draft' and 'final'
+  status: 'pending' | 'paid' | 'draft' | 'final';
   notes?: string;
   month: string;
   year: number;

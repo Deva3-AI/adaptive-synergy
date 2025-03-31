@@ -1,322 +1,123 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { ThemeProvider } from '@/components/theme-provider';
+import RootLayout from '@/components/layouts/RootLayout';
+import AuthLayout from '@/components/layouts/AuthLayout';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Dashboard from '@/pages/Dashboard';
+import Login from '@/pages/auth/Login';
+import Signup from '@/pages/auth/Signup';
+import VerifyEmail from '@/pages/auth/VerifyEmail';
+import ResetPassword from '@/pages/auth/ResetPassword';
+import NotFound from '@/pages/NotFound';
+import EmployeeDashboard from '@/pages/employee/Dashboard';
+import EmployeeProfile from '@/pages/employee/Profile';
+import Tasks from '@/pages/employee/Tasks';
+import TaskDetail from '@/pages/employee/TaskDetail';
+import HRDashboard from '@/pages/hr/HRDashboard';
+import Attendance from '@/pages/hr/Attendance';
+import Recruitment from '@/pages/hr/Recruitment';
+import LeaveManagement from '@/pages/hr/LeaveManagement';
+import Payroll from '@/pages/hr/Payroll';
+import FinancialDashboard from '@/pages/finance/FinancialDashboard';
+import Invoices from '@/pages/finance/Invoices';
+import Expenses from '@/pages/finance/Expenses';
+import SalesDashboard from '@/pages/finance/SalesDashboard';
+import Reports from '@/pages/finance/Reports';
+import Performance from '@/pages/finance/Performance';
+import MarketingDashboard from '@/pages/marketing/Dashboard';
+import Campaigns from '@/pages/marketing/Campaigns';
+import Leads from '@/pages/marketing/Leads';
+import Analytics from '@/pages/marketing/Analytics';
+import Meetings from '@/pages/marketing/Meetings';
+import OutreachPlans from '@/pages/marketing/OutreachPlans';
+import ClientDashboard from '@/pages/client/Dashboard';
+import BrandsDashboard from '@/pages/client/BrandsDashboard';
+import ClientTasks from '@/pages/client/Tasks';
+import ClientReports from '@/pages/client/Reports';
+import Settings from '@/pages/Settings';
+import { AuthProvider } from '@/hooks/use-auth';
 
-// Import pages
-import Index from './pages/Index';
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
-import PasswordRecovery from './pages/auth/PasswordRecovery';
-import VerifyEmail from './pages/auth/VerifyEmail';
-import Dashboard from './pages/Dashboard';
-import EmployeeDashboard from './pages/employee/Dashboard';
-import EmployeeTasks from './pages/employee/Tasks';
-import EmployeeTaskDetail from './pages/employee/TaskDetail';
-import EmployeeDirectory from './pages/employee/Directory';
-import EmployeeProfile from './pages/employee/Profile';
-import ClientDashboard from './pages/client/Dashboard';
-import ClientTasks from './pages/client/Tasks';
-import ClientTaskDetail from './pages/client/TaskDetail';
-import BrandsDashboard from './pages/client/BrandsDashboard';
-import ClientReports from './pages/client/Reports';
-import NotFound from './pages/NotFound';
-
-// HR Pages
-import HRDashboard from './pages/hr/Dashboard';
-import HRAttendance from './pages/hr/Attendance';
-import HRRecruitment from './pages/hr/Recruitment';
-import HRPayroll from './pages/hr/Payroll';
-import HRReports from './pages/hr/Reports';
-
-// Finance Pages
-import FinanceDashboard from './pages/finance/Dashboard';
-import FinancialDashboard from './pages/finance/FinancialDashboard';
-import Invoices from './pages/finance/Invoices';
-import CostAnalysis from './pages/finance/CostAnalysis';
-import Performance from './pages/finance/Performance';
-import Reports from './pages/finance/Reports';
-import Budgets from './pages/finance/Budgets';
-
-// Marketing Pages
-import MarketingDashboard from './pages/marketing/Dashboard';
-import MarketingCampaigns from './pages/marketing/Campaigns';
-import MarketingMeetings from './pages/marketing/Meetings';
-import MarketingAnalytics from './pages/marketing/Analytics';
-
-// Lazy load the ClientRequirements page
-const ClientRequirements = React.lazy(() => import('./pages/ai/ClientRequirements'));
-
-// Define a ProtectedRoute component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>; // Or a more sophisticated loading indicator
-  }
-
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
-};
+// Create a query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   return (
-    <Router>
-      <Toaster />
-      <Routes>
-        {/* Auth routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/password-recovery" element={<PasswordRecovery />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* New AI Client Requirements route */}
-        <Route
-          path="/ai/client-requirements"
-          element={
-            <ProtectedRoute>
-              <React.Suspense fallback={<div>Loading...</div>}>
-                <ClientRequirements />
-              </React.Suspense>
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Employee routes */}
-        <Route
-          path="/employee/dashboard"
-          element={
-            <ProtectedRoute>
-              <EmployeeDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employee/tasks"
-          element={
-            <ProtectedRoute>
-              <EmployeeTasks />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employee/tasks/:taskId"
-          element={
-            <ProtectedRoute>
-              <EmployeeTaskDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employee/directory"
-          element={
-            <ProtectedRoute>
-              <EmployeeDirectory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employee/profile/:userId"
-          element={
-            <ProtectedRoute>
-              <EmployeeProfile />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Client routes */}
-        <Route
-          path="/client/dashboard"
-          element={
-            <ProtectedRoute>
-              <ClientDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/client/tasks"
-          element={
-            <ProtectedRoute>
-              <ClientTasks />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/client/tasks/:taskId"
-          element={
-            <ProtectedRoute>
-              <ClientTaskDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/client/brands"
-          element={
-            <ProtectedRoute>
-              <BrandsDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/client/reports"
-          element={
-            <ProtectedRoute>
-              <ClientReports />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* HR Routes */}
-        <Route
-          path="/hr/dashboard"
-          element={
-            <ProtectedRoute>
-              <HRDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hr/attendance"
-          element={
-            <ProtectedRoute>
-              <HRAttendance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hr/recruitment"
-          element={
-            <ProtectedRoute>
-              <HRRecruitment />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hr/payroll"
-          element={
-            <ProtectedRoute>
-              <HRPayroll />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hr/reports"
-          element={
-            <ProtectedRoute>
-              <HRReports />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Finance Routes */}
-        <Route
-          path="/finance/dashboard"
-          element={
-            <ProtectedRoute>
-              <FinanceDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/financial-dashboard"
-          element={
-            <ProtectedRoute>
-              <FinancialDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/invoices"
-          element={
-            <ProtectedRoute>
-              <Invoices />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/cost-analysis"
-          element={
-            <ProtectedRoute>
-              <CostAnalysis />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/performance"
-          element={
-            <ProtectedRoute>
-              <Performance />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/reports"
-          element={
-            <ProtectedRoute>
-              <Reports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/finance/budgets"
-          element={
-            <ProtectedRoute>
-              <Budgets />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Marketing Routes */}
-        <Route
-          path="/marketing/dashboard"
-          element={
-            <ProtectedRoute>
-              <MarketingDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/marketing/campaigns"
-          element={
-            <ProtectedRoute>
-              <MarketingCampaigns />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/marketing/meetings"
-          element={
-            <ProtectedRoute>
-              <MarketingMeetings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/marketing/analytics"
-          element={
-            <ProtectedRoute>
-              <MarketingAnalytics />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* 404 - Not Found */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+        <AuthProvider>
+          <Router>
+            <Routes>
+              {/* Auth routes */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+              </Route>
+              
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                
+                {/* Employee routes */}
+                <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+                <Route path="/employee/profile" element={<EmployeeProfile />} />
+                <Route path="/employee/tasks" element={<Tasks />} />
+                <Route path="/employee/tasks/:taskId" element={<TaskDetail />} />
+                
+                {/* HR routes */}
+                <Route path="/hr/dashboard" element={<HRDashboard />} />
+                <Route path="/hr/attendance" element={<Attendance />} />
+                <Route path="/hr/leave-management" element={<LeaveManagement />} />
+                <Route path="/hr/recruitment" element={<Recruitment />} />
+                <Route path="/hr/payroll" element={<Payroll />} />
+                
+                {/* Finance routes */}
+                <Route path="/finance/dashboard" element={<FinancialDashboard />} />
+                <Route path="/finance/invoices" element={<Invoices />} />
+                <Route path="/finance/expenses" element={<Expenses />} />
+                <Route path="/finance/sales" element={<SalesDashboard />} />
+                <Route path="/finance/reports" element={<Reports />} />
+                <Route path="/finance/performance" element={<Performance />} />
+                
+                {/* Marketing routes */}
+                <Route path="/marketing/dashboard" element={<MarketingDashboard />} />
+                <Route path="/marketing/campaigns" element={<Campaigns />} />
+                <Route path="/marketing/leads" element={<Leads />} />
+                <Route path="/marketing/analytics" element={<Analytics />} />
+                <Route path="/marketing/meetings" element={<Meetings />} />
+                <Route path="/marketing/plans" element={<OutreachPlans />} />
+                
+                {/* Client routes */}
+                <Route path="/client/dashboard" element={<ClientDashboard />} />
+                <Route path="/client/brands" element={<BrandsDashboard />} />
+                <Route path="/client/tasks" element={<ClientTasks />} />
+                <Route path="/client/reports" element={<ClientReports />} />
+                
+                {/* Settings */}
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+              
+              {/* Catch all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+        <Toaster position="top-right" richColors />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PlusCircle, Check, X } from 'lucide-react';
+import { PlusCircle, Check, X, FileText, Clock, Calendar, Home } from 'lucide-react';
 import { toast } from 'sonner';
-import axios from 'axios';
+import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,105 +22,101 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
-import LeaveRequestForm from '@/components/hr/LeaveRequestForm';
-import LeaveRequestsList from '@/components/hr/LeaveRequestsList';
+import LeaveRequestForm from './LeaveRequestForm';
 import { useAuth } from '@/hooks/use-auth';
-
-// Types for leave request data
-interface LeaveRequest {
-  id: number;
-  employeeId: number;
-  employeeName: string;
-  leaveType: 'annual' | 'sick' | 'wfh' | 'halfDay' | 'other';
-  startDate: string;
-  endDate?: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  documentUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { LeaveRequest } from '@/interfaces/hr';
+import hrServiceSupabase from '@/services/api/hrServiceSupabase';
 
 const EmployeeLeaveRequests: React.FC = () => {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   
-  // Fetch leave requests for the current employee from the API
+  // Fetch leave requests for the current user
   const { data: leaveRequests, isLoading, error } = useQuery({
     queryKey: ['employeeLeaveRequests', user?.id],
     queryFn: async () => {
       try {
-        // Try to get data from the real API
-        const response = await axios.get(`${API_URL}/employee/leave-requests?employeeId=${user?.id}`);
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching leave requests:', error);
-        
-        // If the API fails, use mock data for demo purposes
-        const employeeId = user?.id || 1;
-        
-        // In a real app, you should display an error message
-        // For demo, we'll return mock data to show the UI
-        return [
-          { 
-            id: 1, 
-            employeeId, 
-            employeeName: user?.name || 'Employee', 
-            leaveType: 'annual', 
-            startDate: '2023-09-15', 
-            endDate: '2023-09-20', 
-            reason: 'Family vacation', 
-            status: 'approved',
-            createdAt: '2023-09-01T10:23:45Z',
-            updatedAt: '2023-09-02T14:12:30Z'
-          },
-          { 
-            id: 2, 
-            employeeId, 
-            employeeName: user?.name || 'Employee', 
-            leaveType: 'sick', 
-            startDate: '2023-09-05', 
-            endDate: '2023-09-06', 
-            reason: 'Feeling unwell, doctor recommended rest', 
-            status: 'approved',
-            documentUrl: '/documents/medical-note.pdf',
-            createdAt: '2023-09-04T09:15:22Z',
-            updatedAt: '2023-09-04T11:45:10Z'
-          },
-          { 
-            id: 3, 
-            employeeId, 
-            employeeName: user?.name || 'Employee', 
-            leaveType: 'wfh', 
-            startDate: '2023-09-10', 
-            reason: 'Internet installation at home', 
-            status: 'pending',
-            createdAt: '2023-09-08T16:30:00Z',
-            updatedAt: '2023-09-08T16:30:00Z'
-          }
-        ];
+        if (!user?.id) return [];
+        const allRequests = await hrServiceSupabase.getLeaveRequests();
+        return allRequests.filter(request => request.employee_id === user.id);
+      } catch (err) {
+        console.error('Error fetching leave requests:', err);
+        throw err;
       }
     },
+    enabled: !!user?.id,
   });
   
-  // Mutation to submit a new leave request
-  const leaveRequestMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const response = await axios.post(`${API_URL}/employee/leave-requests`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
+  // Fetch leave balance for the current user
+  const { data: leaveBalance } = useQuery({
+    queryKey: ['leaveBalance', user?.id],
+    queryFn: async () => {
+      try {
+        if (!user?.id) return null;
+        return await hrServiceSupabase.getLeaveBalance(user.id);
+      } catch (err) {
+        console.error('Error fetching leave balance:', err);
+        return {
+          annual: 18,
+          sick: 10,
+          personal: 5,
+          remaining_annual: 12,
+          remaining_sick: 8,
+          remaining_personal: 3
+        };
+      }
+    },
+    enabled: !!user?.id,
+  });
+  
+  // Mutation to create a new leave request
+  const createLeaveRequestMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
+      // Calculate number of days
+      const startDate = new Date(formData.startDate);
+      let endDate = formData.endDate ? new Date(formData.endDate) : startDate;
+      
+      // For half-day or WFH, just use the start date
+      if (['halfDay', 'wfh'].includes(formData.leaveType)) {
+        endDate = startDate;
+      }
+      
+      // Calculate days difference (including both start and end date)
+      const daysDiff = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Adjust for half-day
+      const days = formData.leaveType === 'halfDay' ? 0.5 : daysDiff;
+      
+      const leaveRequest: Partial<LeaveRequest> = {
+        employee_id: user.id,
+        employee_name: user.name,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        days,
+        reason: formData.reason,
+        status: 'pending',
+        leaveType: formData.leaveType,
+        document_url: formData.document ? URL.createObjectURL(formData.document) : undefined,
+      };
+      
+      return await hrServiceSupabase.createLeaveRequest(leaveRequest);
     },
     onSuccess: () => {
       toast.success('Leave request submitted successfully');
       setDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['employeeLeaveRequests', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['leaveBalance', user?.id] });
     },
     onError: (error) => {
       console.error('Error submitting leave request:', error);
@@ -128,41 +124,55 @@ const EmployeeLeaveRequests: React.FC = () => {
     },
   });
   
-  const handleFormSubmit = async (formData: FormData) => {
+  const handleFormSubmit = async (formData: any) => {
     try {
-      // Add employee ID to form data
-      formData.append('employeeId', user?.id?.toString() || '1');
-      formData.append('employeeName', user?.name || 'Employee');
-      
-      // Submit the form data
-      await leaveRequestMutation.mutateAsync(formData);
+      await createLeaveRequestMutation.mutateAsync(formData);
     } catch (error) {
       console.error('Form submission error:', error);
     }
   };
   
-  // Get leave balances from server or use default values
-  const { data: leaveBalances } = useQuery({
-    queryKey: ['leaveBalances', user?.id],
-    queryFn: async () => {
-      try {
-        const response = await axios.get(`${API_URL}/employee/leave-balance?employeeId=${user?.id}`);
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching leave balances:', error);
-        return {
-          annual: 18,
-          sick: 5,
-          personal: 3
-        };
-      }
+  // Helper function to get badge variant based on status
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'destructive';
+      default:
+        return 'secondary';
     }
-  });
+  };
   
-  // Handle error state
-  if (error) {
-    console.error('Error loading leave requests:', error);
-  }
+  // Helper function to get icon based on leave type
+  const getLeaveTypeIcon = (leaveType: string) => {
+    switch(leaveType) {
+      case 'wfh':
+        return <Home className="h-4 w-4" />;
+      case 'halfDay':
+        return <Clock className="h-4 w-4" />;
+      default:
+        return <Calendar className="h-4 w-4" />;
+    }
+  };
+  
+  // Helper function to get leave type display text
+  const getLeaveTypeText = (leaveType: string) => {
+    switch(leaveType) {
+      case 'annual':
+        return 'Annual Leave';
+      case 'sick':
+        return 'Sick Leave';
+      case 'personal':
+        return 'Personal Leave';
+      case 'wfh':
+        return 'Work From Home';
+      case 'halfDay':
+        return 'Half Day';
+      default:
+        return 'Other';
+    }
+  };
   
   return (
     <Card>
@@ -188,7 +198,10 @@ const EmployeeLeaveRequests: React.FC = () => {
                   Submit a new leave request for approval by management
                 </DialogDescription>
               </DialogHeader>
-              <LeaveRequestForm onSubmit={handleFormSubmit} isSubmitting={leaveRequestMutation.isPending} />
+              <LeaveRequestForm 
+                onSubmit={handleFormSubmit} 
+                isSubmitting={createLeaveRequestMutation.isPending} 
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -210,10 +223,114 @@ const EmployeeLeaveRequests: React.FC = () => {
             </Button>
           </div>
         ) : leaveRequests && leaveRequests.length > 0 ? (
-          <LeaveRequestsList 
-            requests={leaveRequests} 
-            forEmployee={true}
-          />
+          <div className="space-y-4">
+            {leaveRequests.map((request) => (
+              <Card key={request.id} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">
+                      {getLeaveTypeText(request.leaveType)}
+                    </CardTitle>
+                    <Badge variant={getStatusBadge(request.status)}>
+                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <div className="grid gap-2">
+                    <div className="flex gap-2 items-center">
+                      {getLeaveTypeIcon(request.leaveType)}
+                      <span className="text-sm">
+                        {format(new Date(request.start_date), 'PP')}
+                        {request.end_date && request.start_date !== request.end_date && 
+                          ` - ${format(new Date(request.end_date), 'PP')}`}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{request.reason}</p>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between pt-2">
+                  {request.document_url && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={() => window.open(request.document_url, '_blank')}
+                    >
+                      <FileText className="h-4 w-4" />
+                      View Document
+                    </Button>
+                  )}
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">View Details</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Leave Request Details</DialogTitle>
+                        <DialogDescription>
+                          Your leave request
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="font-semibold">Type:</div>
+                          <div>{getLeaveTypeText(request.leaveType)}</div>
+                          
+                          <div className="font-semibold">Period:</div>
+                          <div>
+                            {format(new Date(request.start_date), 'PP')}
+                            {request.end_date && request.start_date !== request.end_date && 
+                              ` - ${format(new Date(request.end_date), 'PP')}`}
+                          </div>
+                          
+                          <div className="font-semibold">Days:</div>
+                          <div>{request.days}</div>
+                          
+                          <div className="font-semibold">Status:</div>
+                          <div>
+                            <Badge variant={getStatusBadge(request.status)}>
+                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                            </Badge>
+                          </div>
+                          
+                          {request.approver_name && (
+                            <>
+                              <div className="font-semibold">Approved By:</div>
+                              <div>{request.approver_name}</div>
+                            </>
+                          )}
+                          
+                          {request.notes && (
+                            <>
+                              <div className="font-semibold">Notes:</div>
+                              <div>{request.notes}</div>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="font-semibold">Reason:</div>
+                          <div className="text-sm bg-muted p-3 rounded-md">{request.reason}</div>
+                        </div>
+                        
+                        {request.document_url && (
+                          <Button 
+                            className="w-full gap-2"
+                            onClick={() => window.open(request.document_url, '_blank')}
+                          >
+                            <FileText className="h-4 w-4" />
+                            View Document
+                          </Button>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         ) : (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">You have no leave requests.</p>
@@ -231,9 +348,9 @@ const EmployeeLeaveRequests: React.FC = () => {
         <div className="w-full text-sm text-muted-foreground">
           <p>
             Leave balance: 
-            <span className="font-medium"> {leaveBalances?.annual || 0}</span> annual days, 
-            <span className="font-medium"> {leaveBalances?.sick || 0}</span> sick days,
-            <span className="font-medium"> {leaveBalances?.personal || 0}</span> personal days remaining
+            <span className="font-medium ml-1">{leaveBalance?.remaining_annual || 0}</span> annual days, 
+            <span className="font-medium ml-1">{leaveBalance?.remaining_sick || 0}</span> sick days,
+            <span className="font-medium ml-1">{leaveBalance?.remaining_personal || 0}</span> personal days remaining
           </p>
         </div>
       </CardFooter>

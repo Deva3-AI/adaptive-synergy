@@ -1,251 +1,453 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { 
-  Calendar, 
   Clock, 
   Filter, 
-  Search, 
-  ArrowUpDown, 
-  CheckCircle, 
-  XCircle,
-  PauseCircle,
-  Clock8,
-  Briefcase
+  ChevronDown, 
+  Check, 
+  Calendar, 
+  User, 
+  Building,
+  AlertTriangle
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { useForm } from 'react-hook-form';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Task } from '@/interfaces/tasks';
+import { cn } from '@/lib/utils';
+
+const priorityColors = {
+  high: 'text-rose-500 bg-rose-100',
+  medium: 'text-amber-500 bg-amber-100',
+  low: 'text-emerald-500 bg-emerald-100'
+};
+
+const getTaskStatusColor = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-500';
+    case 'in_progress':
+      return 'bg-blue-500';
+    case 'pending':
+      return 'bg-yellow-500';
+    case 'cancelled':
+      return 'bg-red-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
 
 interface TaskListProps {
   tasks: Task[];
   isLoading: boolean;
-  error: any;
+  error: Error | null;
+  filter?: any;
+  setFilter?: any;
+  showAssignee?: boolean;
+  showClient?: boolean;
 }
 
-// Status icon mapping
-const statusIconMap: Record<string, React.ReactNode> = {
-  "completed": <CheckCircle className="h-5 w-5 text-green-500" />,
-  "in_progress": <Clock8 className="h-5 w-5 text-blue-500" />,
-  "pending": <Clock className="h-5 w-5 text-gray-500" />,
-  "on_hold": <PauseCircle className="h-5 w-5 text-yellow-500" />,
-  "cancelled": <XCircle className="h-5 w-5 text-red-500" />,
-};
+const TaskList: React.FC<TaskListProps> = ({
+  tasks,
+  isLoading,
+  error,
+  filter,
+  setFilter,
+  showAssignee = false,
+  showClient = false,
+}) => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<string>('all');
 
-// Priority color mapping
-const priorityColorMap: Record<string, string> = {
-  "high": "destructive",
-  "medium": "warning",
-  "low": "secondary",
-};
-
-const TaskList: React.FC<TaskListProps> = ({ tasks, isLoading, error }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
-
-  // Filter tasks based on search term and filters
-  const filteredTasks = tasks?.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (task.client_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter ? task.status === statusFilter : true;
-    const matchesPriority = priorityFilter ? task.priority === priorityFilter : true;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
-
-  const clearFilters = () => {
-    setStatusFilter(null);
-    setPriorityFilter(null);
-    setSearchTerm("");
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (setFilter) {
+      if (value === 'all') {
+        setFilter({ ...filter, status: [] });
+      } else {
+        setFilter({ ...filter, status: [value] });
+      }
+    }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "No date set";
-    
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return `Today at ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow at ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-    } else {
-      return date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+  const handlePriorityFilter = (priority: string) => {
+    if (setFilter) {
+      const currentPriorities = [...(filter.priority || [])];
+      if (currentPriorities.includes(priority)) {
+        setFilter({
+          ...filter,
+          priority: currentPriorities.filter((p) => p !== priority),
+        });
+      } else {
+        setFilter({
+          ...filter,
+          priority: [...currentPriorities, priority],
+        });
+      }
+    }
+  };
+
+  const handleClientFilter = (client: string) => {
+    if (setFilter) {
+      const currentClients = [...(filter.client || [])];
+      if (currentClients.includes(client)) {
+        setFilter({
+          ...filter,
+          client: currentClients.filter((c) => c !== client),
+        });
+      } else {
+        setFilter({
+          ...filter,
+          client: [...currentClients, client],
+        });
+      }
+    }
+  };
+
+  const handleAssigneeFilter = (assignee: string) => {
+    if (setFilter) {
+      const currentAssignees = [...(filter.assigned || [])];
+      if (currentAssignees.includes(assignee)) {
+        setFilter({
+          ...filter,
+          assigned: currentAssignees.filter((a) => a !== assignee),
+        });
+      } else {
+        setFilter({
+          ...filter,
+          assigned: [...currentAssignees, assignee],
+        });
+      }
+    }
+  };
+
+  const handleDateFilter = (date: any) => {
+    if (setFilter) {
+      setFilter({
+        ...filter,
+        dueDate: date,
       });
     }
   };
 
+  const uniqueClients = Array.from(
+    new Set(tasks.map((task) => task.client_name || task.client))
+  ).filter(Boolean) as string[];
+
+  const uniqueAssignees = Array.from(
+    new Set(tasks.map((task) => task.assignee_name))
+  ).filter(Boolean) as string[];
+
+  // Task count by status
+  const pendingCount = tasks.filter((task) => task.status === 'pending').length;
+  const inProgressCount = tasks.filter((task) => task.status === 'in_progress').length;
+  const completedCount = tasks.filter((task) => task.status === 'completed').length;
+
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md">
-          Error loading tasks. Please try again later.
-        </div>
+      <div className="flex flex-col items-center justify-center h-64">
+        <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+        <h3 className="text-lg font-medium">Error loading tasks</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          {error.message || 'Please try again later.'}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">      
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search tasks..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <Filter className="h-4 w-4 mr-1" />
-            Status
-            {statusFilter && <Badge variant="secondary" className="ml-1">{statusFilter}</Badge>}
-          </Button>
-          
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <ArrowUpDown className="h-4 w-4 mr-1" />
-            Priority
-            {priorityFilter && (
-              <Badge 
-                variant={priorityFilter ? (priorityColorMap[priorityFilter] as any) : "secondary"} 
-                className="ml-1"
-              >
-                {priorityFilter}
-              </Badge>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row gap-4 justify-between">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full md:w-auto">
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="all" className="text-xs md:text-sm">
+              All ({tasks.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs md:text-sm">
+              Pending ({pendingCount})
+            </TabsTrigger>
+            <TabsTrigger value="in_progress" className="text-xs md:text-sm">
+              In Progress ({inProgressCount})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs md:text-sm">
+              Completed ({completedCount})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {setFilter && (
+          <div className="flex gap-2 flex-wrap">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Filter className="h-3.5 w-3.5 mr-2" />
+                  Priority
+                  <ChevronDown className="h-3.5 w-3.5 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={filter.priority?.includes('high')}
+                  onCheckedChange={() => handlePriorityFilter('high')}
+                >
+                  High
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filter.priority?.includes('medium')}
+                  onCheckedChange={() => handlePriorityFilter('medium')}
+                >
+                  Medium
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filter.priority?.includes('low')}
+                  onCheckedChange={() => handlePriorityFilter('low')}
+                >
+                  Low
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {showClient && uniqueClients.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <Building className="h-3.5 w-3.5 mr-2" />
+                    Client
+                    <ChevronDown className="h-3.5 w-3.5 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>Filter by Client</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {uniqueClients.map((client) => (
+                    <DropdownMenuCheckboxItem
+                      key={client}
+                      checked={filter.client?.includes(client)}
+                      onCheckedChange={() => handleClientFilter(client)}
+                    >
+                      {client}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-          </Button>
-          
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
-            <Calendar className="h-4 w-4 mr-1" />
-            Date
-          </Button>
-          
-          {(statusFilter || priorityFilter || searchTerm) && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              Clear
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      <div className="rounded-md border">
-        {isLoading ? (
-          <div className="p-4 space-y-4">
-            {Array(5).fill(0).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
+
+            {showAssignee && uniqueAssignees.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9">
+                    <User className="h-3.5 w-3.5 mr-2" />
+                    Assignee
+                    <ChevronDown className="h-3.5 w-3.5 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>Filter by Assignee</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {uniqueAssignees.map((assignee) => (
+                    <DropdownMenuCheckboxItem
+                      key={assignee}
+                      checked={filter.assigned?.includes(assignee)}
+                      onCheckedChange={() => handleAssigneeFilter(assignee)}
+                    >
+                      {assignee}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Calendar className="h-3.5 w-3.5 mr-2" />
+                  Due Date
+                  <ChevronDown className="h-3.5 w-3.5 ml-2" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  initialFocus
+                  mode="range"
+                  defaultMonth={new Date()}
+                  selected={{
+                    from: filter.dueDate?.[0] || undefined,
+                    to: filter.dueDate?.[1] || undefined,
+                  }}
+                  onSelect={handleDateFilter}
+                  numberOfMonths={1}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <div className="flex items-center h-4">
-                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-                  </div>
-                </TableHead>
-                <TableHead>Task & Client</TableHead>
-                <TableHead className="hidden md:table-cell">Due Date</TableHead>
-                <TableHead className="hidden md:table-cell">Priority</TableHead>
-                <TableHead className="hidden lg:table-cell">Status</TableHead>
-                <TableHead className="hidden xl:table-cell">Progress</TableHead>
-                <TableHead className="text-right">Time Est.</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks && filteredTasks.length > 0 ? (
-                filteredTasks.map((task) => (
-                  <TableRow key={task.task_id} className="group cursor-pointer hover:bg-muted/50">
-                    <TableCell className="p-2 md:p-4">
-                      <div className="flex items-center h-4">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-2 md:p-4">
-                      <Link to={`/employee/tasks/${task.task_id}`} className="block group-hover:underline">
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-sm text-muted-foreground flex items-center">
-                          <Briefcase className="h-3 w-3 mr-1" />
-                          {task.client_name || 'Unknown Client'}
-                        </div>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="p-2 md:p-4 hidden md:table-cell">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{formatDate(task.due_date)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-2 md:p-4 hidden md:table-cell">
-                      <Badge variant={priorityColorMap[task.priority || 'medium'] as any}>
-                        {task.priority || 'Medium'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="p-2 md:p-4 hidden lg:table-cell">
-                      <div className="flex items-center">
-                        {statusIconMap[task.status] || statusIconMap["pending"]}
-                        <span className="ml-2">{task.status}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-2 md:p-4 hidden xl:table-cell">
-                      <div className="w-full max-w-24 space-y-1">
-                        <Progress value={0} className="h-2" />
-                        <div className="text-xs text-right text-muted-foreground">
-                          0%
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-2 md:p-4 text-right">
-                      <div className="flex items-center justify-end">
-                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                        <span>{task.estimated_time || 0}h</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    {isLoading ? 'Loading tasks...' : 'No tasks found. Try a different search term.'}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
         )}
       </div>
-      
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">{filteredTasks?.length || 0}</span> of{" "}
-          <span className="font-medium">{tasks?.length || 0}</span> tasks
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">Previous</Button>
-          <Button variant="outline" size="sm">Next</Button>
-        </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, index) => (
+              <Card key={index} className="overflow-hidden">
+                <CardHeader className="p-4">
+                  <Skeleton className="h-5 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <Skeleton className="h-4 w-full mb-4" />
+                  <Skeleton className="h-4 w-3/4 mb-4" />
+                  <Skeleton className="h-5 w-full mb-2" />
+                  <div className="flex justify-between mt-4">
+                    <Skeleton className="h-8 w-20" />
+                    <Skeleton className="h-8 w-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          : tasks.map((task) => (
+              <Card
+                key={task.task_id || task.id}
+                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/employee/tasks/${task.task_id || task.id}`)}
+              >
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-base line-clamp-2">{task.title}</CardTitle>
+                    <Badge
+                      className={cn(
+                        'text-xs',
+                        priorityColors[task.priority as keyof typeof priorityColors] || 'bg-gray-100'
+                      )}
+                    >
+                      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-2">
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    {task.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                    {showClient && (task.client_name || task.client) && (
+                      <div className="flex items-center">
+                        <Building className="h-3 w-3 mr-1" />
+                        <span className="truncate max-w-[100px]">
+                          {task.client_name || task.client}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {showAssignee && task.assignee_name && (
+                      <div className="flex items-center">
+                        <User className="h-3 w-3 mr-1" />
+                        <span className="truncate max-w-[100px]">{task.assignee_name}</span>
+                      </div>
+                    )}
+                    
+                    {task.estimated_time && (
+                      <div className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>{task.estimated_time} hrs</span>
+                      </div>
+                    )}
+                    
+                    {task.due_date && (
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        <span>{format(new Date(task.due_date), 'MMM d')}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mb-3">
+                    <div className="flex justify-between items-center mb-1 text-xs">
+                      <span>Progress</span>
+                      <span>{task.progress}%</span>
+                    </div>
+                    <Progress
+                      value={task.progress}
+                      className="h-1.5"
+                      indicatorClassName={cn({
+                        'bg-emerald-500': task.progress >= 80,
+                        'bg-amber-500': task.progress >= 40 && task.progress < 80,
+                        'bg-rose-500': task.progress < 40,
+                      })}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <Badge
+                      variant="secondary"
+                      className={cn('text-[10px] h-5 font-normal bg-opacity-50', {
+                        'bg-yellow-100 text-yellow-700': task.status === 'pending',
+                        'bg-blue-100 text-blue-700': task.status === 'in_progress',
+                        'bg-green-100 text-green-700': task.status === 'completed',
+                        'bg-red-100 text-red-700': task.status === 'cancelled',
+                      })}
+                    >
+                      {task.status === 'in_progress'
+                        ? 'In Progress'
+                        : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                    </Badge>
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`/employee/tasks/${task.task_id || task.id}`, '_blank');
+                      }}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
       </div>
+
+      {tasks.length === 0 && !isLoading && (
+        <div className="flex flex-col items-center justify-center h-64">
+          <Check className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium">No tasks found</h3>
+          <p className="text-sm text-muted-foreground mt-2">
+            {filter && Object.values(filter).some((v: any) => v?.length > 0)
+              ? 'Try changing your filters to see more tasks.'
+              : 'You have no tasks at the moment.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

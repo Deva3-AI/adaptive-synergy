@@ -1,147 +1,158 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-export interface User {
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { mockUserData } from '@/utils/mockData';
+
+interface User {
   id: number;
   name: string;
   email: string;
   role: string;
 }
 
-export interface AuthContextType {
-  isAuthenticated: boolean;
+interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<void>;
-  resetPassword: (password: string) => Promise<void>;
   loading: boolean;
+  error: Error | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   isAdmin: boolean;
-  isEmployee: boolean;
-  isClient: boolean;
-  isMarketing: boolean;
   isHR: boolean;
   isFinance: boolean;
+  isMarketing: boolean;
+  isEmployee: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const navigate = useNavigate();
 
-  const isAuthenticated = !!user;
-  
-  // Role-specific flags
-  const isAdmin = user?.role === 'admin';
-  const isEmployee = user?.role === 'employee';
-  const isClient = user?.role === 'client';
-  const isMarketing = user?.role === 'marketing';
-  const isHR = user?.role === 'hr';
-  const isFinance = user?.role === 'finance';
-
+  // Check for existing session on mount
   useEffect(() => {
-    // Check for user on initial load
     const checkUser = async () => {
       try {
-        console.info('Auth state:', { isAuthenticated, user, loading });
+        setLoading(true);
         
-        // First check localStorage for user data
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          console.info('User found in localStorage:', parsedUser);
-          setUser(parsedUser);
+        // Get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw sessionError;
         }
         
-        // Then check Supabase for session
-        const { data: { session } } = await supabase.auth.getSession();
-        
         if (session?.user) {
-          // Get user details from our users table
-          const { data: userData, error } = await supabase
+          // Get user details from our database
+          const { data, error: userError } = await supabase
             .from('users')
             .select(`
               user_id,
               name,
               email,
-              roles (
-                role_name
-              )
+              role_id,
+              roles:role_id(role_name)
             `)
             .eq('email', session.user.email)
             .single();
           
-          if (error) {
-            console.error('Error fetching user data:', error);
-            setUser(null);
-          } else if (userData) {
-            const user = {
-              id: userData.user_id,
-              name: userData.name,
-              email: userData.email,
-              role: userData.roles?.find(r => r.role_id === userData.role_id)?.role_name || 'unknown'
-            };
+          if (userError) {
+            console.error('Error fetching user data:', userError);
             
-            setUser(user);
-            localStorage.setItem('user', JSON.stringify(user));
+            // For demo, use mock data
+            const mockUser = mockUserData.users.find(u => u.email === session.user?.email);
+            
+            if (mockUser) {
+              const mockRole = mockUserData.roles.find(r => r.role_id === mockUser.role_id);
+              
+              setUser({
+                id: mockUser.user_id,
+                name: mockUser.name,
+                email: mockUser.email,
+                role: mockRole?.role_name || 'unknown'
+              });
+            } else {
+              throw userError;
+            }
+          } else if (data) {
+            setUser({
+              id: data.user_id,
+              name: data.name,
+              email: data.email,
+              role: data.roles?.role_name || 'unknown'
+            });
           }
+        } else {
+          setUser(null);
         }
-      } catch (error) {
-        console.error('Auth check error:', error);
+      } catch (err) {
+        console.error('Error in auth check:', err);
+        setError(err instanceof Error ? err : new Error('Authentication error'));
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
     checkUser();
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          try {
-            // Get user details from our users table
-            const { data: userData, error } = await supabase
-              .from('users')
-              .select(`
-                user_id,
-                name,
-                email,
-                roles (
-                  role_name
-                )
-              `)
-              .eq('email', session.user.email)
-              .single();
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
+      
+      if (event === 'SIGNED_IN' && session) {
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .select(`
+              user_id,
+              name,
+              email,
+              role_id,
+              roles:role_id(role_name)
+            `)
+            .eq('email', session.user.email)
+            .single();
+          
+          if (error) {
+            console.error('Error fetching user data after sign in:', error);
             
-            if (error) {
-              console.error('Error fetching user data on auth change:', error);
-              setUser(null);
-              localStorage.removeItem('user');
-            } else if (userData) {
-              const user = {
-                id: userData.user_id,
-                name: userData.name,
-                email: userData.email,
-                role: userData.roles?.find(r => r.role_id === userData.role_id)?.role_name || 'unknown'
-              };
+            // For demo, use mock data
+            const mockUser = mockUserData.users.find(u => u.email === session.user?.email);
+            
+            if (mockUser) {
+              const mockRole = mockUserData.roles.find(r => r.role_id === mockUser.role_id);
               
-              setUser(user);
-              localStorage.setItem('user', JSON.stringify(user));
+              setUser({
+                id: mockUser.user_id,
+                name: mockUser.name,
+                email: mockUser.email,
+                role: mockRole?.role_name || 'unknown'
+              });
+            } else {
+              throw error;
             }
-          } catch (error) {
-            console.error('Error in auth change handler:', error);
+          } else if (data) {
+            setUser({
+              id: data.user_id,
+              name: data.name,
+              email: data.email,
+              role: data.roles?.role_name || 'unknown'
+            });
           }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          localStorage.removeItem('user');
+        } catch (err) {
+          console.error('Error handling sign in:', err);
         }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
       }
-    );
-
+    });
+    
     return () => {
       subscription.unsubscribe();
     };
@@ -149,148 +160,137 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
-
-      if (error) throw error;
-
-      // Get user details from our users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select(`
-          user_id,
-          name,
-          email,
-          roles (
-            role_name
-          )
-        `)
-        .eq('email', email)
-        .single();
       
-      if (userError) throw userError;
-
-      const user = {
-        id: userData.user_id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.roles?.find(r => r.role_id === userData.role_id)?.role_name || 'unknown'
-      };
+      if (error) {
+        toast.error(error.message);
+        return { success: false, error: error.message };
+      }
       
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
-      toast.success('Logged in successfully!');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Failed to login');
-      throw error;
+      if (data.user) {
+        // For demo purposes, let's simulate fetching user data
+        const mockUser = mockUserData.users.find(u => u.email === email);
+        
+        if (mockUser) {
+          const mockRole = mockUserData.roles.find(r => r.role_id === mockUser.role_id);
+          
+          setUser({
+            id: mockUser.user_id,
+            name: mockUser.name,
+            email: mockUser.email,
+            role: mockRole?.role_name || 'unknown'
+          });
+          
+          toast.success('Logged in successfully!');
+          navigate('/dashboard');
+          return { success: true };
+        } else {
+          // If we don't have mock data for this user, create a default one
+          setUser({
+            id: Date.now(),
+            name: email.split('@')[0],
+            email,
+            role: 'employee'
+          });
+          
+          toast.success('Logged in successfully!');
+          navigate('/dashboard');
+          return { success: true };
+        }
+      }
+      
+      return { success: false, error: 'Unknown error occurred' };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
   };
 
-  const signup = async (email: string, password: string, name: string) => {
+  const register = async (name: string, email: string, password: string) => {
     try {
-      // Create auth user in Supabase
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-      });
-
-      if (error) throw error;
-
-      // Get the default role (probably 'employee')
-      const { data: roleData, error: roleError } = await supabase
-        .from('roles')
-        .select('role_id')
-        .eq('role_name', 'employee')
-        .single();
-      
-      if (roleError) throw roleError;
-
-      // Create user record in our users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert([
-          {
-            email,
-            name,
-            role_id: roleData.role_id,
-            password_hash: 'managed_by_supabase'
+        options: {
+          data: {
+            name
           }
-        ])
-        .select();
+        }
+      });
       
-      if (userError) throw userError;
-
-      toast.success('Signup successful! Please check your email for verification.');
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      toast.error(error.message || 'Failed to create account');
-      throw error;
+      if (error) {
+        toast.error(error.message);
+        return { success: false, error: error.message };
+      }
+      
+      // In a real app, we would insert the user into our users table here
+      // For demo, we'll just set the user
+      if (data.user) {
+        setUser({
+          id: Date.now(),
+          name,
+          email,
+          role: 'employee' // Default role for new users
+        });
+        
+        toast.success('Registration successful!');
+        navigate('/dashboard');
+        return { success: true };
+      }
+      
+      return { success: false, error: 'Unknown error occurred' };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      await supabase.auth.signOut();
       setUser(null);
-      localStorage.removeItem('user');
       toast.success('Logged out successfully');
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      toast.error(error.message || 'Failed to logout');
-      throw error;
+      navigate('/login');
+    } catch (err) {
+      console.error('Error signing out:', err);
+      toast.error('Error logging out');
     }
   };
 
-  const requestPasswordReset = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Password reset request error:', error);
-      throw error;
-    }
-  };
-
-  const resetPassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
-      
-      if (error) throw error;
-      toast.success('Password updated successfully!');
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast.error(error.message || 'Failed to reset password');
-      throw error;
-    }
-  };
+  // Role-based helper properties
+  const isAdmin = user?.role === 'admin';
+  const isHR = user?.role === 'hr' || isAdmin;
+  const isFinance = user?.role === 'finance' || isAdmin;
+  const isMarketing = user?.role === 'marketing' || isAdmin;
+  const isEmployee = !!user; // All authenticated users are at least employees
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
         user,
-        login,
-        signup,
-        logout,
-        requestPasswordReset,
-        resetPassword,
         loading,
+        error,
+        login,
+        logout,
+        register,
         isAdmin,
-        isEmployee,
-        isClient,
-        isMarketing,
         isHR,
-        isFinance
+        isFinance,
+        isMarketing,
+        isEmployee
       }}
     >
       {children}
@@ -298,9 +298,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

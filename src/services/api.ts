@@ -2,6 +2,10 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 import config from '@/config/config';
+import hrService from './api/hrServiceSupabase';
+import financeService from './api/financeService';
+import marketingService from './api/marketingService';
+import aiService from './api/aiService';
 
 // Create axios instance with base URL and default headers
 const api = axios.create({
@@ -76,20 +80,24 @@ export const authService = {
         }));
       }
       
-      return response.data;
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Login error:', error);
-      throw error;
+      return { success: false, error: error };
     }
   },
   
-  register: async (userData: any) => {
+  register: async (name: string, email: string, password: string) => {
     try {
-      const response = await api.post('/auth/register', userData);
-      return response.data;
+      const response = await api.post('/auth/register', {
+        name,
+        email,
+        password
+      });
+      return { success: true, data: response.data };
     } catch (error) {
       console.error('Registration error:', error);
-      throw error;
+      return { success: false, error: error };
     }
   },
   
@@ -288,219 +296,8 @@ export const clientService = {
   },
 };
 
-// HR services
-export const hrService = {
-  getEmployeeAttendance: async (userId?: number, startDate?: string, endDate?: string) => {
-    try {
-      let url = '/hr/attendance';
-      const params = new URLSearchParams();
-      
-      if (userId) params.append('user_id', userId.toString());
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get employee attendance error:', error);
-      throw error;
-    }
-  },
-  
-  getPayroll: async (month?: string, year?: string) => {
-    try {
-      let url = '/hr/payroll';
-      const params = new URLSearchParams();
-      
-      if (month) params.append('month', month);
-      if (year) params.append('year', year);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get payroll error:', error);
-      throw error;
-    }
-  },
-  
-  getRecruitment: async () => {
-    try {
-      const response = await api.get('/hr/recruitment');
-      return response.data;
-    } catch (error) {
-      console.error('Get recruitment error:', error);
-      throw error;
-    }
-  },
-  
-  createJobPosting: async (jobData: any) => {
-    try {
-      const response = await api.post('/hr/recruitment', jobData);
-      return response.data;
-    } catch (error) {
-      console.error('Create job posting error:', error);
-      throw error;
-    }
-  },
-};
-
-// Finance services
-export const financeService = {
-  getInvoices: async (status?: string) => {
-    try {
-      let url = '/finance/invoices';
-      if (status) {
-        url += `?status=${status}`;
-      }
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get invoices error:', error);
-      throw error;
-    }
-  },
-  
-  getInvoiceDetails: async (invoiceId: number) => {
-    try {
-      const response = await api.get(`/finance/invoices/${invoiceId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get invoice details error:', error);
-      throw error;
-    }
-  },
-  
-  createInvoice: async (invoiceData: any) => {
-    try {
-      const response = await api.post('/finance/invoices', invoiceData);
-      return response.data;
-    } catch (error) {
-      console.error('Create invoice error:', error);
-      throw error;
-    }
-  },
-  
-  updateInvoiceStatus: async (invoiceId: number, status: string) => {
-    try {
-      const response = await api.put(`/finance/invoices/${invoiceId}/status`, { status });
-      return response.data;
-    } catch (error) {
-      console.error('Update invoice status error:', error);
-      throw error;
-    }
-  },
-  
-  getRevenueReports: async (startDate?: string, endDate?: string) => {
-    try {
-      let url = '/finance/reports/revenue';
-      const params = new URLSearchParams();
-      
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get revenue reports error:', error);
-      throw error;
-    }
-  },
-  
-  getExpenseReports: async (startDate?: string, endDate?: string) => {
-    try {
-      let url = '/finance/reports/expenses';
-      const params = new URLSearchParams();
-      
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get expense reports error:', error);
-      throw error;
-    }
-  },
-};
-
-// Marketing services
-export const marketingService = {
-  getCampaigns: async () => {
-    try {
-      const response = await api.get('/marketing/campaigns');
-      return response.data;
-    } catch (error) {
-      console.error('Get campaigns error:', error);
-      throw error;
-    }
-  },
-  
-  createCampaign: async (campaignData: any) => {
-    try {
-      const response = await api.post('/marketing/campaigns', campaignData);
-      return response.data;
-    } catch (error) {
-      console.error('Create campaign error:', error);
-      throw error;
-    }
-  },
-  
-  getMeetings: async () => {
-    try {
-      const response = await api.get('/marketing/meetings');
-      return response.data;
-    } catch (error) {
-      console.error('Get meetings error:', error);
-      throw error;
-    }
-  },
-  
-  createMeeting: async (meetingData: any) => {
-    try {
-      const response = await api.post('/marketing/meetings', meetingData);
-      return response.data;
-    } catch (error) {
-      console.error('Create meeting error:', error);
-      throw error;
-    }
-  },
-  
-  getAnalytics: async (startDate?: string, endDate?: string) => {
-    try {
-      let url = '/marketing/analytics';
-      const params = new URLSearchParams();
-      
-      if (startDate) params.append('start_date', startDate);
-      if (endDate) params.append('end_date', endDate);
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error('Get analytics error:', error);
-      throw error;
-    }
-  },
-};
+// Export all our services
+export { hrService, financeService, marketingService, aiService };
 
 // Export a default API object with all services
 export default {
@@ -510,4 +307,5 @@ export default {
   hr: hrService,
   finance: financeService,
   marketing: marketingService,
+  ai: aiService,
 };
