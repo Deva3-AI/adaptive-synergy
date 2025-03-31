@@ -1,69 +1,103 @@
-# Welcome to your Lovable project
 
-## Project info
+# Hyper-Integrated AI Workflow & Insights Platform
 
-**URL**: https://lovable.dev/projects/9e8d0209-57ed-496b-bc12-c72ef72e5695
+A state-of-the-art full-stack application that integrates all your software tools with advanced AI to enhance operational efficiency, drive growth, and support 10X growth in the next 12 months.
 
-## How can I edit this code?
+## Overview
 
-There are several ways of editing your application.
+This platform automates workflows for internal teams and external clients by unifying communication, task management, and performance tracking across all departments. Every aspect—from employee attendance to client project tracking and financial reporting—is intelligently automated and continuously optimized using real-time data and adaptive AI models.
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9e8d0209-57ed-496b-bc12-c72ef72e5695) and start prompting.
+- **Authentication & User Management**: Secure login/signup with role-based access control
+- **Employee Dashboard**: Task tracking, work session logging, client requirements integration
+- **Client Dashboard**: Centralized task management, real-time progress tracking
+- **Marketing Team Dashboard**: Campaign management, meeting preparation, trend monitoring
+- **HR Team Dashboard**: Attendance tracking, recruitment automation, payroll management
+- **Finance Team Dashboard**: Invoice management, financial health monitoring
+- **Unified Communication**: Integration with various communication channels
+- **AI-Powered Features**: Task generation, insights, analytics, and optimization
 
-Changes made via Lovable will be committed automatically to this repo.
+## Technology Stack
 
-**Use your preferred IDE**
+- **Frontend**: React with Vite, TailwindCSS, Shadcn/UI
+- **Backend**: Supabase for data storage and authentication
+- **Database**: PostgreSQL via Supabase
+- **State Management**: TanStack React Query
+- **Authentication**: Supabase Auth
+- **Realtime Updates**: Supabase Realtime
+- **UI Components**: Shadcn/UI, Tailwind CSS
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+See the [Setup Guide](SETUP_GUIDE.md) for detailed instructions on setting up the project locally.
 
-Follow these steps:
+### Quick Start
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Clone the repository
+2. Install dependencies with `npm install`
+3. Copy `.env.example` to `.env` and add your Supabase credentials
+4. Run the database setup SQL in Supabase
+5. Start the development server with `npm run dev`
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Project Structure
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+├── public/                 # Static assets
+├── src/
+│   ├── components/         # Reusable UI components
+│   │   ├── ui/             # Base UI components (from shadcn/ui)
+│   │   ├── marketing/      # Marketing-specific components
+│   │   ├── client/         # Client-specific components
+│   │   └── ...
+│   ├── hooks/              # Custom React hooks
+│   ├── interfaces/         # TypeScript interfaces
+│   ├── pages/              # Page components
+│   ├── services/           # API services
+│   │   └── api/            # API clients
+│   ├── integrations/       # External integrations (Supabase, etc.)
+│   ├── utils/              # Utility functions
+│   ├── App.tsx             # Main App component
+│   └── main.tsx            # Application entry point
+├── backend/                # Optional FastAPI backend for AI functionality
+├── supabase/               # Supabase configuration and migrations
+├── .env.example            # Example environment variables
+├── vite.config.ts          # Vite configuration
+└── package.json            # Project dependencies and scripts
 ```
 
-**Edit a file directly in GitHub**
+## Database Schema
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The application uses the following key tables:
 
-**Use GitHub Codespaces**
+- `users`: User accounts and authentication
+- `roles`: User role definitions
+- `clients`: Client information
+- `tasks`: Task management across the system
+- `employee_attendance`: Employee time tracking
+- `email_templates`: Marketing email templates
+- `campaigns`: Marketing campaign management
+- `task_comments`: Task communication
+- `task_attachments`: Files attached to tasks
+- `invoices`: Financial invoice tracking
+- `financial_records`: Financial transaction records
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Contributing
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-This project is built with .
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## How can I deploy this project?
+## Acknowledgements
 
-Simply open [Lovable](https://lovable.dev/projects/9e8d0209-57ed-496b-bc12-c72ef72e5695) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- [Supabase](https://supabase.com/) for the backend infrastructure
+- [Shadcn/UI](https://ui.shadcn.com/) for the component library
+- [TailwindCSS](https://tailwindcss.com/) for styling
+- [TanStack Query](https://tanstack.com/query) for data fetching
+- [Vite](https://vitejs.dev/) for the build tooling

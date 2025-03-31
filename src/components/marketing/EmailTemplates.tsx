@@ -1,501 +1,333 @@
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Pencil, Copy, Trash2, Star, BarChart2 } from "lucide-react";
 import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
   TableRow 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Copy,
-  Pencil,
-  Mail,
-  Save,
-  X,
-  Tag,
-  Clock,
-  BarChart,
-  Variable
-} from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+} from "@/components/ui/table";
 import { toast } from 'sonner';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
-} from '@/components/ui/dialog';
-import { marketingService } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
 
-const EmailTemplates = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  
-  const queryClient = useQueryClient();
-  
+interface EmailTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  body: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+  open_rate?: number;
+  click_rate?: number;
+  conversion_rate?: number;
+  status: 'active' | 'draft' | 'archived';
+}
+
+const EmailTemplates: React.FC = () => {
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  // Fetch email templates from Supabase
   const { data: templates, isLoading, error } = useQuery({
-    queryKey: ['email-templates'],
-    queryFn: () => marketingService.getEmailTemplates(),
-  });
-  
-  const saveTemplateMutation = useMutation({
-    mutationFn: (templateData: any) => {
-      // In a real app, call an API endpoint to save the template
-      // For now, we'll just simulate a successful save
-      console.log('Saving template:', templateData);
-      return Promise.resolve(templateData);
-    },
-    onSuccess: () => {
-      toast.success('Template saved successfully');
-      setEditingTemplate(null);
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-    },
-    onError: (error) => {
-      toast.error('Failed to save template');
-      console.error(error);
+    queryKey: ['emailTemplates'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('email_templates')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        return data as EmailTemplate[];
+      } catch (error) {
+        console.error('Error fetching email templates:', error);
+        return [] as EmailTemplate[];
+      }
     }
   });
-  
-  const deleteTemplateMutation = useMutation({
-    mutationFn: (templateId: number) => {
-      // In a real app, call an API endpoint to delete the template
-      // For now, we'll just simulate a successful deletion
-      console.log('Deleting template:', templateId);
-      return Promise.resolve();
-    },
-    onSuccess: () => {
+
+  // Function to handle template copy
+  const handleCopyTemplate = (template: EmailTemplate) => {
+    navigator.clipboard.writeText(template.body);
+    toast.success('Template copied to clipboard!');
+  };
+
+  // Function to handle template deletion (would connect to Supabase in a real implementation)
+  const handleDeleteTemplate = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('email_templates')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
       toast.success('Template deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-    },
-    onError: (error) => {
+    } catch (error) {
+      console.error('Error deleting template:', error);
       toast.error('Failed to delete template');
-      console.error(error);
     }
-  });
-  
-  const duplicateTemplateMutation = useMutation({
-    mutationFn: (template: any) => {
-      // In a real app, call an API endpoint to duplicate the template
-      // For now, we'll just simulate a successful duplication
-      const duplicatedTemplate = {
-        ...template,
-        id: Date.now(), // Generate a new ID
-        name: `${template.name} (Copy)`,
-        usage_count: 0
-      };
-      console.log('Duplicating template:', duplicatedTemplate);
-      return Promise.resolve(duplicatedTemplate);
+  };
+
+  // Mock data for when Supabase is not set up yet
+  const mockTemplates: EmailTemplate[] = [
+    {
+      id: 1,
+      name: 'Welcome Email',
+      subject: 'Welcome to our platform!',
+      body: 'Dear {{name}},\n\nWelcome to our platform! We are excited to have you on board.\n\nBest regards,\nThe Team',
+      category: 'outreach',
+      created_at: '2023-01-01T00:00:00.000Z',
+      updated_at: '2023-01-01T00:00:00.000Z',
+      open_rate: 68,
+      click_rate: 45,
+      conversion_rate: 12,
+      status: 'active'
     },
-    onSuccess: () => {
-      toast.success('Template duplicated successfully');
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+    {
+      id: 2,
+      name: 'Follow-up After Meeting',
+      subject: 'Great meeting you, {{name}}!',
+      body: 'Hi {{name}},\n\nThank you for your time today. As discussed, I\'m attaching the proposal for your review.\n\nLooking forward to your feedback,\nThe Team',
+      category: 'followup',
+      created_at: '2023-01-02T00:00:00.000Z',
+      updated_at: '2023-01-02T00:00:00.000Z',
+      open_rate: 72,
+      click_rate: 38,
+      conversion_rate: 15,
+      status: 'active'
     },
-    onError: (error) => {
-      toast.error('Failed to duplicate template');
-      console.error(error);
+    {
+      id: 3,
+      name: 'Monthly Newsletter',
+      subject: 'This Month\'s Updates',
+      body: 'Hello {{name}},\n\nHere are this month\'s updates and news.\n\nRegards,\nThe Team',
+      category: 'nurture',
+      created_at: '2023-01-03T00:00:00.000Z',
+      updated_at: '2023-01-03T00:00:00.000Z',
+      open_rate: 55,
+      click_rate: 28,
+      conversion_rate: 8,
+      status: 'active'
     }
-  });
-  
-  const handleSaveTemplate = () => {
-    saveTemplateMutation.mutate(editingTemplate);
-  };
-  
-  const handleDeleteTemplate = (templateId: number) => {
-    if (window.confirm('Are you sure you want to delete this template?')) {
-      deleteTemplateMutation.mutate(templateId);
-    }
-  };
-  
-  const handleDuplicateTemplate = (template: any) => {
-    duplicateTemplateMutation.mutate(template);
-  };
-  
-  const filteredTemplates = templates ? templates.filter((template: any) => 
-    template.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    template.subject.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
-  
-  const renderTemplateEditor = () => {
-    if (!editingTemplate) return null;
-    
+  ];
+
+  // Use mock data if no templates are loaded from Supabase
+  const displayTemplates = templates?.length > 0 ? templates : mockTemplates;
+
+  if (error) {
     return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Edit Template</h3>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setEditingTemplate(null)}
-            aria-label="Close editor"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="template-name" className="block text-sm font-medium mb-1">Template Name</label>
-            <Input 
-              id="template-name" 
-              value={editingTemplate.name} 
-              onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="template-subject" className="block text-sm font-medium mb-1">Subject Line</label>
-            <Input 
-              id="template-subject" 
-              value={editingTemplate.subject} 
-              onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="template-body" className="block text-sm font-medium mb-1">Email Body</label>
-            <Textarea 
-              id="template-body" 
-              rows={12}
-              value={editingTemplate.body} 
-              onChange={(e) => setEditingTemplate({...editingTemplate, body: e.target.value})}
-              className="font-mono text-sm"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Variables</label>
-            <div className="flex flex-wrap gap-2">
-              {editingTemplate.variables.map((variableName: string, index: number) => (
-                <Badge key={index} variant="outline" className="flex items-center gap-1">
-                  <Variable className="h-3 w-3" />
-                  {variableName}
-                </Badge>
-              ))}
-              <Button variant="outline" size="sm" className="h-6">
-                <Plus className="h-3 w-3 mr-1" />
-                Add
-              </Button>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Tags</label>
-            <div className="flex flex-wrap gap-2">
-              {editingTemplate.tags.map((tag: string, index: number) => (
-                <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                  <Tag className="h-3 w-3" />
-                  {tag}
-                </Badge>
-              ))}
-              <Button variant="outline" size="sm" className="h-6">
-                <Plus className="h-3 w-3 mr-1" />
-                Add
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end space-x-2 pt-2">
-          <Button variant="outline" onClick={() => setEditingTemplate(null)}>Cancel</Button>
-          <Button onClick={handleSaveTemplate} disabled={saveTemplateMutation.isPending}>
-            {saveTemplateMutation.isPending ? 'Saving...' : 'Save Template'}
-          </Button>
-        </div>
+      <div className="p-4 bg-destructive/10 rounded-md">
+        <p className="text-destructive">Error loading email templates: {(error as Error).message}</p>
+        <Button variant="outline" className="mt-2" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
       </div>
     );
-  };
-  
-  const renderTemplateStats = (template: any) => {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">{template.name} - Performance</h3>
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between mb-4">
+        <div className="flex space-x-2">
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setViewMode('table')}
+          >
+            Table View
+          </Button>
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            Grid View
+          </Button>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">Usage Count</div>
-            <div className="text-2xl font-bold">{template.usage_count}</div>
-            <div className="text-xs text-muted-foreground flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
-              Last used 5 days ago
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">Conversion Rate</div>
-            <div className="text-2xl font-bold">{template.conversion_rate}%</div>
-            <Progress value={template.conversion_rate} className="h-2" />
-          </div>
+        <div className="flex gap-2">
+          <span className="text-sm text-muted-foreground self-center">
+            {displayTemplates.length} templates
+          </span>
         </div>
-        
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Engagement Metrics</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm text-muted-foreground">Open Rate</div>
-              <div className="text-lg font-semibold">35.6%</div>
-              <Progress value={35.6} className="h-2" />
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Click Rate</div>
-              <div className="text-lg font-semibold">12.8%</div>
-              <Progress value={12.8} className="h-2" />
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Reply Rate</div>
-              <div className="text-lg font-semibold">8.3%</div>
-              <Progress value={8.3} className="h-2" />
-            </div>
-            <div>
-              <div className="text-sm text-muted-foreground">Bounce Rate</div>
-              <div className="text-lg font-semibold">2.1%</div>
-              <Progress value={2.1} className="h-2" />
-            </div>
+      </div>
+
+      {isLoading ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <Skeleton className="h-5 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-5/6 mb-1" />
+                  <Skeleton className="h-4 w-full mb-1" />
+                  <Skeleton className="h-4 w-4/5 mb-1" />
+                  <Skeleton className="h-4 w-5/6 mb-1" />
+                </CardContent>
+                <CardFooter className="bg-muted/50 p-3">
+                  <Skeleton className="h-8 w-full" />
+                </CardFooter>
+              </Card>
+            ))}
           </div>
-        </div>
-        
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Performance by Recipient</h4>
-          <div className="rounded-md border overflow-hidden">
+        ) : (
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Recipient Type</TableHead>
-                  <TableHead>Open Rate</TableHead>
-                  <TableHead>Click Rate</TableHead>
-                  <TableHead>Conversion</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Performance</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell>C-Level</TableCell>
-                  <TableCell>32.5%</TableCell>
-                  <TableCell>10.2%</TableCell>
-                  <TableCell>8.5%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Director</TableCell>
-                  <TableCell>38.2%</TableCell>
-                  <TableCell>15.6%</TableCell>
-                  <TableCell>12.3%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Manager</TableCell>
-                  <TableCell>42.1%</TableCell>
-                  <TableCell>18.7%</TableCell>
-                  <TableCell>14.2%</TableCell>
-                </TableRow>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-[180px]" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-[100px]" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-[150px]" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-[80px]" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-[120px] float-right" /></TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
+        )
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {displayTemplates.map((template) => (
+            <Card key={template.id} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-medium truncate">{template.name}</h3>
+                  <Badge variant={
+                    template.category === 'outreach' ? 'default' :
+                    template.category === 'followup' ? 'secondary' : 'outline'
+                  }>
+                    {template.category}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-1 truncate">
+                  Subject: {template.subject}
+                </p>
+                <div className="mt-3 space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Open Rate</span>
+                      <span className="font-medium">{template.open_rate || 0}%</span>
+                    </div>
+                    <Progress value={template.open_rate || 0} className="h-1.5" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Click Rate</span>
+                      <span className="font-medium">{template.click_rate || 0}%</span>
+                    </div>
+                    <Progress value={template.click_rate || 0} className="h-1.5" />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-muted/50 p-3 flex justify-between">
+                <Button variant="ghost" size="sm" onClick={() => handleCopyTemplate(template)}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copy
+                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteTemplate(template.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
-        
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">AI Improvement Suggestions</h4>
-          <div className="space-y-2">
-            <div className="text-sm bg-muted p-3 rounded-md">
-              <span className="font-medium">Subject line:</span> Try adding a personalization variable or creating urgency to increase open rates.
-            </div>
-            <div className="text-sm bg-muted p-3 rounded-md">
-              <span className="font-medium">Email length:</span> Consider shortening the email by 20% to improve readability and response rates.
-            </div>
-            <div className="text-sm bg-muted p-3 rounded-md">
-              <span className="font-medium">Call-to-action:</span> Make the primary CTA more prominent and action-oriented.
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  const renderTemplatePreview = (template: any) => {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">{template.name} - Preview</h3>
-        </div>
-        
-        <div className="border rounded-md p-4 space-y-4">
-          <div className="border-b pb-2">
-            <div className="text-sm text-muted-foreground">From: Your Company <yourname@company.com></div>
-            <div className="text-sm text-muted-foreground">To: [recipient_email]</div>
-            <div className="text-sm font-medium">Subject: {template.subject}</div>
-          </div>
-          
-          <div className="whitespace-pre-line text-sm">
-            {template.body}
-          </div>
-        </div>
-        
-        <div className="border rounded-md p-4">
-          <h4 className="text-sm font-medium mb-2">Template Variables</h4>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {template.variables.map((variable: string, index: number) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">[{variable}]</span>
-                <span>Example value</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="text-xl font-bold">Email Templates</div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Template
-        </Button>
-      </div>
-      
-      <div className="border rounded-md p-4 bg-muted/50">
-        <div className="text-sm">
-          Templates help you standardize your outreach and follow-up communications. Use variables like [first_name] to personalize your emails.
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search templates..."
-            className="pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <Button variant="outline" size="sm">
-          <Tag className="h-4 w-4 mr-2" />
-          Filter by Tag
-        </Button>
-      </div>
-      
-      {editingTemplate ? (
-        renderTemplateEditor()
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Template Name</TableHead>
-                <TableHead>Subject Line</TableHead>
-                <TableHead className="hidden md:table-cell">Usage</TableHead>
-                <TableHead className="hidden md:table-cell">Conversion</TableHead>
-                <TableHead className="hidden lg:table-cell">Last Modified</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Performance</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    Loading templates...
+              {displayTemplates.map((template) => (
+                <TableRow key={template.id}>
+                  <TableCell>
+                    <div className="font-medium">{template.name}</div>
+                    <div className="text-sm text-muted-foreground truncate max-w-[300px]">
+                      {template.subject}
+                    </div>
                   </TableCell>
-                </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-red-500">
-                    Error loading templates
+                  <TableCell>
+                    <Badge variant={
+                      template.category === 'outreach' ? 'default' :
+                      template.category === 'followup' ? 'secondary' : 'outline'
+                    }>
+                      {template.category}
+                    </Badge>
                   </TableCell>
-                </TableRow>
-              ) : filteredTemplates.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No templates found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTemplates.map((template: any) => (
-                  <TableRow key={template.id}>
-                    <TableCell className="font-medium">{template.name}</TableCell>
-                    <TableCell className="max-w-md truncate">{template.subject}</TableCell>
-                    <TableCell className="hidden md:table-cell">{template.usage_count}</TableCell>
-                    <TableCell className="hidden md:table-cell">{template.conversion_rate}%</TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {new Date(template.last_modified).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-1">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <Mail className="h-4 w-4" />
-                              <span className="sr-only">Preview</span>
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            {renderTemplatePreview(template)}
-                          </DialogContent>
-                        </Dialog>
-                        
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <BarChart className="h-4 w-4" />
-                              <span className="sr-only">Stats</span>
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-3xl">
-                            {renderTemplateStats(template)}
-                          </DialogContent>
-                        </Dialog>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => setEditingTemplate(template)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleDuplicateTemplate(template)}
-                        >
-                          <Copy className="h-4 w-4" />
-                          <span className="sr-only">Duplicate</span>
-                        </Button>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-red-500"
-                          onClick={() => handleDeleteTemplate(template.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </Button>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24">
+                        <div className="flex justify-between text-xs">
+                          <span>Open</span>
+                          <span>{template.open_rate || 0}%</span>
+                        </div>
+                        <Progress value={template.open_rate || 0} className="h-1.5" />
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                      <div className="text-xs text-muted-foreground">|</div>
+                      <div className="w-24">
+                        <div className="flex justify-between text-xs">
+                          <span>Click</span>
+                          <span>{template.click_rate || 0}%</span>
+                        </div>
+                        <Progress value={template.click_rate || 0} className="h-1.5" />
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      template.status === 'active' ? 'default' :
+                      template.status === 'draft' ? 'secondary' : 'outline'
+                    }>
+                      {template.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleCopyTemplate(template)}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteTemplate(template.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <BarChart2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
