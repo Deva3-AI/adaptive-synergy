@@ -1,4 +1,3 @@
-
 export interface Campaign {
   id: number;
   title: string;
@@ -101,6 +100,10 @@ export interface MarketingTrend {
   discoveredAt: string;
   source: string;
   suggestedResponse: string;
+  relevance_score: number;
+  category: string;
+  actionable: boolean;
+  suggestedActions: string[];
 }
 
 export interface MarketingMeeting {
@@ -110,6 +113,12 @@ export interface MarketingMeeting {
   attendees: string[];
   summary: string;
   action_items: string[];
+  leadName: string;
+  leadCompany: string;
+  duration: string;
+  platform: string;
+  scheduledTime: string;
+  status: string;
 }
 
 export interface EmailOutreach {
@@ -122,6 +131,12 @@ export interface EmailOutreach {
   click_rate: string;
   response_rate: string;
   meetings_booked: number;
+  recipient: string;
+  recipientCompany: string;
+  subject: string;
+  sentAt: string;
+  source: string;
+  followUpScheduled: boolean;
 }
 
 export interface CompetitorInsight {

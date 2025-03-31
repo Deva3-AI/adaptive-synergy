@@ -1,203 +1,189 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Task } from '@/interfaces/tasks';
-import axios from 'axios';
-import config from '@/config/config';
+import apiClient from '@/utils/apiUtils';
 
 const aiService = {
-  /**
-   * Get a response from the AI assistant
-   * @param message - User message
-   */
   getResponse: async (message: string) => {
     try {
-      const response = await supabase.functions.invoke('ai-assistant', {
-        body: { message },
-      });
-      
+      const response = await apiClient.post('/ai/chat', { message });
       return response.data;
     } catch (error) {
       console.error('Error getting AI response:', error);
-      return { response: 'Sorry, I encountered an error processing your request.' };
+      throw error;
     }
   },
 
-  /**
-   * Analyze client requirements
-   * @param requirements - Text of client requirements
-   */
   analyzeRequirements: async (requirements: string) => {
     try {
-      const response = await supabase.functions.invoke('analyze-requirements', {
-        body: { requirements },
-      });
+      const response = await apiClient.post('/ai/analyze-requirements', { requirements });
+      return response.data;
+    } catch (error) {
+      console.error('Error analyzing requirements:', error);
       
-      return response.data || {
-        keyPoints: ['Identified client need for a responsive website'],
-        timeline: 'Estimated 2-3 weeks for completion',
-        context: 'Client is looking for a modern web application',
-        suggestedTasks: [
+      // Return mock data for development
+      return {
+        key_requirements: [
+          'Responsive design for all device sizes',
+          'User authentication with social login',
+          'Real-time notifications',
+          'Data visualization dashboard'
+        ],
+        suggested_tasks: [
           {
-            title: 'Create project wireframes',
-            description: 'Design initial wireframes based on client requirements',
-            estimatedTime: 4,
+            title: 'Implement responsive layout',
+            description: 'Create responsive grid system that adapts to different screen sizes',
+            estimated_time: 8,
             priority: 'high'
           },
           {
-            title: 'Setup project structure',
-            description: 'Initialize the codebase and setup CI/CD pipeline',
-            estimatedTime: 2,
-            priority: 'medium'
+            title: 'Set up authentication system',
+            description: 'Implement user login/signup with Google and Facebook integration',
+            estimated_time: 12,
+            priority: 'high'
           }
         ],
-        risks: ['Tight deadline may affect quality'],
-        recommendations: ['Schedule regular check-ins']
+        technical_considerations: [
+          'Consider using React Context API for state management',
+          'Implement lazy loading for better performance',
+          'Use WebSockets for real-time features'
+        ],
+        clarity_score: 85,
+        completeness_score: 78
       };
-    } catch (error) {
-      console.error('Error analyzing requirements:', error);
-      toast.error('Failed to analyze requirements');
-      throw error;
     }
   },
 
-  /**
-   * Analyze a specific task
-   * @param taskId - Task ID
-   * @param taskDetails - Task details
-   */
   analyzeTask: async (taskId: number, taskDetails: any) => {
     try {
-      const response = await supabase.functions.invoke('analyze-task', {
-        body: { taskId, ...taskDetails },
-      });
-      
+      const response = await apiClient.post('/ai/analyze-task', { taskId, taskDetails });
       return response.data;
     } catch (error) {
       console.error('Error analyzing task:', error);
-      toast.error('Failed to analyze task');
       throw error;
     }
   },
 
-  /**
-   * Get AI task recommendations
-   * @param userId - User ID
-   */
-  getAITaskRecommendations: async (userId: number) => {
+  generateTaskBreakdown: async (taskId: number) => {
     try {
-      const response = await supabase.functions.invoke('task-recommendations', {
-        body: { userId },
-      });
-      
-      if (response.error) throw response.error;
-      
-      return response.data || [
-        {
-          task_id: 1,
-          title: 'Complete project documentation',
-          description: 'Update project documentation with recent changes',
-          client_id: 2,
-          estimated_time: 2,
-          priority: 'medium'
-        },
-        {
-          task_id: 2,
-          title: 'Fix responsive layout issues',
-          description: 'Address mobile layout problems on the dashboard',
-          client_id: 1,
-          estimated_time: 3,
-          priority: 'high'
-        }
-      ];
-    } catch (error) {
-      console.error('Error getting AI task recommendations:', error);
-      return [];
-    }
-  },
-
-  /**
-   * Generate coding suggestions
-   * @param taskId - Task ID
-   */
-  generateCodingSuggestions: async (taskId: number) => {
-    try {
-      const response = await supabase.functions.invoke('coding-suggestions', {
-        body: { taskId },
-      });
-      
+      const response = await apiClient.get(`/ai/task-breakdown/${taskId}`);
       return response.data;
     } catch (error) {
-      console.error('Error generating coding suggestions:', error);
-      return { suggestions: [] };
+      console.error('Error generating task breakdown:', error);
+      throw error;
     }
   },
 
-  /**
-   * Generate performance report
-   * @param employeeId - Employee ID
-   * @param timeframe - Timeframe (week, month, year)
-   */
+  getClientPreferences: async (clientId: number) => {
+    try {
+      const response = await apiClient.get(`/ai/client-preferences/${clientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting client preferences:', error);
+      
+      // Return mock data for development
+      return {
+        communication_style: 'Formal',
+        design_preferences: {
+          color_scheme: 'Blue and white, professional',
+          typography: 'Clean, modern sans-serif',
+          layout: 'Minimalist with ample white space'
+        },
+        feedback_patterns: [
+          'Prefers detailed explanations',
+          'Values clean, intuitive interfaces',
+          'Requests prompt responses'
+        ],
+        past_satisfaction: {
+          design: 4.8,
+          communication: 4.5,
+          timeliness: 4.2,
+          overall: 4.6
+        },
+        dos: [
+          'Provide regular status updates',
+          'Include detailed documentation',
+          'Maintain consistent design language'
+        ],
+        donts: [
+          'Use technical jargon without explanation',
+          'Make assumptions without confirmation',
+          'Submit work without internal review'
+        ]
+      };
+    }
+  },
+
+  getAITaskRecommendations: async (userId: number) => {
+    try {
+      const response = await apiClient.get(`/ai/task-recommendations/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting task recommendations:', error);
+      
+      // Return mock data for development
+      return [
+        {
+          title: 'Update client dashboard with new metrics',
+          description: 'Add revenue and conversion metrics to the client dashboard',
+          estimated_time: 4,
+          priority: 'high',
+          skills_match: 95,
+          reason: 'Based on your recent work on dashboard components'
+        },
+        {
+          title: 'Create mobile responsive templates',
+          description: 'Develop new responsive email templates for marketing campaign',
+          estimated_time: 6,
+          priority: 'medium',
+          skills_match: 88,
+          reason: 'Aligns with your expertise in responsive design'
+        }
+      ];
+    }
+  },
+
   generatePerformanceReport: async (employeeId: number, timeframe: string) => {
     try {
-      const response = await supabase.functions.invoke('performance-report', {
-        body: { employeeId, timeframe },
-      });
-      
+      const response = await apiClient.get(`/ai/performance-report/${employeeId}?timeframe=${timeframe}`);
       return response.data;
     } catch (error) {
       console.error('Error generating performance report:', error);
-      return null;
+      throw error;
     }
   },
 
-  /**
-   * Get manager insights for the virtual manager
-   * @param employeeId - Employee ID
-   */
-  getManagerInsights: async (employeeId: number) => {
+  generateManagerInsights: async (taskId: number) => {
     try {
-      const response = await supabase.functions.invoke('manager-insights', {
-        body: { employeeId },
-      });
+      const response = await apiClient.get(`/ai/manager-insights/${taskId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error generating manager insights:', error);
       
-      if (response.error) throw response.error;
-      
-      return response.data || {
-        priorityTasks: [
-          {
-            id: 1,
-            title: 'Complete client deliverable',
-            dueDate: '2023-08-15',
-            status: 'in_progress'
-          }
+      // Return mock data for development
+      return {
+        tips: [
+          'Client prefers detailed progress updates',
+          'Similar tasks took 20% longer than estimated in the past',
+          'Break down the animation work into smaller components'
         ],
-        suggestions: [
-          'Consider breaking down the current task into smaller chunks',
-          'Schedule a check-in with the client to verify requirements'
+        timeline_risk: 'medium',
+        timeline_suggestions: [
+          'Consider allocating additional time for client revisions',
+          'Prepare design options in advance to expedite approval'
         ],
-        workloadInsight: 'Your current workload is 20% higher than the previous week',
-        timeManagement: {
-          productive: 65,
-          meetings: 20,
-          administrative: 15
-        },
-        upcomingDeadlines: [
+        quality_insights: [
+          'Client has previously praised attention to typography details',
+          'Previous feedback emphasized consistent use of brand colors'
+        ],
+        resources: [
           {
-            id: 5,
-            title: 'Submit quarterly report',
-            dueDate: '2023-08-20'
+            title: 'Brand guidelines document',
+            url: '/documents/brand-guidelines.pdf'
+          },
+          {
+            title: 'Previous similar project',
+            url: '/projects/123'
           }
         ]
-      };
-    } catch (error) {
-      console.error('Error getting manager insights:', error);
-      return {
-        priorityTasks: [],
-        suggestions: [],
-        workloadInsight: '',
-        timeManagement: { productive: 0, meetings: 0, administrative: 0 },
-        upcomingDeadlines: []
       };
     }
   }

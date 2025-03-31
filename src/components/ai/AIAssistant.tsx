@@ -1,275 +1,92 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrainCircuit, Send } from 'lucide-react';
+import { toast } from 'sonner';
+import { aiService } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
+import useTasks from '@/hooks/useTasks';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Send, X, Sparkles, ChevronDown, ChevronUp, Bot } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import aiService from "@/services/api/aiService";
-import { useAuth } from "@/hooks/use-auth";
-import { useTasks } from "@/hooks/useTasks";
-import { toast } from "sonner";
+interface AIAssistantProps {
+  className?: string;
+}
 
-type Message = {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-};
-
-type SuggestionCategory = {
-  id: string;
-  name: string;
-  suggestions: string[];
-};
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
-export const AIAssistant = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+const AIAssistant: React.FC<AIAssistantProps> = ({ className }) => {
+  const [message, setMessage] = useState('');
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  
-  // Use custom hooks to fetch data for context
-  const { tasks } = useTasks();
-
-  const suggestionCategories: SuggestionCategory[] = [
-    {
-      id: 'general',
-      name: 'General',
-      suggestions: [
-        'How can I use the AI features?',
-        'Show me a summary of current projects',
-        'What tasks are due this week?'
-      ]
-    },
-    {
-      id: 'productivity',
-      name: 'Productivity',
-      suggestions: [
-        'Analyze my team performance',
-        'Suggest optimization for my workflow',
-        'Generate a report on current tasks'
-      ]
-    },
-    {
-      id: 'insights',
-      name: 'Insights',
-      suggestions: [
-        'What are the trends in our client data?',
-        'Analyze our financial performance',
-        'Predict resource requirements for upcoming projects'
-      ]
-    }
-  ];
-
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      setMessages([
-        {
-          id: generateId(),
-          content: `Hello${user ? ` ${user.name}` : ''}! I'm Hive Assistant, your AI helper. I can answer questions about projects, tasks, clients, and provide insights based on your data. How can I help you today?`,
-          role: 'assistant',
-          timestamp: new Date()
-        }
-      ]);
-    }
-  }, [isOpen, user]);
-
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
+  const { updateTask } = useTasks();
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-    
-    const userMessage: Message = {
-      id: generateId(),
-      content: inputValue,
-      role: 'user',
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-    
+    if (!message.trim()) return;
+
+    setLoading(true);
     try {
-      const result = await aiService.getResponse(inputValue);
-      
-      const assistantMessage: Message = {
-        id: generateId(),
-        content: result.response,
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+      const aiResponse = await aiService.getResponse(message);
+      setResponse(aiResponse.content);
+      toast.success('AI response generated successfully');
+    } catch (error: any) {
       console.error('Error getting AI response:', error);
-      
-      const errorMessage: Message = {
-        id: generateId(),
-        content: "I apologize, but I'm having trouble processing your request right now. Please try again later.",
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-      toast.error("AI Assistant Error: There was an error processing your request.");
+      toast.error('Failed to generate AI response');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const handleTaskUpdate = async (taskId: number, taskData: any) => {
+    try {
+      await updateTask(taskId, taskData);
+      toast.success('Task updated successfully');
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
     }
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    setInputValue(suggestion);
-    setTimeout(() => {
-      handleSendMessage();
-    }, 100);
-  };
-
-  const toggleExpanded = () => {
-    setExpanded(!expanded);
   };
 
   return (
-    <>
-      <Button
-        variant="default"
-        size="icon"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40 bg-primary"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-      </Button>
-
-      <Card
-        className={cn(
-          "fixed bottom-24 right-6 w-80 shadow-lg z-40 flex flex-col transition-all duration-300 ease-in-out",
-          expanded ? "h-[80vh] w-96" : "h-[60vh]",
-          isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
-        )}
-      >
-        <div className="flex items-center justify-between p-3 border-b">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src="/logo.png" alt="Hive AI" />
-              <AvatarFallback><Bot size={16} /></AvatarFallback>
-            </Avatar>
-            <span className="font-semibold">Hive Assistant</span>
-          </div>
-          <div className="flex items-center gap-1">
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium flex items-center">
+          <BrainCircuit className="mr-2 h-4 w-4" />
+          AI Assistant
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Textarea
+            placeholder="Enter your message here..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={3}
+            className="resize-none"
+          />
+          <div className="flex justify-end">
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={toggleExpanded}
-              title={expanded ? "Collapse" : "Expand"}
+              onClick={handleSendMessage}
+              disabled={loading}
             >
-              {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+              {loading ? (
+                <>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  Send
+                  <Send className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>
-
-        <ScrollArea className="flex-1 p-3">
-          <div className="flex flex-col gap-3">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex flex-col max-w-[85%] rounded-lg p-3",
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground ml-auto"
-                    : "bg-muted mr-auto"
-                )}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <span className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="bg-muted rounded-lg p-3 max-w-[85%] mr-auto">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <span className="animate-pulse">•</span>
-                    <span className="animate-pulse delay-100">•</span>
-                    <span className="animate-pulse delay-200">•</span>
-                  </div>
-                  <span className="text-xs opacity-70">Thinking...</span>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-
-        {messages.length <= 2 && (
-          <div className="px-3 py-2 border-t">
-            <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
-            <div className="flex flex-wrap gap-1">
-              {suggestionCategories.flatMap(category => 
-                category.suggestions.slice(0, 1).map(suggestion => (
-                  <Button
-                    key={suggestion}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs py-1 h-auto"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </Button>
-                ))
-              )}
-            </div>
+        {response && (
+          <div className="rounded-md border bg-muted p-4">
+            <p className="text-sm leading-relaxed">{response}</p>
           </div>
         )}
-
-        <div className="p-3 border-t flex gap-2">
-          <Textarea
-            ref={inputRef}
-            placeholder="Ask me anything..."
-            className="resize-none min-h-[40px] max-h-[120px]"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <Button 
-            size="icon" 
-            disabled={!inputValue.trim() || isLoading}
-            onClick={handleSendMessage}
-          >
-            <Send size={16} />
-          </Button>
-        </div>
-      </Card>
-    </>
+      </CardContent>
+    </Card>
   );
 };
 

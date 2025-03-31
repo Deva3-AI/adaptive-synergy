@@ -23,6 +23,28 @@ import BrandsDashboard from './pages/client/BrandsDashboard';
 import ClientReports from './pages/client/Reports';
 import NotFound from './pages/NotFound';
 
+// HR Pages
+import HRDashboard from './pages/hr/Dashboard';
+import HRAttendance from './pages/hr/Attendance';
+import HRRecruitment from './pages/hr/Recruitment';
+import HRPayroll from './pages/hr/Payroll';
+import HRReports from './pages/hr/Reports';
+
+// Finance Pages
+import FinanceDashboard from './pages/finance/Dashboard';
+import FinancialDashboard from './pages/finance/FinancialDashboard';
+import Invoices from './pages/finance/Invoices';
+import CostAnalysis from './pages/finance/CostAnalysis';
+import Performance from './pages/finance/Performance';
+import Reports from './pages/finance/Reports';
+import Budgets from './pages/finance/Budgets';
+
+// Marketing Pages
+import MarketingDashboard from './pages/marketing/Dashboard';
+import MarketingCampaigns from './pages/marketing/Campaigns';
+import MarketingMeetings from './pages/marketing/Meetings';
+import MarketingAnalytics from './pages/marketing/Analytics';
+
 // Lazy load the ClientRequirements page
 const ClientRequirements = React.lazy(() => import('./pages/ai/ClientRequirements'));
 
@@ -153,6 +175,140 @@ function App() {
           element={
             <ProtectedRoute>
               <ClientReports />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* HR Routes */}
+        <Route
+          path="/hr/dashboard"
+          element={
+            <ProtectedRoute>
+              <HRDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/attendance"
+          element={
+            <ProtectedRoute>
+              <HRAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/recruitment"
+          element={
+            <ProtectedRoute>
+              <HRRecruitment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/payroll"
+          element={
+            <ProtectedRoute>
+              <HRPayroll />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hr/reports"
+          element={
+            <ProtectedRoute>
+              <HRReports />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Finance Routes */}
+        <Route
+          path="/finance/dashboard"
+          element={
+            <ProtectedRoute>
+              <FinanceDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/financial-dashboard"
+          element={
+            <ProtectedRoute>
+              <FinancialDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/invoices"
+          element={
+            <ProtectedRoute>
+              <Invoices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/cost-analysis"
+          element={
+            <ProtectedRoute>
+              <CostAnalysis />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/performance"
+          element={
+            <ProtectedRoute>
+              <Performance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/budgets"
+          element={
+            <ProtectedRoute>
+              <Budgets />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Marketing Routes */}
+        <Route
+          path="/marketing/dashboard"
+          element={
+            <ProtectedRoute>
+              <MarketingDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marketing/campaigns"
+          element={
+            <ProtectedRoute>
+              <MarketingCampaigns />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marketing/meetings"
+          element={
+            <ProtectedRoute>
+              <MarketingMeetings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marketing/analytics"
+          element={
+            <ProtectedRoute>
+              <MarketingAnalytics />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -85,6 +84,7 @@ const Sidebar = ({ className, isMobile = false }: SidebarProps) => {
     if (isMarketing) {
       return [
         ...commonItems,
+        { icon: BarChart, label: "Dashboard", path: "/marketing/dashboard" },
         { icon: BarChart, label: "Campaigns", path: "/marketing/campaigns" },
         { icon: CalendarCheck, label: "Meetings", path: "/marketing/meetings" },
         { icon: LineChart, label: "Analytics", path: "/marketing/analytics" },
@@ -94,6 +94,7 @@ const Sidebar = ({ className, isMobile = false }: SidebarProps) => {
     if (isHR) {
       return [
         ...commonItems,
+        { icon: LayoutDashboard, label: "HR Dashboard", path: "/hr/dashboard" },
         { icon: Users, label: "Attendance", path: "/hr/attendance" },
         { icon: User, label: "Recruitment", path: "/hr/recruitment" },
         { icon: CreditCard, label: "Payroll", path: "/hr/payroll" },
@@ -104,10 +105,12 @@ const Sidebar = ({ className, isMobile = false }: SidebarProps) => {
     if (isFinance) {
       return [
         ...commonItems,
+        { icon: LayoutDashboard, label: "Dashboard", path: "/finance/dashboard" },
         { icon: CreditCard, label: "Invoices", path: "/finance/invoices" },
         { icon: BarChart, label: "Cost Analysis", path: "/finance/cost-analysis" },
         { icon: LineChart, label: "Performance", path: "/finance/performance" },
         { icon: FileText, label: "Reports", path: "/finance/reports" },
+        { icon: BarChart, label: "Budgets", path: "/finance/budgets" },
       ];
     }
 
