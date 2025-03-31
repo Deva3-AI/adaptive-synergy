@@ -44,37 +44,38 @@ const TaskDetail = () => {
   const [comment, setComment] = useState('');
 
   // Fetch task details
-  const { data: task, isLoading, error } = useQuery({
+  const { data: taskResponse, isLoading, error } = useQuery({
     queryKey: ['task-detail', taskId],
     enabled: !!taskId,
     queryFn: async () => {
       try {
         const data = await taskService.getTaskById(parseInt(taskId || '0'));
-        
-        // Format data to match TaskData interface
-        return {
-          task_id: data.task_id,
-          title: data.title,
-          description: data.description,
-          status: data.status,
-          priority: data.priority || 'Medium', // Default priority
-          progress: data.progress || 0, // Default progress
-          estimated_time: data.estimated_time || 0,
-          actual_time: data.actual_time || 0,
-          assigned_to: data.assigned_to,
-          assignee_name: data.assignee_name || 'Unassigned',
-          client_name: data.client_name || 'Unknown Client',
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          end_time: data.end_time,
-          comments: data.comments || [] // Mock comments
-        } as TaskData;
+        return data;
       } catch (error) {
         console.error('Error fetching task details:', error);
         throw error;
       }
     }
   });
+  
+  // Safely cast the response data to our expected format
+  const task: TaskData | undefined = taskResponse ? {
+    task_id: taskResponse.task_id || 0,
+    title: taskResponse.title || '',
+    description: taskResponse.description || '',
+    status: taskResponse.status || 'pending',
+    priority: taskResponse.priority || 'Medium',
+    progress: taskResponse.progress || 0,
+    estimated_time: taskResponse.estimated_time || 0,
+    actual_time: taskResponse.actual_time || 0,
+    assigned_to: taskResponse.assigned_to || 0,
+    assignee_name: taskResponse.assignee_name || 'Unassigned',
+    client_name: taskResponse.client_name || 'Unknown Client',
+    created_at: taskResponse.created_at || new Date().toISOString(),
+    updated_at: taskResponse.updated_at || new Date().toISOString(),
+    end_time: taskResponse.end_time || '',
+    comments: taskResponse.comments || []
+  } : undefined;
 
   const handleAddComment = () => {
     if (comment.trim() !== '') {
@@ -136,15 +137,15 @@ const TaskDetail = () => {
       
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">{task.title}</CardTitle>
+          <CardTitle className="text-2xl font-bold">{task?.title}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{task.status}</Badge>
-            <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'default' : 'secondary'}>
-              {task.priority}
+            <Badge variant="secondary">{task?.status}</Badge>
+            <Badge variant={task?.priority === 'High' ? 'destructive' : task?.priority === 'Medium' ? 'default' : 'secondary'}>
+              {task?.priority}
             </Badge>
-            {task.end_time && (
+            {task?.end_time && (
               <Badge variant="outline" className="flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
                 Due: {new Date(task.end_time).toLocaleDateString()}
@@ -153,13 +154,13 @@ const TaskDetail = () => {
           </div>
           
           <div>
-            <p className="text-gray-600">{task.description}</p>
+            <p className="text-gray-600">{task?.description}</p>
           </div>
           
           <div className="space-y-2">
             <h4 className="text-lg font-semibold">Progress</h4>
-            <Progress value={task.progress} />
-            <p className="text-sm text-gray-500">{task.progress}% Completed</p>
+            <Progress value={task?.progress} />
+            <p className="text-sm text-gray-500">{task?.progress}% Completed</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -168,21 +169,21 @@ const TaskDetail = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Client:</span>
-                  <span>{task.client_name}</span>
+                  <span>{task?.client_name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Estimated Hours:</span>
-                  <span>{task.estimated_time || 0}h</span>
+                  <span>{task?.estimated_time || 0}h</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Actual Hours:</span>
-                  <span>{task.actual_time || 0}h</span>
+                  <span>{task?.actual_time || 0}h</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Created:</span>
-                  <span>{new Date(task.created_at).toLocaleDateString()}</span>
+                  <span>{new Date(task?.created_at || '').toLocaleDateString()}</span>
                 </div>
-                {task.end_time && (
+                {task?.end_time && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Due Date:</span>
                     <span>{new Date(task.end_time).toLocaleDateString()}</span>
@@ -195,16 +196,16 @@ const TaskDetail = () => {
               <h4 className="text-lg font-semibold mb-2">Assigned To</h4>
               <div className="flex items-center">
                 <Avatar className="mr-2">
-                  <AvatarFallback>{task.assignee_name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{task?.assignee_name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span>{task.assignee_name}</span>
+                <span>{task?.assignee_name}</span>
               </div>
             </div>
           </div>
           
           <div>
             <h4 className="text-lg font-semibold mb-2">Comments</h4>
-            {task.comments && task.comments.length > 0 ? (
+            {task?.comments && task.comments.length > 0 ? (
               <div className="space-y-4">
                 {task.comments.map((comment, index) => (
                   <div key={index} className="flex items-start text-sm">

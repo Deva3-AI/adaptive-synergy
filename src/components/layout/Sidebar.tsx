@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -32,6 +31,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { LucideIcon } from '@/types';
 
 interface SidebarProps {
   expanded?: boolean;
@@ -39,7 +39,6 @@ interface SidebarProps {
   className?: string;
 }
 
-// Define LucideIcon type
 type LucideIcon = React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement> & { title?: string, titleId?: string }>;
 
 interface NavItem {

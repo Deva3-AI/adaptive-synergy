@@ -1,218 +1,216 @@
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { financeService } from "@/services/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, BarChart3, Target, ArrowUpRight, TrendingUp, AlertTriangle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
-import DashboardCard from "@/components/dashboard/DashboardCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { financeService } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart, TrendingUp, LineChart, ArrowUpRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import AnalyticsChart from '@/components/dashboard/AnalyticsChart';
+import DashboardCard from '@/components/dashboard/DashboardCard';
 
 interface SalesGrowthTrackingProps {
-  dateRange: "week" | "month" | "quarter" | "year";
+  period: 'month' | 'quarter' | 'year';
 }
 
-const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
+interface GrowthData {
+  name: string;
+  value: number;
+  prevValue: number;
+  percentChange: number;
+}
+
+interface SalesGrowthData {
+  trends?: {
+    name: string;
+    value: number;
+    prevValue?: number;
+  }[];
+  currentPeriod?: {
+    revenue: number;
+    prevRevenue: number;
+    percentChange: number;
+    target: number;
+    percentToTarget: number;
+  };
+  growthDrivers?: {
+    name: string;
+    value: number;
+    change: number;
+  }[];
+  chart?: any[];
+  insights?: string[];
+}
+
+const SalesGrowthTracking = ({ period }: SalesGrowthTrackingProps) => {
   // Fetch sales growth data
   const { data: salesGrowth, isLoading: isGrowthLoading } = useQuery({
-    queryKey: ["sales-growth", dateRange],
-    queryFn: () => financeService.getSalesGrowthData(),
+    queryKey: ['sales-growth', period],
+    queryFn: () => financeService.getSalesGrowth(period),
   });
 
-  // Fetch targets data
-  const { data: salesTargets, isLoading: isTargetsLoading } = useQuery({
-    queryKey: ["sales-targets", dateRange],
-    queryFn: () => financeService.getSalesTargets(),
-  });
-
-  // Fetch growth forecast
-  const { data: growthForecast, isLoading: isForecastLoading } = useQuery({
-    queryKey: ["growth-forecast", dateRange],
-    queryFn: () => financeService.getGrowthForecast(),
-  });
-
-  // Type-safe access to nested properties
-  const growthTrends = salesGrowth && typeof salesGrowth === 'object' && 'trends' in salesGrowth 
-    ? salesGrowth.trends 
-    : [];
-    
-  const targetsArray = Array.isArray(salesTargets) ? salesTargets : [];
+  const growthData = salesGrowth as SalesGrowthData || {};
   
-  const currentPeriod = salesGrowth && typeof salesGrowth === 'object' && 'currentPeriod' in salesGrowth 
-    ? salesGrowth.currentPeriod as Record<string, any>
-    : { revenueGrowth: 0, customerGrowth: 0 };
-    
-  const growthDrivers = salesGrowth && typeof salesGrowth === 'object' && 'growthDrivers' in salesGrowth 
-    ? salesGrowth.growthDrivers as any[]
-    : [];
-    
-  const forecastChart = growthForecast && typeof growthForecast === 'object' && 'chart' in growthForecast 
-    ? growthForecast.chart as any[]
-    : [];
-    
-  const forecastInsights = growthForecast && typeof growthForecast === 'object' && 'insights' in growthForecast 
-    ? growthForecast.insights as any[]
-    : [];
+  // Ensure we have arrays for charts
+  const trendsData = growthData?.trends || [];
+  const driversData = growthData?.growthDrivers || [];
+  const chartData = growthData?.chart || [];
+  const insights = growthData?.insights || [];
+  const currentPeriod = growthData?.currentPeriod || {
+    revenue: 0,
+    prevRevenue: 0,
+    percentChange: 0,
+    target: 0,
+    percentToTarget: 0
+  };
+
+  // Format as currency
+  const formatCurrency = (num: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(num);
+  };
+
+  // Format percentage
+  const formatPercent = (num: number) => {
+    return `${num > 0 ? '+' : ''}${num.toFixed(1)}%`;
+  };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DashboardCard
           title="Sales Growth Trends"
-          icon={<LineChart className="h-5 w-5" />}
-          badgeText={dateRange}
+          icon={<TrendingUp className="h-5 w-5" />}
+          badgeText={`${period === 'month' ? 'Monthly' : period === 'quarter' ? 'Quarterly' : 'Yearly'}`}
           badgeVariant="outline"
         >
           {isGrowthLoading ? (
-            <div className="h-[300px] flex items-center justify-center">
-              <Skeleton className="h-[250px] w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-[200px] w-full" />
             </div>
           ) : (
-            <AnalyticsChart 
-              data={growthTrends} 
-              height={300}
-              defaultType="line"
-            />
+            <div className="h-[250px]">
+              <AnalyticsChart 
+                data={trendsData} 
+                height={250}
+                defaultType="line"
+              />
+            </div>
           )}
         </DashboardCard>
-
+        
         <DashboardCard
-          title="Sales vs. Targets"
-          icon={<Target className="h-5 w-5" />}
-          badgeText={dateRange}
+          title="Current Period Performance"
+          icon={<BarChart className="h-5 w-5" />}
+          badgeText={`${period === 'month' ? 'Monthly' : period === 'quarter' ? 'Quarterly' : 'Yearly'}`}
           badgeVariant="outline"
         >
-          {isTargetsLoading ? (
-            <div className="space-y-6">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
+          {isGrowthLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-8 w-full" />
             </div>
           ) : (
             <div className="space-y-6">
-              {targetsArray.map((target: any) => (
-                <div key={target.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="flex items-center">
-                        <span className="font-medium">{target.category}</span>
-                        {target.percentage >= 100 ? (
-                          <Badge variant="success" className="ml-2">Achieved</Badge>
-                        ) : target.percentage >= 80 ? (
-                          <Badge variant="warning" className="ml-2">On Track</Badge>
-                        ) : (
-                          <Badge variant="destructive" className="ml-2">Behind</Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        ${target.current.toLocaleString()} of ${target.target.toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="text-xl font-semibold">
-                      {target.percentage}%
-                    </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm text-muted-foreground">Current Revenue</div>
+                  <div className="flex items-center">
+                    <span className={`text-xs font-medium ${currentPeriod.percentChange >= 0 ? 'text-green-500' : 'text-red-500'} mr-1`}>
+                      {formatPercent(currentPeriod.percentChange)}
+                    </span>
+                    <span>vs previous {period}</span>
                   </div>
-                  <Progress value={target.percentage} className="h-2" />
                 </div>
-              ))}
+                <div className="text-2xl font-bold">{formatCurrency(currentPeriod.revenue)}</div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm text-muted-foreground">Target Progress</div>
+                  <div className="text-sm">{formatCurrency(currentPeriod.revenue)} / {formatCurrency(currentPeriod.target)}</div>
+                </div>
+                <Progress value={currentPeriod.percentToTarget} className="h-2" />
+                <div className="text-xs text-muted-foreground mt-1">
+                  {currentPeriod.percentToTarget}% of {period} target
+                </div>
+              </div>
             </div>
           )}
         </DashboardCard>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DashboardCard
-          title="Current Period Growth"
-          icon={<TrendingUp className="h-5 w-5" />}
-          badgeText="vs. Previous"
-          badgeVariant="outline"
-        >
-          {isGrowthLoading ? (
-            <Skeleton className="h-64 w-full" />
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Revenue Growth</p>
-                  <p className="text-2xl font-bold">
-                    {currentPeriod.revenueGrowth || 0}%
-                  </p>
-                  <div className="flex items-center text-xs text-green-500">
-                    <ArrowUpRight className="h-3 w-3 mr-1" />
-                    <span>vs previous {dateRange}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Customer Growth</p>
-                  <p className="text-2xl font-bold">
-                    {currentPeriod.customerGrowth || 0}%
-                  </p>
-                  <div className="flex items-center text-xs text-green-500">
-                    <ArrowUpRight className="h-3 w-3 mr-1" />
-                    <span>New acquisition</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <p className="text-sm font-medium mb-2">Growth Drivers</p>
-                <div className="space-y-3">
-                  {growthDrivers.map((driver: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${driver.performance === 'positive' ? 'bg-green-500' : driver.performance === 'neutral' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
-                        <span className="text-sm">{driver.factor}</span>
-                      </div>
-                      <span className="text-sm font-medium">{driver.impact}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </DashboardCard>
-
-        <DashboardCard
-          title="Growth Forecast"
-          icon={<BarChart3 className="h-5 w-5" />}
-          badgeText="Next Period"
-          badgeVariant="outline"
-          className="lg:col-span-2"
-        >
-          {isForecastLoading ? (
-            <div className="h-[300px] flex items-center justify-center">
-              <Skeleton className="h-[250px] w-full" />
-            </div>
-          ) : (
-            <div className="space-y-4">
+      
+      <DashboardCard
+        title="Growth Drivers"
+        icon={<TrendingUp className="h-5 w-5" />}
+        badgeText={`${period === 'month' ? 'Monthly' : period === 'quarter' ? 'Quarterly' : 'Yearly'}`}
+        badgeVariant="outline"
+      >
+        {isGrowthLoading ? (
+          <Skeleton className="h-[200px] w-full" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
               <AnalyticsChart 
-                data={forecastChart} 
+                data={chartData} 
                 height={200}
                 defaultType="bar"
               />
-              
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-2">Forecast Insights</p>
-                <ul className="space-y-2">
-                  {forecastInsights.map((insight: any, index: number) => (
-                    <li key={index} className="text-sm flex items-start">
-                      {insight.type === 'warning' ? (
-                        <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 text-amber-500" />
-                      ) : (
-                        <TrendingUp className="h-4 w-4 mr-2 mt-0.5 text-green-500" />
-                      )}
-                      <span>{insight.text}</span>
-                    </li>
-                  ))}
-                </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-4">Top Contributors to Growth</h4>
+              <div className="space-y-4">
+                {driversData.map((driver, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="mr-3 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: `hsl(${210 + idx * 30}, 70%, 55%)` }}></div>
+                      <span className="text-sm">{driver.name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-sm font-medium">{formatCurrency(driver.value)}</span>
+                      <span className={`ml-2 text-xs ${driver.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {driver.change > 0 && '+'}{driver.change}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
-        </DashboardCard>
-      </div>
+          </div>
+        )}
+      </DashboardCard>
+      
+      <DashboardCard
+        title="AI Growth Insights"
+        icon={<LineChart className="h-5 w-5" />}
+        badgeText="AI Generated"
+        badgeVariant="outline"
+      >
+        {isGrowthLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {insights.map((insight, idx) => (
+              <li key={idx} className="flex items-start">
+                <CheckCircle className="h-5 w-5 mr-2 text-green-500 shrink-0 mt-0.5" />
+                <span className="text-sm">{insight}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DashboardCard>
     </div>
   );
 };

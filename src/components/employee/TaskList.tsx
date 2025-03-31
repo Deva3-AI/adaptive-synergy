@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { taskService } from '@/services/api/taskService';
@@ -24,7 +25,8 @@ import {
   Circle, 
   ArrowUpDown,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  Building2
 } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -317,7 +319,7 @@ const TaskList = ({ tasks, isLoading, error, filter, setFilter, showClient }: {
               <CardContent className="space-y-2">
                 {showClient && task.client_name && (
                   <div className="flex items-center space-x-2">
-                    <Building className="h-4 w-4 text-muted-foreground" />
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
                     <p className="text-sm font-medium">{task.client_name}</p>
                   </div>
                 )}

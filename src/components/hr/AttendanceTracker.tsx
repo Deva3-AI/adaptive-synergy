@@ -1,35 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Clock, Edit, Trash2, Filter, ChevronDown, X } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Clock, Info, User, MoreVertical } from 'lucide-react';
+import { format, parseISO, isToday, isBefore, isAfter } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { hrService } from '@/services/api/hrService';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import hrService from '@/services/api/hrService';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useQuery } from '@tanstack/react-query';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
-// Define the Attendance type that was previously imported
 interface Attendance {
   id: number;
   employee_id: number;
@@ -50,42 +30,33 @@ const AttendanceTracker = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [currentAttendance, setCurrentAttendance] = useState<Attendance | null>(null);
 
-  // Fetch attendance data
   const { data: attendanceData, isLoading, isError, refetch: refetchAttendance } = useQuery({
     queryKey: ['attendance'],
     queryFn: async () => {
-      // Fix: Remove the date parameter - use default date range
       return await hrService.getAttendanceRecords();
     }
   });
 
-  // Fetch employees for filtering
   const { data: employees } = useQuery({
     queryKey: ['employees'],
     queryFn: async () => hrService.getEmployees()
   });
 
-  // Handle refreshing the data
   const handleRefresh = () => {
-    // Fix: Use refetchAttendance instead of fetchAttendance
     refetchAttendance();
     toast.success('Attendance data refreshed');
   };
 
-  // Filter attendance records based on selected criteria
   const filteredAttendance = React.useMemo(() => {
     if (!attendanceData) return [];
 
     return (attendanceData as Attendance[]).filter(record => {
-      // Filter by date range
       const recordDate = new Date(record.work_date);
       const isInDateRange = (!selectedDateRange.from || recordDate >= selectedDateRange.from) &&
                            (!selectedDateRange.to || recordDate <= selectedDateRange.to);
       
-      // Filter by employee
       const isEmployeeMatch = filterEmployee === 'all' || record.employee_id.toString() === filterEmployee;
       
-      // Filter by search query
       const matchesSearch = !searchQuery || 
                            record.employee_name.toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -93,13 +64,11 @@ const AttendanceTracker = () => {
     });
   }, [attendanceData, selectedDateRange, filterEmployee, searchQuery]);
 
-  // Handle editing an attendance record
   const handleEdit = (attendance: Attendance) => {
     setCurrentAttendance(attendance);
     setIsEditDialogOpen(true);
   };
 
-  // Handle saving edited attendance
   const handleSaveEdit = async () => {
     if (!currentAttendance) return;
     
@@ -119,7 +88,6 @@ const AttendanceTracker = () => {
     }
   };
 
-  // Handle deleting an attendance record
   const handleDelete = async (attendanceId: number) => {
     try {
       await hrService.deleteAttendanceRecord(attendanceId);
@@ -131,7 +99,6 @@ const AttendanceTracker = () => {
     }
   };
 
-  // Fix: Update the button click handler to use an inline function
   const renderDeleteButton = (record: Attendance) => (
     <Button 
       variant="ghost" 
@@ -156,7 +123,6 @@ const AttendanceTracker = () => {
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3 items-center">
-          {/* Date Range Picker */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -190,7 +156,6 @@ const AttendanceTracker = () => {
             </PopoverContent>
           </Popover>
 
-          {/* Employee Filter */}
           <Select onValueChange={setFilterEmployee}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter Employee" />
@@ -206,7 +171,6 @@ const AttendanceTracker = () => {
             </SelectContent>
           </Select>
 
-          {/* Search Input */}
           <Input
             type="search"
             placeholder="Search employee..."
@@ -215,7 +179,6 @@ const AttendanceTracker = () => {
           />
         </div>
 
-        {/* Attendance Table */}
         <ScrollArea className="rounded-md border">
           <Table>
             <TableHeader>
@@ -285,7 +248,6 @@ const AttendanceTracker = () => {
         </ScrollArea>
       </CardContent>
 
-      {/* Edit Attendance Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

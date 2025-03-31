@@ -8,9 +8,11 @@ import { useAuth } from '@/hooks/use-auth';
 export interface HeaderProps {
   onMenuClick: () => void;
   appName: string;
+  onToggleSidebar?: () => void;
+  sidebarExpanded?: boolean;
 }
 
-const Header = ({ onMenuClick, appName }: HeaderProps) => {
+const Header = ({ onMenuClick, appName, onToggleSidebar, sidebarExpanded }: HeaderProps) => {
   const navigate = useNavigate();
   const { isAuthenticated, logout, user } = useAuth();
 
@@ -27,6 +29,16 @@ const Header = ({ onMenuClick, appName }: HeaderProps) => {
             <Menu size={24} />
           </Button>
           <div className="text-xl font-bold">{appName}</div>
+          {onToggleSidebar && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleSidebar}
+              className="hidden lg:flex"
+            >
+              <Menu size={24} />
+            </Button>
+          )}
         </div>
         
         <div className="flex items-center gap-4">

@@ -52,6 +52,7 @@ export interface DateRange {
 export interface VirtualManagerInsightsProps {
   userId: number;
   clientId?: number;
+  taskId?: number;
 }
 
 export interface TeamCostsAnalysisProps {
@@ -66,10 +67,24 @@ export interface PlatformConfig {
   connected: boolean;
   lastSync?: string;
   icon: string;
+  type?: string;
 }
 
 export interface PlatformType {
   id: string;
   name: string;
   icon: string;
+}
+
+export interface LucideIcon {
+  // Properties needed for Lucide icons
+  (props: any): JSX.Element;
+  displayName?: string;
+}
+
+export interface ChartData {
+  name: string;
+  value: number;
+  color?: string;
+  key?: string;
 }

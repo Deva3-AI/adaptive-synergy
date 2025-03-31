@@ -219,6 +219,26 @@ export const mockMarketingData = {
       'Email campaigns have the highest conversion rate at 3.8%',
       'Mobile users account for 65% of total traffic',
       'Average session duration has increased by 15 seconds'
+    ],
+    activities: [
+      {
+        id: 1,
+        title: 'Social Media Campaign Launch',
+        date: 'Jul 5, 2023',
+        time: '09:00 AM'
+      },
+      {
+        id: 2,
+        title: 'Email Newsletter Send',
+        date: 'Jul 7, 2023',
+        time: '10:00 AM'
+      },
+      {
+        id: 3,
+        title: 'Content Marketing Review',
+        date: 'Jul 10, 2023',
+        time: '02:00 PM'
+      }
     ]
   }
 };

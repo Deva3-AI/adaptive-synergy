@@ -13,6 +13,25 @@ interface SalesTrackingAnalysisProps {
   dateRange: "week" | "month" | "quarter" | "year";
 }
 
+interface SalesTrend {
+  name: string;
+  value: number;
+  [key: string]: any;
+}
+
+interface SalesActivity {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+}
+
+interface SalesData {
+  trends: SalesTrend[];
+  insights: string[];
+  activities: SalesActivity[];
+}
+
 const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
   // Fetch sales trend data
   const { data: salesTrends, isLoading: isTrendsLoading } = useQuery({
@@ -42,18 +61,14 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
   };
 
   // Ensure we have arrays for charts
-  const trendsData = Array.isArray(salesTrends) ? salesTrends : [];
-  const channelData = Array.isArray(salesByChannel) ? salesByChannel : [];
-  const productData = Array.isArray(topProducts) ? topProducts : [];
+  const trendsData: any[] = Array.isArray(salesTrends) ? salesTrends : [];
+  const channelData: any[] = Array.isArray(salesByChannel) ? salesByChannel : [];
+  const productData: any[] = Array.isArray(topProducts) ? topProducts : [];
   
   // Safely get insights and activities from salesTrends
-  const insights = salesTrends && typeof salesTrends === 'object' && 'insights' in salesTrends 
-    ? salesTrends.insights as string[] 
-    : [];
-    
-  const activities = salesTrends && typeof salesTrends === 'object' && 'activities' in salesTrends 
-    ? salesTrends.activities as any[] 
-    : [];
+  const salesData = salesTrends as unknown as SalesData;
+  const insights = salesData?.insights || [];
+  const activities = salesData?.activities || [];
 
   return (
     <div className="space-y-6">
