@@ -1,827 +1,677 @@
 
-import axios from 'axios';
-import { SalesData, GrowthForecast } from '@/interfaces/finance';
-import config from '@/config/config';
+import apiClient, { handleApiError } from '@/utils/apiUtils';
+import { supabase } from '@/integrations/supabase/client';
 
-// Helper function to format mock data dates
-const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+// Mock data generator (for development until the API is ready)
+const generateMockData = (type: string, params?: any) => {
+  // This will be replaced with actual API calls in production
+  switch (type) {
+    case 'invoices':
+      return Array(10).fill(null).map((_, i) => ({
+        id: i + 1,
+        invoice_number: `INV-${2023}${i.toString().padStart(4, '0')}`,
+        client_name: `Client ${i + 1}`,
+        amount: Math.floor(Math.random() * 10000) + 500,
+        status: ['pending', 'paid', 'overdue'][Math.floor(Math.random() * 3)],
+        issue_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        due_date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      }));
+    
+    case 'financial-records':
+      return Array(20).fill(null).map((_, i) => ({
+        id: i + 1,
+        record_type: Math.random() > 0.5 ? 'expense' : 'income',
+        amount: Math.floor(Math.random() * 5000) + 100,
+        description: `${Math.random() > 0.5 ? 'expense' : 'income'} record ${i + 1}`,
+        category: ['salaries', 'rent', 'utilities', 'marketing', 'sales', 'services'][Math.floor(Math.random() * 6)],
+        date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      }));
+    
+    case 'sales-metrics':
+      return {
+        total_revenue: Math.floor(Math.random() * 1000000) + 100000,
+        growth_rate: (Math.random() * 30).toFixed(1),
+        average_deal_size: Math.floor(Math.random() * 10000) + 1000,
+        conversion_rate: (Math.random() * 100).toFixed(1),
+        monthly_trend: Array(12).fill(null).map((_, i) => ({
+          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          revenue: Math.floor(Math.random() * 100000) + 10000,
+          target: Math.floor(Math.random() * 120000) + 20000,
+        })),
+        by_service: [
+          { name: 'Web Design', value: Math.floor(Math.random() * 50000) + 10000 },
+          { name: 'SEO', value: Math.floor(Math.random() * 40000) + 5000 },
+          { name: 'Social Media', value: Math.floor(Math.random() * 30000) + 5000 },
+          { name: 'Content Creation', value: Math.floor(Math.random() * 20000) + 5000 },
+        ],
+      };
+
+    case 'sales-trends':
+      return {
+        data: Array(12).fill(null).map((_, i) => ({
+          name: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          value: Math.floor(Math.random() * 100000) + 10000,
+        })),
+        insights: [
+          'Revenue increased by 15% compared to previous quarter',
+          'Highest growth seen in digital marketing services',
+          'Client retention rate improved to 85%',
+          'Average project value increased by $2,500',
+        ],
+        activities: Array(4).fill(null).map((_, i) => ({
+          id: i + 1,
+          title: ['Client Meeting', 'Sales Call', 'Proposal Review', 'Contract Signing'][i],
+          date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          time: ['10:00 AM', '2:30 PM', '11:15 AM', '4:00 PM'][i],
+        })),
+      };
+    
+    case 'sales-by-channel':
+      return [
+        { name: 'Direct', value: Math.floor(Math.random() * 50000) + 10000 },
+        { name: 'Referral', value: Math.floor(Math.random() * 40000) + 5000 },
+        { name: 'Website', value: Math.floor(Math.random() * 30000) + 5000 },
+        { name: 'Social Media', value: Math.floor(Math.random() * 20000) + 5000 },
+        { name: 'Email', value: Math.floor(Math.random() * 10000) + 5000 },
+      ];
+    
+    case 'top-products':
+      return Array(5).fill(null).map((_, i) => ({
+        id: i + 1,
+        name: ['Web Design Package', 'SEO Services', 'Social Media Management', 'Content Creation', 'Branding Package'][i],
+        sales: Math.floor(Math.random() * 100) + 10,
+        units: Math.floor(Math.random() * 50) + 5,
+        revenue: Math.floor(Math.random() * 50000) + 5000,
+        growth: Math.floor(Math.random() * 40) - 10,
+      }));
+    
+    case 'sales-growth':
+      return {
+        trends: Array(12).fill(null).map((_, i) => ({
+          name: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          value: Math.floor(Math.random() * 100000) + 10000,
+        })),
+        currentPeriod: {
+          revenueGrowth: (Math.random() * 30).toFixed(1),
+          customerGrowth: (Math.random() * 25).toFixed(1),
+        },
+        growthDrivers: [
+          { factor: 'New Clients', impact: 35, performance: 'positive' },
+          { factor: 'Upselling', impact: 25, performance: 'positive' },
+          { factor: 'Referrals', impact: 20, performance: 'neutral' },
+          { factor: 'Renewals', impact: 15, performance: 'negative' },
+        ],
+      };
+    
+    case 'sales-targets':
+      return Array(4).fill(null).map((_, i) => ({
+        id: i + 1,
+        category: ['Monthly Revenue', 'New Clients', 'Renewal Rate', 'Average Deal Size'][i],
+        current: [85000, 12, 75, 7500][i],
+        target: [100000, 15, 80, 10000][i],
+        percentage: Math.floor([85, 80, 94, 75][i]),
+      }));
+    
+    case 'growth-forecast':
+      return {
+        chart: Array(12).fill(null).map((_, i) => ({
+          name: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          value: Math.floor(Math.random() * 150000) + 50000,
+        })),
+        insights: [
+          { type: 'growth', text: 'Projected 22% growth in Q3 based on new service offerings' },
+          { type: 'growth', text: 'Client acquisition expected to increase by 15% next quarter' },
+          { type: 'warning', text: 'Projected resource constraints in Q4 may impact delivery timelines' },
+          { type: 'growth', text: 'Recurring revenue forecasted to grow by 30% year over year' },
+        ],
+      };
+    
+    case 'weekly-reports':
+      return Array(5).fill(null).map((_, i) => ({
+        id: i + 1,
+        title: `Weekly Sales Report ${i + 1}`,
+        period: `Week ${i + 1}, ${new Date().getFullYear()}`,
+        sales: Math.floor(Math.random() * 50000) + 10000,
+        target: Math.floor(Math.random() * 60000) + 20000,
+        progress: Math.floor(Math.random() * 100),
+        performanceData: Array(7).fill(null).map((_, j) => ({
+          name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][j],
+          value: Math.floor(Math.random() * 10000) + 1000,
+        })),
+        metrics: {
+          conversionRate: (Math.random() * 10 + 5).toFixed(1),
+          prevConversionRate: (Math.random() * 10 + 5).toFixed(1),
+          avgSaleValue: Math.floor(Math.random() * 5000) + 1000,
+          prevAvgSaleValue: Math.floor(Math.random() * 5000) + 1000,
+          newLeads: Math.floor(Math.random() * 50) + 10,
+          prevNewLeads: Math.floor(Math.random() * 50) + 10,
+          closedDeals: Math.floor(Math.random() * 20) + 5,
+          prevClosedDeals: Math.floor(Math.random() * 20) + 5,
+        },
+      }));
+    
+    case 'monthly-reports':
+      return Array(12).fill(null).map((_, i) => ({
+        id: i + 1,
+        title: `Monthly Sales Report ${i + 1}`,
+        period: new Date(2023, i, 1).toLocaleString('default', { month: 'long', year: 'numeric' }),
+        sales: Math.floor(Math.random() * 200000) + 50000,
+        target: Math.floor(Math.random() * 250000) + 100000,
+        progress: Math.floor(Math.random() * 100),
+        yearlyTrend: Array(12).fill(null).map((_, j) => ({
+          name: new Date(2023, j, 1).toLocaleString('default', { month: 'short' }),
+          value: Math.floor(Math.random() * 200000) + 50000,
+        })),
+      }));
+    
+    case 'sales-followups':
+      return Array(10).fill(null).map((_, i) => ({
+        id: i + 1,
+        clientName: `Client ${i + 1}`,
+        contactPerson: `Contact Person ${i + 1}`,
+        type: ['call', 'email', 'meeting'][Math.floor(Math.random() * 3)],
+        dueDate: new Date(Date.now() + (Math.random() * 10 - 3) * 24 * 60 * 60 * 1000).toISOString(),
+        status: ['pending', 'completed'][Math.floor(Math.random() * 2)],
+        notes: `Follow up about ${['proposal', 'contract', 'project update', 'invoice payment'][Math.floor(Math.random() * 4)]}`,
+        phone: `(${Math.floor(Math.random() * 900) + 100}) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
+        email: `contact${i + 1}@client${i + 1}.com`,
+      }));
+    
+    case 'improvement-suggestions':
+      return Array(4).fill(null).map((_, i) => ({
+        id: i + 1,
+        title: [
+          'Enhance Client Onboarding Process',
+          'Improve Follow-up Timeline',
+          'Optimize Proposal Templates',
+          'Develop Client Retention Strategy'
+        ][i],
+        description: [
+          'Current onboarding takes 14 days on average. Streamlining documentation and approvals could reduce this to 7 days.',
+          'Follow-ups are currently happening 5+ days after initial contact. Aim for 48-hour follow-up window to increase conversion.',
+          'Current proposal acceptance rate is 65%. Analyzing successful proposals shows more detailed pricing breakdowns improve acceptance.',
+          'Client renewal rate is 72%. Implementing quarterly review meetings could increase this to 85%.'
+        ][i],
+        priority: i < 2 ? 'high' : 'medium',
+      }));
+    
+    case 'financial-overview':
+      return {
+        totalRevenue: Math.floor(Math.random() * 1000000) + 500000,
+        totalExpenses: Math.floor(Math.random() * 700000) + 300000,
+        netProfit: Math.floor(Math.random() * 300000) + 200000,
+        profitMargin: (Math.random() * 20 + 10).toFixed(1),
+        cashFlow: Math.floor(Math.random() * 200000) + 100000,
+        revenueGrowth: (Math.random() * 30).toFixed(1),
+        expenseGrowth: (Math.random() * 20).toFixed(1),
+        outstandingInvoices: Math.floor(Math.random() * 200000) + 50000,
+        monthlySummary: Array(12).fill(null).map((_, i) => ({
+          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          revenue: Math.floor(Math.random() * 100000) + 50000,
+          expenses: Math.floor(Math.random() * 70000) + 30000,
+          profit: Math.floor(Math.random() * 30000) + 20000,
+        })),
+      };
+    
+    case 'financial-metrics':
+      return {
+        currentRatio: (Math.random() * 2 + 1).toFixed(2),
+        quickRatio: (Math.random() * 1 + 0.5).toFixed(2),
+        debtToEquity: (Math.random() * 1).toFixed(2),
+        grossMargin: (Math.random() * 30 + 40).toFixed(1),
+        netMargin: (Math.random() * 15 + 10).toFixed(1),
+        roi: (Math.random() * 20 + 15).toFixed(1),
+        burnRate: Math.floor(Math.random() * 50000) + 20000,
+        runwayMonths: Math.floor(Math.random() * 12) + 6,
+        averageCollectionPeriod: Math.floor(Math.random() * 30) + 30,
+        assetTurnover: (Math.random() * 1 + 0.5).toFixed(2),
+      };
+    
+    case 'upsell-opportunities':
+      return Array(5).fill(null).map((_, i) => ({
+        id: i + 1,
+        clientName: `Client ${i + 1}`,
+        currentServices: [
+          'Web Design',
+          'Content Creation',
+          'SEO Services',
+          'Social Media Management',
+          'Email Marketing'
+        ][i],
+        potentialUpsell: [
+          'Ongoing Maintenance Package',
+          'Content Strategy Upgrade',
+          'Local SEO Enhancement',
+          'Paid Social Campaigns',
+          'Marketing Automation'
+        ][i],
+        estimatedValue: Math.floor(Math.random() * 5000) + 1000,
+        probability: Math.floor(Math.random() * 50) + 50,
+        lastPurchase: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      }));
+    
+    case 'financial-plans':
+      return Array(3).fill(null).map((_, i) => ({
+        id: i + 1,
+        title: [
+          'Q3 Financial Stabilization Plan',
+          'Annual Growth Strategy',
+          'Cost Optimization Initiative'
+        ][i],
+        description: [
+          'Plan to improve cash flow and reduce outstanding receivables',
+          'Strategic financial planning for annual growth targets',
+          'Initiative to optimize operational costs while maintaining quality'
+        ][i],
+        startDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+        endDate: new Date(Date.now() + Math.random() * 90 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+        status: ['in_progress', 'planned', 'completed'][i],
+        goals: Array(3).fill(null).map(() => ({
+          title: ['Reduce DSO', 'Increase Gross Margin', 'Optimize Pricing Strategy', 'Reduce Operational Costs', 'Improve Cash Reserves'][Math.floor(Math.random() * 5)],
+          target: `${Math.floor(Math.random() * 30) + 10}%`,
+          current: `${Math.floor(Math.random() * 20) + 5}%`,
+        })),
+        kpis: Array(4).fill(null).map(() => ({
+          name: ['DSO', 'Gross Margin', 'Net Profit Margin', 'Operating Expenses', 'Cash Reserves'][Math.floor(Math.random() * 5)],
+          target: Math.floor(Math.random() * 100),
+          current: Math.floor(Math.random() * 80),
+        })),
+      }));
+    
+    default:
+      return [];
+  }
 };
 
-// Create base financeService
 const financeService = {
-  // Original methods
+  // Invoice-related methods
   getInvoices: async (status?: string) => {
     try {
-      // For now, return mock data
-      return getMockInvoices(status);
+      // In production, this would be an API call
+      // return await apiClient.get('/invoices', { params: { status } });
+      
+      // Mock data for development
+      const invoices = generateMockData('invoices');
+      if (status) {
+        return invoices.filter((invoice: any) => invoice.status === status);
+      }
+      return invoices;
     } catch (error) {
-      console.error('Error fetching invoices:', error);
-      throw error;
+      return handleApiError(error, []);
     }
   },
-
+  
   getInvoiceDetails: async (invoiceId: number) => {
     try {
-      // For now, return mock data
-      return getMockInvoiceDetails(invoiceId);
+      // In production, this would be an API call
+      // return await apiClient.get(`/invoices/${invoiceId}`);
+      
+      // Mock data for development
+      const invoices = generateMockData('invoices');
+      return invoices.find((invoice: any) => invoice.id === invoiceId) || null;
     } catch (error) {
-      console.error('Error fetching invoice details:', error);
-      throw error;
+      return handleApiError(error, null);
     }
   },
-
+  
   createInvoice: async (invoiceData: any) => {
     try {
-      // Mock API call
-      return { ...invoiceData, invoice_id: Date.now(), created_at: new Date().toISOString() };
+      // In production, this would be an API call
+      // return await apiClient.post('/invoices', invoiceData);
+      
+      // Mock response for development
+      return { 
+        success: true, 
+        message: 'Invoice created successfully', 
+        invoice: { id: Date.now(), ...invoiceData } 
+      };
     } catch (error) {
-      console.error('Error creating invoice:', error);
-      throw error;
+      return handleApiError(error, { success: false, message: 'Failed to create invoice' });
     }
   },
-
+  
   updateInvoiceStatus: async (invoiceId: number, status: string) => {
     try {
-      // Mock API call
-      return { invoice_id: invoiceId, status, updated_at: new Date().toISOString() };
+      // In production, this would be an API call
+      // return await apiClient.patch(`/invoices/${invoiceId}`, { status });
+      
+      // Mock response for development
+      return { 
+        success: true, 
+        message: `Invoice status updated to ${status}` 
+      };
     } catch (error) {
-      console.error('Error updating invoice status:', error);
-      throw error;
+      return handleApiError(error, { success: false, message: 'Failed to update invoice status' });
     }
   },
-
-  getRevenueReports: async (startDate?: string, endDate?: string) => {
-    try {
-      // For now, return mock data
-      return getMockRevenueReports(startDate, endDate);
-    } catch (error) {
-      console.error('Error fetching revenue reports:', error);
-      throw error;
-    }
-  },
-
-  getExpenseReports: async (startDate?: string, endDate?: string) => {
-    try {
-      // For now, return mock data
-      return getMockExpenseReports(startDate, endDate);
-    } catch (error) {
-      console.error('Error fetching expense reports:', error);
-      throw error;
-    }
-  },
-
-  // New methods to resolve errors
-  getFinancialRecords: async (type?: string, startDate?: string, endDate?: string) => {
-    try {
-      // For now, return mock data
-      return getMockFinancialRecords(type, startDate, endDate);
-    } catch (error) {
-      console.error('Error fetching financial records:', error);
-      throw error;
-    }
-  },
-
-  createFinancialRecord: async (recordData: any) => {
-    try {
-      // Mock API call
-      return { ...recordData, record_id: Date.now(), created_at: new Date().toISOString() };
-    } catch (error) {
-      console.error('Error creating financial record:', error);
-      throw error;
-    }
-  },
-
+  
   sendInvoiceReminder: async (invoiceId: number) => {
     try {
-      // Mock API call
-      return { success: true, message: 'Reminder sent successfully', invoice_id: invoiceId };
+      // In production, this would be an API call
+      // return await apiClient.post(`/invoices/${invoiceId}/reminder`);
+      
+      // Mock response for development
+      return { 
+        success: true, 
+        message: 'Payment reminder sent successfully' 
+      };
     } catch (error) {
-      console.error('Error sending invoice reminder:', error);
-      throw error;
+      return handleApiError(error, { success: false, message: 'Failed to send payment reminder' });
     }
   },
-
-  getSalesMetrics: async (period: string = 'month') => {
+  
+  // Reports-related methods
+  getRevenueReports: async (startDate?: string, endDate?: string) => {
     try {
-      // For now, return mock data
-      return getMockSalesMetrics(period);
+      // In production, this would be an API call
+      // return await apiClient.get('/reports/revenue', { params: { startDate, endDate } });
+      
+      // Mock data for development
+      return {
+        totalRevenue: Math.floor(Math.random() * 1000000) + 500000,
+        comparisonPercentage: (Math.random() * 30 - 10).toFixed(1),
+        monthlyData: Array(12).fill(null).map((_, i) => ({
+          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          revenue: Math.floor(Math.random() * 100000) + 50000,
+        })),
+        byCategory: [
+          { name: 'Web Development', value: Math.floor(Math.random() * 400000) + 200000 },
+          { name: 'Design Services', value: Math.floor(Math.random() * 300000) + 150000 },
+          { name: 'Marketing', value: Math.floor(Math.random() * 200000) + 100000 },
+          { name: 'Consulting', value: Math.floor(Math.random() * 100000) + 50000 },
+        ],
+      };
     } catch (error) {
-      console.error('Error fetching sales metrics:', error);
-      throw error;
+      return handleApiError(error, {});
     }
   },
-
-  analyzeTeamCosts: async (period: string = 'month') => {
+  
+  getExpenseReports: async (startDate?: string, endDate?: string) => {
     try {
-      // For now, return mock data
-      return getMockTeamCostsAnalysis(period);
+      // In production, this would be an API call
+      // return await apiClient.get('/reports/expenses', { params: { startDate, endDate } });
+      
+      // Mock data for development
+      return {
+        totalExpenses: Math.floor(Math.random() * 700000) + 300000,
+        comparisonPercentage: (Math.random() * 20 - 5).toFixed(1),
+        monthlyData: Array(12).fill(null).map((_, i) => ({
+          month: new Date(2023, i, 1).toLocaleString('default', { month: 'short' }),
+          expenses: Math.floor(Math.random() * 70000) + 30000,
+        })),
+        byCategory: [
+          { name: 'Salaries', value: Math.floor(Math.random() * 400000) + 200000 },
+          { name: 'Office Rent', value: Math.floor(Math.random() * 100000) + 50000 },
+          { name: 'Marketing', value: Math.floor(Math.random() * 80000) + 40000 },
+          { name: 'Software', value: Math.floor(Math.random() * 60000) + 30000 },
+          { name: 'Utilities', value: Math.floor(Math.random() * 40000) + 20000 },
+          { name: 'Other', value: Math.floor(Math.random() * 20000) + 10000 },
+        ],
+      };
     } catch (error) {
-      console.error('Error analyzing team costs:', error);
-      throw error;
+      return handleApiError(error, {});
     }
   },
-
-  getSalesFollowUps: async () => {
+  
+  getProfitLossReport: async (year: number) => {
     try {
-      // For now, return mock data
-      return getMockSalesFollowUps();
+      // In production, this would be an API call
+      // return await apiClient.get(`/reports/profit-loss/${year}`);
+      
+      // Mock data for development
+      return {
+        year,
+        netProfit: Math.floor(Math.random() * 300000) + 200000,
+        comparisonPercentage: (Math.random() * 25 - 5).toFixed(1),
+        quarterlyData: Array(4).fill(null).map((_, i) => ({
+          quarter: `Q${i + 1}`,
+          revenue: Math.floor(Math.random() * 250000) + 150000,
+          expenses: Math.floor(Math.random() * 200000) + 100000,
+          profit: Math.floor(Math.random() * 100000) + 50000,
+        })),
+        monthlyData: Array(12).fill(null).map((_, i) => ({
+          month: new Date(year, i, 1).toLocaleString('default', { month: 'short' }),
+          revenue: Math.floor(Math.random() * 100000) + 50000,
+          expenses: Math.floor(Math.random() * 70000) + 30000,
+          profit: Math.floor(Math.random() * 30000) + 20000,
+        })),
+      };
     } catch (error) {
-      console.error('Error fetching sales follow-ups:', error);
-      throw error;
+      return handleApiError(error, {});
     }
   },
-
-  getImprovementSuggestions: async () => {
+  
+  // Finance records methods
+  getFinancialRecords: async (type?: string, startDate?: string, endDate?: string) => {
     try {
-      // For now, return mock data
-      return getMockImprovementSuggestions();
+      // In production, this would be an API call
+      // const url = '/financial-records';
+      // return await apiClient.get(url, { params: { type, startDate, endDate } });
+      
+      // Mock data for development
+      const records = generateMockData('financial-records');
+      if (type) {
+        return records.filter((record: any) => record.record_type === type);
+      }
+      return records;
     } catch (error) {
-      console.error('Error fetching improvement suggestions:', error);
-      throw error;
+      return handleApiError(error, []);
     }
   },
-
-  completeFollowUp: async (followUpId: number) => {
+  
+  createFinancialRecord: async (recordData: any) => {
     try {
-      // Mock API call
-      return { success: true, follow_up_id: followUpId, completed_at: new Date().toISOString() };
+      // In production, this would be an API call
+      // return await apiClient.post('/financial-records', recordData);
+      
+      // Mock response for development
+      return { 
+        success: true, 
+        message: 'Financial record created successfully', 
+        record: { id: Date.now(), ...recordData } 
+      };
     } catch (error) {
-      console.error('Error completing follow-up:', error);
-      throw error;
+      return handleApiError(error, { success: false, message: 'Failed to create financial record' });
     }
   },
-
-  getSalesGrowthData: async (dateRange: string) => {
+  
+  // Financial metrics and overview
+  getFinancialOverview: async (period: string = 'month') => {
     try {
-      // For now, return mock data
-      return getMockSalesGrowthData(dateRange);
+      // In production, this would be an API call
+      // return await apiClient.get('/financial-overview', { params: { period } });
+      
+      // Mock data for development
+      return generateMockData('financial-overview');
     } catch (error) {
-      console.error('Error fetching sales growth data:', error);
-      throw error;
+      return handleApiError(error, {});
     }
   },
-
-  getSalesTargets: async (dateRange: string) => {
+  
+  getFinancialMetrics: async () => {
     try {
-      // For now, return mock data
-      return getMockSalesTargets(dateRange);
+      // In production, this would be an API call
+      // return await apiClient.get('/financial-metrics');
+      
+      // Mock data for development
+      return generateMockData('financial-metrics');
     } catch (error) {
-      console.error('Error fetching sales targets:', error);
-      throw error;
+      return handleApiError(error, {});
     }
   },
-
-  getGrowthForecast: async (dateRange: string): Promise<GrowthForecast> => {
-    try {
-      // For now, return mock data
-      return getMockGrowthForecast(dateRange);
-    } catch (error) {
-      console.error('Error fetching growth forecast:', error);
-      throw error as Error;
-    }
-  },
-
-  getWeeklyReports: async () => {
-    try {
-      // For now, return mock data
-      return getMockWeeklyReports();
-    } catch (error) {
-      console.error('Error fetching weekly reports:', error);
-      throw error;
-    }
-  },
-
-  getMonthlyReports: async () => {
-    try {
-      // For now, return mock data
-      return getMockMonthlyReports();
-    } catch (error) {
-      console.error('Error fetching monthly reports:', error);
-      throw error;
-    }
-  },
-
-  getSalesTrends: async (dateRange: string) => {
-    try {
-      // For now, return mock data
-      return getMockSalesTrends(dateRange);
-    } catch (error) {
-      console.error('Error fetching sales trends:', error);
-      throw error;
-    }
-  },
-
-  getSalesByChannel: async (dateRange: string) => {
-    try {
-      // For now, return mock data
-      return getMockSalesByChannel(dateRange);
-    } catch (error) {
-      console.error('Error fetching sales by channel:', error);
-      throw error;
-    }
-  },
-
-  getTopProducts: async (dateRange: string) => {
-    try {
-      // For now, return mock data
-      return getMockTopProducts(dateRange);
-    } catch (error) {
-      console.error('Error fetching top products:', error);
-      throw error;
-    }
-  },
-
-  getFinancialOverview: async () => {
-    try {
-      // For now, return mock data
-      return getMockFinancialOverview();
-    } catch (error) {
-      console.error('Error fetching financial overview:', error);
-      throw error;
-    }
-  },
-
-  getFinancialMetrics: async (period: 'month' | 'quarter' | 'year') => {
-    try {
-      // For now, return mock data
-      return getMockFinancialMetrics(period);
-    } catch (error) {
-      console.error('Error fetching financial metrics:', error);
-      throw error;
-    }
-  },
-
+  
   getUpsellOpportunities: async () => {
     try {
-      // For now, return mock data
-      return getMockUpsellOpportunities();
+      // In production, this would be an API call
+      // return await apiClient.get('/upsell-opportunities');
+      
+      // Mock data for development
+      return generateMockData('upsell-opportunities');
     } catch (error) {
-      console.error('Error fetching upsell opportunities:', error);
-      throw error;
+      return handleApiError(error, []);
     }
   },
-
+  
   getFinancialPlans: async () => {
     try {
-      // For now, return mock data
-      return getMockFinancialPlans();
+      // In production, this would be an API call
+      // return await apiClient.get('/financial-plans');
+      
+      // Mock data for development
+      return generateMockData('financial-plans');
     } catch (error) {
-      console.error('Error fetching financial plans:', error);
-      throw error;
+      return handleApiError(error, []);
     }
-  }
-};
-
-// Mock data functions
-const getMockInvoices = (status?: string) => {
-  const invoices = [
-    {
-      invoice_id: 1,
-      client_id: 1,
-      client_name: 'Acme Corp',
-      invoice_number: 'INV-001',
-      amount: 1500.00,
-      due_date: '2023-04-15',
-      status: 'paid',
-      created_at: '2023-03-15T10:00:00Z',
-    },
-    {
-      invoice_id: 2,
-      client_id: 2,
-      client_name: 'TechStart Inc',
-      invoice_number: 'INV-002',
-      amount: 2200.00,
-      due_date: '2023-04-30',
-      status: 'pending',
-      created_at: '2023-03-30T11:30:00Z',
-    },
-    {
-      invoice_id: 3,
-      client_id: 3,
-      client_name: 'Global Services',
-      invoice_number: 'INV-003',
-      amount: 3100.00,
-      due_date: '2023-04-10',
-      status: 'overdue',
-      created_at: '2023-03-10T09:45:00Z',
-    }
-  ];
-
-  if (status) {
-    return invoices.filter(inv => inv.status === status);
-  }
+  },
   
-  return invoices;
-};
-
-const getMockInvoiceDetails = (invoiceId: number) => {
-  const invoices = getMockInvoices();
-  const invoice = invoices.find(inv => inv.invoice_id === invoiceId);
+  // Sales data methods
+  getSalesMetrics: async (period: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/metrics', { params: { period } });
+      
+      // Mock data for development
+      return generateMockData('sales-metrics');
+    } catch (error) {
+      return handleApiError(error, {});
+    }
+  },
   
-  if (!invoice) {
-    throw new Error('Invoice not found');
-  }
+  getSalesTrends: async (dateRange: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/trends', { params: { dateRange } });
+      
+      // Mock data for development
+      return generateMockData('sales-trends');
+    } catch (error) {
+      return handleApiError(error, {});
+    }
+  },
   
-  return {
-    ...invoice,
-    items: [
-      { 
-        item_id: 1, 
-        description: 'Web Development', 
-        quantity: 20, 
-        unit_price: 75.00, 
-        total: 1500.00 
-      }
-    ],
-    notes: 'Thank you for your business!',
-    payment_terms: 'Net 30',
-    subtotal: 1500.00,
-    tax: 0.00,
-    total: 1500.00
-  };
-};
-
-const getMockRevenueReports = (startDate?: string, endDate?: string) => {
-  // Mock revenue data - in a real implementation, this would be filtered by date
-  return {
-    total_revenue: 25000.00,
-    comparison_to_previous: {
-      percentage: 15,
-      amount: 3750.00
-    },
-    by_client: [
-      { client_id: 1, client_name: 'Acme Corp', amount: 12000.00 },
-      { client_id: 2, client_name: 'TechStart Inc', amount: 8000.00 },
-      { client_id: 3, client_name: 'Global Services', amount: 5000.00 }
-    ],
-    by_month: [
-      { month: 'Jan', amount: 18000.00 },
-      { month: 'Feb', amount: 21000.00 },
-      { month: 'Mar', amount: 25000.00 }
-    ]
-  };
-};
-
-const getMockExpenseReports = (startDate?: string, endDate?: string) => {
-  // Mock expense data - in a real implementation, this would be filtered by date
-  return {
-    total_expenses: 15000.00,
-    comparison_to_previous: {
-      percentage: 5,
-      amount: 750.00
-    },
-    by_category: [
-      { category: 'Salaries', amount: 10000.00 },
-      { category: 'Tools & Software', amount: 3000.00 },
-      { category: 'Office', amount: 2000.00 }
-    ],
-    by_month: [
-      { month: 'Jan', amount: 14000.00 },
-      { month: 'Feb', amount: 14500.00 },
-      { month: 'Mar', amount: 15000.00 }
-    ]
-  };
-};
-
-const getMockFinancialRecords = (type?: string, startDate?: string, endDate?: string) => {
-  // Mock financial records - in a real implementation, this would be filtered by type and date
-  const records = [
-    {
-      record_id: 1,
-      record_type: 'expense',
-      amount: 1200.00,
-      description: 'Software Subscriptions',
-      record_date: '2023-03-05',
-      created_at: '2023-03-05T14:00:00Z'
-    },
-    {
-      record_id: 2,
-      record_type: 'income',
-      amount: 3500.00,
-      description: 'Web Development Services',
-      record_date: '2023-03-10',
-      created_at: '2023-03-10T11:30:00Z'
-    },
-    {
-      record_id: 3,
-      record_type: 'expense',
-      amount: 800.00,
-      description: 'Office Supplies',
-      record_date: '2023-03-15',
-      created_at: '2023-03-15T16:45:00Z'
+  getSalesByChannel: async (dateRange: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/by-channel', { params: { dateRange } });
+      
+      // Mock data for development
+      return generateMockData('sales-by-channel');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  ];
-
-  if (type) {
-    return records.filter(rec => rec.record_type === type);
-  }
+  },
   
-  return records;
-};
-
-const getMockSalesMetrics = (period: string = 'month'): SalesData => {
-  // Prepare mock data
-  const data: SalesData = {
-    monthly_revenue: 45000,
-    annual_target: 500000,
-    growth_rate: 15,
-    client_acquisition: 5,
-    conversion_rate: 25,
-    avg_deal_size: 8500,
-    top_clients: [
-      { client_id: 1, client_name: 'TechCorp', revenue: 12500, growth: 8 },
-      { client_id: 2, client_name: 'Innovate Inc', revenue: 9800, growth: 15 },
-      { client_id: 3, client_name: 'Global Solutions', revenue: 7200, growth: 5 }
-    ],
-    monthly_trend: [
-      { month: 'Jan', revenue: 35000, target: 40000 },
-      { month: 'Feb', revenue: 38000, target: 40000 },
-      { month: 'Mar', revenue: 42000, target: 40000 },
-      { month: 'Apr', revenue: 45000, target: 42000 },
-      { month: 'May', revenue: 0, target: 45000 },
-    ],
-    sales_by_service: [
-      { service: 'Web Development', value: 25000 },
-      { service: 'Digital Marketing', value: 12000 },
-      { service: 'UI/UX Design', value: 8000 }
-    ]
-  };
-
-  // Adjust data based on period (simplified for mock)
-  if (period === 'quarter') {
-    data.monthly_revenue *= 3;
-    data.client_acquisition *= 3;
-  } else if (period === 'year') {
-    data.monthly_revenue *= 12;
-    data.client_acquisition *= 12;
-  }
-
-  return data;
-};
-
-const getMockTeamCostsAnalysis = (period: string = 'month') => {
-  return {
-    total_cost: 85000,
-    average_cost_per_employee: 8500,
-    cost_by_department: [
-      { department: 'Engineering', cost: 35000, headcount: 4 },
-      { department: 'Design', cost: 20000, headcount: 2 },
-      { department: 'Marketing', cost: 15000, headcount: 2 },
-      { department: 'Management', cost: 15000, headcount: 2 }
-    ],
-    trend: [
-      { month: 'Jan', cost: 80000 },
-      { month: 'Feb', cost: 82000 },
-      { month: 'Mar', cost: 85000 }
-    ],
-    efficiency_metrics: {
-      revenue_per_employee: 18500,
-      profit_per_employee: 10000,
-      cost_to_revenue_ratio: 0.46
+  getTopProducts: async (dateRange: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/top-products', { params: { dateRange } });
+      
+      // Mock data for development
+      return generateMockData('top-products');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  };
-};
-
-const getMockSalesFollowUps = () => {
-  return [
-    {
-      id: 1,
-      client_name: 'TechCorp',
-      client_id: 1,
-      contact_name: 'John Smith',
-      contact_email: 'john@techcorp.com',
-      contact_phone: '555-123-4567',
-      followup_date: '2023-04-15',
-      last_contact_date: '2023-03-30',
-      notes: 'Discussed proposal, waiting for budget approval',
-      priority: 'high',
-      type: 'proposal_followup',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      client_name: 'Innovate Inc',
-      client_id: 2,
-      contact_name: 'Sarah Johnson',
-      contact_email: 'sarah@innovate.com',
-      contact_phone: '555-765-4321',
-      followup_date: '2023-04-10',
-      last_contact_date: '2023-03-25',
-      notes: 'Sent initial proposal, schedule call to discuss details',
-      priority: 'medium',
-      type: 'initial_contact',
-      status: 'pending'
+  },
+  
+  getSalesGrowthData: async (dateRange: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/growth', { params: { dateRange } });
+      
+      // Mock data for development
+      return generateMockData('sales-growth');
+    } catch (error) {
+      return handleApiError(error, {});
     }
-  ];
-};
-
-const getMockImprovementSuggestions = () => {
-  return [
-    {
-      id: 1,
-      area: 'Sales Process',
-      suggestion: 'Reduce time between initial contact and proposal from 7 days to 3 days',
-      potential_impact: 'Could increase closing rate by 15%',
-      implementation_difficulty: 'medium',
-      required_resources: 'Updated proposal templates, sales process automation'
-    },
-    {
-      id: 2,
-      area: 'Client Onboarding',
-      suggestion: 'Create detailed onboarding checklist for new clients',
-      potential_impact: 'Improved client satisfaction, faster project starts',
-      implementation_difficulty: 'low',
-      required_resources: 'Documentation time, client feedback collection'
+  },
+  
+  getSalesTargets: async (dateRange: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/targets', { params: { dateRange } });
+      
+      // Mock data for development
+      return generateMockData('sales-targets');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  ];
-};
-
-const getMockSalesGrowthData = (dateRange: string) => {
-  return {
-    trends: [
-      { month: 'Jan', revenue: 40000 },
-      { month: 'Feb', revenue: 42000 },
-      { month: 'Mar', revenue: 45000 },
-      { month: 'Apr', revenue: 48000 },
-      { month: 'May', revenue: 52000 }
-    ],
-    currentPeriod: {
-      revenueGrowth: 15.5,
-      customerGrowth: 8.3
-    },
-    growthDrivers: [
-      { factor: 'New client acquisition', impact: 8.2, performance: 'positive' },
-      { factor: 'Upselling to existing clients', impact: 5.6, performance: 'positive' },
-      { factor: 'Price increases', impact: 1.7, performance: 'neutral' }
-    ]
-  };
-};
-
-const getMockSalesTargets = (dateRange: string) => {
-  return [
-    { 
-      id: 1, 
-      category: 'Total Revenue', 
-      target: 250000, 
-      current: 225000, 
-      percentage: 90 
-    },
-    { 
-      id: 2, 
-      category: 'New Clients', 
-      target: 15, 
-      current: 12, 
-      percentage: 80 
-    },
-    { 
-      id: 3, 
-      category: 'Avg Deal Size', 
-      target: 10000, 
-      current: 11200, 
-      percentage: 112 
-    },
-    { 
-      id: 4, 
-      category: 'Retention Rate', 
-      target: 85, 
-      current: 88, 
-      percentage: 103.5 
+  },
+  
+  getGrowthForecast: async (dateRange: string = 'month') => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/forecast', { params: { dateRange } });
+      
+      // Mock data for development
+      return generateMockData('growth-forecast');
+    } catch (error) {
+      return handleApiError(error, {});
     }
-  ];
-};
-
-const getMockGrowthForecast = (dateRange: string): GrowthForecast => {
-  return {
-    chart: [
-      { month: 'Jun', projected: 55000, best_case: 58000, worst_case: 52000 },
-      { month: 'Jul', projected: 58000, best_case: 62000, worst_case: 54000 },
-      { month: 'Aug', projected: 61000, best_case: 66000, worst_case: 56000 },
-      { month: 'Sep', projected: 64000, best_case: 70000, worst_case: 58000 }
-    ],
-    predictions: [
-      { 
-        period: 'Next Quarter', 
-        expected_growth: 12.5, 
-        confidence: 85 
-      },
-      { 
-        period: 'Next Year', 
-        expected_growth: 25.0, 
-        confidence: 70 
-      }
-    ],
-    recommendations: [
-      'Focus on expanding digital marketing services - highest growth potential',
-      'Implement new client retention program - could increase LTV by 20%',
-      'Explore partnerships with complementary service providers'
-    ]
-  };
-};
-
-const getMockWeeklyReports = () => {
-  return {
-    week_number: 15,
-    start_date: '2023-04-10',
-    end_date: '2023-04-16',
-    highlights: [
-      { metric: 'Revenue', value: 12500, change: 5 },
-      { metric: 'Deals Closed', value: 3, change: 1 },
-      { metric: 'New Leads', value: 12, change: -2 }
-    ],
-    top_performers: [
-      { name: 'Sarah Johnson', deals: 2, revenue: 5500 },
-      { name: 'Mike Chen', deals: 1, revenue: 4800 }
-    ],
-    upcoming_opportunities: [
-      { client: 'TechWave Inc', potential_value: 12000, probability: 75, expected_close: '2023-04-28' },
-      { client: 'FinServe Group', potential_value: 8500, probability: 60, expected_close: '2023-05-05' }
-    ]
-  };
-};
-
-const getMockMonthlyReports = () => {
-  return {
-    month: 'April',
-    year: 2023,
-    highlights: [
-      { metric: 'Revenue', value: 48000, change: 8 },
-      { metric: 'Deals Closed', value: 11, change: 2 },
-      { metric: 'New Leads', value: 45, change: 5 }
-    ],
-    performance_by_service: [
-      { service: 'Web Development', revenue: 25000, growth: 12 },
-      { service: 'Digital Marketing', revenue: 15000, growth: 8 },
-      { service: 'UI/UX Design', revenue: 8000, growth: 5 }
-    ],
-    client_acquisition_cost: {
-      current: 850,
-      previous: 920,
-      change_percentage: -7.6
-    },
-    forecast: {
-      next_month_revenue: 52000,
-      quarterly_target_progress: 65
+  },
+  
+  getWeeklyReports: async () => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/reports/weekly');
+      
+      // Mock data for development
+      return generateMockData('weekly-reports');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  };
-};
-
-const getMockSalesTrends = (dateRange: string) => {
-  return {
-    trends: [
-      { month: 'Jan', value: 40000 },
-      { month: 'Feb', value: 42000 },
-      { month: 'Mar', value: 45000 },
-      { month: 'Apr', value: 48000 },
-      { month: 'May', value: 52000 }
-    ],
-    insights: [
-      "Revenue showed consistent month-over-month growth of 7-10%",
-      "Q1 outperformed targets by 15%, driven by increased client acquisition",
-      "Average deal size increased from $7,500 to $8,500 over the period",
-      "Service expansion to existing clients accounts for 35% of growth"
-    ],
-    activities: [
-      { id: 1, title: "Pipeline Review Meeting", date: "May 05", time: "10:00 AM" },
-      { id: 2, title: "Q2 Strategy Planning", date: "May 08", time: "2:00 PM" },
-      { id: 3, title: "Sales Team Training", date: "May 10", time: "9:00 AM" }
-    ]
-  };
-};
-
-const getMockSalesByChannel = (dateRange: string) => {
-  return [
-    { name: 'Referrals', value: 35, color: '#4f46e5' },
-    { name: 'Website', value: 25, color: '#06b6d4' },
-    { name: 'Social Media', value: 15, color: '#8b5cf6' },
-    { name: 'Direct Outreach', value: 20, color: '#10b981' },
-    { name: 'Events', value: 5, color: '#f59e0b' }
-  ];
-};
-
-const getMockTopProducts = (dateRange: string) => {
-  return [
-    { id: 1, name: 'Web Development', sales: 12, units: 8, revenue: 120000, growth: 15 },
-    { id: 2, name: 'SEO Services', sales: 18, units: 18, revenue: 90000, growth: 8 },
-    { id: 3, name: 'UI/UX Design', sales: 10, units: 10, revenue: 65000, growth: 12 },
-    { id: 4, name: 'Content Creation', sales: 15, units: 45, revenue: 45000, growth: 20 },
-    { id: 5, name: 'Social Media Management', sales: 8, units: 8, revenue: 32000, growth: -5 }
-  ];
-};
-
-const getMockFinancialOverview = () => {
-  return {
-    current_month_revenue: 45000,
-    previous_month_revenue: 42000,
-    revenue_growth: 7.14,
-    current_month_expenses: 32000,
-    previous_month_expenses: 30000,
-    expense_growth: 6.67,
-    current_month_profit: 13000,
-    previous_month_profit: 12000,
-    profit_growth: 8.33,
-    cash_flow: 8500,
-    accounts_receivable: 28000,
-    accounts_payable: 15000
-  };
-};
-
-const getMockFinancialMetrics = (period: 'month' | 'quarter' | 'year') => {
-  const baseMetrics = {
-    revenue: { 
-      label: 'Revenue', 
-      value: 45000, 
-      formatted_value: '$45,000', 
-      growth_rate: 7.14 
-    },
-    expenses: { 
-      label: 'Expenses', 
-      value: 32000, 
-      formatted_value: '$32,000', 
-      growth_rate: 6.67 
-    },
-    profit: { 
-      label: 'Profit', 
-      value: 13000, 
-      formatted_value: '$13,000', 
-      growth_rate: 8.33 
-    },
-    margin: { 
-      label: 'Profit Margin', 
-      value: 28.89, 
-      formatted_value: '28.9%', 
-      growth_rate: 1.12 
+  },
+  
+  getMonthlyReports: async () => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/reports/monthly');
+      
+      // Mock data for development
+      return generateMockData('monthly-reports');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  };
-
-  // Adjust values based on period
-  if (period === 'quarter') {
-    Object.keys(baseMetrics).forEach(key => {
-      const metric = baseMetrics[key as keyof typeof baseMetrics];
-      if (typeof metric.value === 'number') {
-        metric.value *= 3;
-        metric.formatted_value = `$${(metric.value).toLocaleString()}`;
-      }
-    });
-  } else if (period === 'year') {
-    Object.keys(baseMetrics).forEach(key => {
-      const metric = baseMetrics[key as keyof typeof baseMetrics];
-      if (typeof metric.value === 'number' && key !== 'margin') {
-        metric.value *= 12;
-        metric.formatted_value = `$${(metric.value).toLocaleString()}`;
-      }
-    });
-  }
-
-  return baseMetrics;
-};
-
-const getMockUpsellOpportunities = () => {
-  return [
-    {
-      clientId: 1,
-      clientName: 'TechCorp',
-      currentServices: ['Web Development', 'SEO'],
-      recommendedServices: ['Social Media Management', 'Content Creation'],
-      potentialRevenue: 12000,
-      reason: 'Strong online presence could be expanded with content strategy'
-    },
-    {
-      clientId: 2,
-      clientName: 'Innovate Inc',
-      currentServices: ['UI/UX Design'],
-      recommendedServices: ['Web Development', 'Mobile App Development'],
-      potentialRevenue: 25000,
-      reason: 'Designs are ready for implementation, client has mentioned future app plans'
+  },
+  
+  getSalesFollowUps: async () => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/followups');
+      
+      // Mock data for development
+      return generateMockData('sales-followups');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  ];
-};
-
-const getMockFinancialPlans = () => {
-  return [
-    {
-      id: 1,
-      title: 'Q2 Expense Reduction',
-      description: 'Identify and reduce non-essential expenses across departments',
-      target_amount: 15000,
-      current_progress: 6000,
-      progress_percentage: 40,
-      start_date: '2023-04-01',
-      end_date: '2023-06-30',
-      status: 'in_progress'
-    },
-    {
-      id: 2,
-      title: '2023 Revenue Growth',
-      description: 'Increase overall revenue through new client acquisition and upselling',
-      target_amount: 150000,
-      current_progress: 45000,
-      progress_percentage: 30,
-      start_date: '2023-01-01',
-      end_date: '2023-12-31',
-      status: 'in_progress'
+  },
+  
+  getImprovementSuggestions: async () => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.get('/sales/improvement-suggestions');
+      
+      // Mock data for development
+      return generateMockData('improvement-suggestions');
+    } catch (error) {
+      return handleApiError(error, []);
     }
-  ];
+  },
+  
+  completeFollowUp: async (followUpId: number, feedback: string) => {
+    try {
+      // In production, this would be an API call
+      // return await apiClient.post(`/sales/followups/${followUpId}/complete`, { feedback });
+      
+      // Mock response for development
+      return { 
+        success: true, 
+        message: 'Follow-up marked as completed',
+        id: followUpId
+      };
+    } catch (error) {
+      return handleApiError(error, { success: false, message: 'Failed to complete follow-up' });
+    }
+  },
 };
 
 export default financeService;

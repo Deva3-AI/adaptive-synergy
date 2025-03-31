@@ -1,178 +1,252 @@
 
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, ExternalLink } from "lucide-react";
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import taskService from '@/services/api/taskService';
+import { 
+  Calendar, 
+  Clock, 
+  Filter, 
+  Search, 
+  ArrowUpDown, 
+  CheckCircle, 
+  XCircle,
+  PauseCircle,
+  Clock8,
+  Briefcase
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Task } from '@/interfaces/tasks';
 
 interface TaskListProps {
-  employeeId?: number;
-  limit?: number;
-  showViewAll?: boolean;
-  client_id?: number;
-  status?: string;
+  tasks: Task[];
+  isLoading: boolean;
+  error: any;
 }
 
-const TaskList = ({ employeeId, limit = 5, showViewAll = true, client_id, status }: TaskListProps) => {
-  const [activeTab, setActiveTab] = useState<string>("all");
-  
-  const { data: tasks, isLoading, error, refetch } = useQuery({
-    queryKey: ['employee-tasks', employeeId, activeTab, client_id],
-    queryFn: () => {
-      const queryParams: {
-        status?: string;
-        assigned_to?: number;
-        client_id?: number;
-      } = {};
-      
-      if (activeTab !== 'all') {
-        queryParams.status = activeTab;
-      } else if (status) {
-        queryParams.status = status;
-      }
-      
-      if (employeeId) {
-        queryParams.assigned_to = employeeId;
-      }
-      
-      if (client_id) {
-        queryParams.client_id = client_id;
-      }
-      
-      return taskService.getTasks(queryParams);
-    }
+// Status icon mapping
+const statusIconMap: Record<string, React.ReactNode> = {
+  "completed": <CheckCircle className="h-5 w-5 text-green-500" />,
+  "in_progress": <Clock8 className="h-5 w-5 text-blue-500" />,
+  "pending": <Clock className="h-5 w-5 text-gray-500" />,
+  "on_hold": <PauseCircle className="h-5 w-5 text-yellow-500" />,
+  "cancelled": <XCircle className="h-5 w-5 text-red-500" />,
+};
+
+// Priority color mapping
+const priorityColorMap: Record<string, string> = {
+  "high": "destructive",
+  "medium": "warning",
+  "low": "secondary",
+};
+
+const TaskList: React.FC<TaskListProps> = ({ tasks, isLoading, error }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+
+  // Filter tasks based on search term and filters
+  const filteredTasks = tasks?.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (task.client_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter ? task.status === statusFilter : true;
+    const matchesPriority = priorityFilter ? task.priority === priorityFilter : true;
+    
+    return matchesSearch && matchesStatus && matchesPriority;
   });
-  
-  // Effect to refetch data when active tab changes
-  useEffect(() => {
-    refetch();
-  }, [activeTab, refetch]);
-  
-  // Function to get badge color based on task status
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'warning';
-      case 'pending': return 'secondary';
-      case 'cancelled': return 'destructive';
-      default: return 'secondary';
+
+  const clearFilters = () => {
+    setStatusFilter(null);
+    setPriorityFilter(null);
+    setSearchTerm("");
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "No date set";
+    
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow at ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    } else {
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     }
   };
-  
-  // Function to get badge color based on task priority
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high': return 'destructive';
-      case 'medium': return 'warning';
-      case 'low': return 'secondary';
-      default: return 'secondary';
-    }
-  };
-  
+
   if (error) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center text-destructive">
-            Error loading tasks. Please try again later.
-          </div>
-        </CardContent>
-      </Card>
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-md">
+          Error loading tasks. Please try again later.
+        </div>
+      </div>
     );
   }
-  
+
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Tasks</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full sm:w-auto grid grid-cols-4 mb-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="pending">To Do</TabsTrigger>
-            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
+    <div className="space-y-6">      
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search tasks..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Filter className="h-4 w-4 mr-1" />
+            Status
+            {statusFilter && <Badge variant="secondary" className="ml-1">{statusFilter}</Badge>}
+          </Button>
           
-          <TabsContent value={activeTab} className="pt-2">
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Spinner size="lg" />
-              </div>
-            ) : !tasks || tasks.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No tasks found.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+          <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <ArrowUpDown className="h-4 w-4 mr-1" />
+            Priority
+            {priorityFilter && (
+              <Badge 
+                variant={priorityFilter ? (priorityColorMap[priorityFilter] as any) : "secondary"} 
+                className="ml-1"
+              >
+                {priorityFilter}
+              </Badge>
+            )}
+          </Button>
+          
+          <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Calendar className="h-4 w-4 mr-1" />
+            Date
+          </Button>
+          
+          {(statusFilter || priorityFilter || searchTerm) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      <div className="rounded-md border">
+        {isLoading ? (
+          <div className="p-4 space-y-4">
+            {Array(5).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <div className="flex items-center h-4">
+                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+                  </div>
+                </TableHead>
+                <TableHead>Task & Client</TableHead>
+                <TableHead className="hidden md:table-cell">Due Date</TableHead>
+                <TableHead className="hidden md:table-cell">Priority</TableHead>
+                <TableHead className="hidden lg:table-cell">Status</TableHead>
+                <TableHead className="hidden xl:table-cell">Progress</TableHead>
+                <TableHead className="text-right">Time Est.</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTasks && filteredTasks.length > 0 ? (
+                filteredTasks.map((task) => (
+                  <TableRow key={task.task_id} className="group cursor-pointer hover:bg-muted/50">
+                    <TableCell className="p-2 md:p-4">
+                      <div className="flex items-center h-4">
+                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-2 md:p-4">
+                      <Link to={`/employee/tasks/${task.task_id}`} className="block group-hover:underline">
+                        <div className="font-medium">{task.title}</div>
+                        <div className="text-sm text-muted-foreground flex items-center">
+                          <Briefcase className="h-3 w-3 mr-1" />
+                          {task.client_name || 'Unknown Client'}
+                        </div>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="p-2 md:p-4 hidden md:table-cell">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span>{formatDate(task.due_date)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-2 md:p-4 hidden md:table-cell">
+                      <Badge variant={priorityColorMap[task.priority || 'medium'] as any}>
+                        {task.priority || 'Medium'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="p-2 md:p-4 hidden lg:table-cell">
+                      <div className="flex items-center">
+                        {statusIconMap[task.status] || statusIconMap["pending"]}
+                        <span className="ml-2">{task.status}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-2 md:p-4 hidden xl:table-cell">
+                      <div className="w-full max-w-24 space-y-1">
+                        <Progress value={0} className="h-2" />
+                        <div className="text-xs text-right text-muted-foreground">
+                          0%
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-2 md:p-4 text-right">
+                      <div className="flex items-center justify-end">
+                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                        <span>{task.estimated_time || 0}h</span>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tasks.slice(0, limit).map((task) => (
-                    <TableRow key={task.id || task.task_id}>
-                      <TableCell className="font-medium">
-                        {task.title}
-                      </TableCell>
-                      <TableCell>{task.client_name || task.client}</TableCell>
-                      <TableCell>
-                        {task.due_date || task.dueDate 
-                          ? format(new Date(task.due_date || task.dueDate), 'MMM dd, yyyy') 
-                          : 'Not set'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getPriorityColor(task.priority || 'medium')}>
-                          {task.priority || 'Medium'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(task.status)}>
-                          {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link to={`/tasks/${task.id || task.task_id}`}>
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-            
-            {showViewAll && tasks && tasks.length > limit && (
-              <div className="mt-4 text-center">
-                <Link to={employeeId ? `/employee/${employeeId}/tasks` : '/tasks'}>
-                  <Button variant="outline" size="sm">
-                    View All Tasks
-                    <ExternalLink className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    {isLoading ? 'Loading tasks...' : 'No tasks found. Try a different search term.'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Showing <span className="font-medium">{filteredTasks?.length || 0}</span> of{" "}
+          <span className="font-medium">{tasks?.length || 0}</span> tasks
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">Previous</Button>
+          <Button variant="outline" size="sm">Next</Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

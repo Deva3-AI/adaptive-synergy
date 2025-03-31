@@ -20,9 +20,9 @@ const taskService = {
         title,
         description,
         client_id,
-        clients (client_name),
+        clients(client_name),
         assigned_to,
-        users:assigned_to (name),
+        users:assigned_to(name),
         status,
         priority,
         estimated_time,
@@ -67,9 +67,9 @@ const taskService = {
         title: item.title,
         description: item.description,
         client_id: item.client_id,
-        client_name: item.clients?.client_name,
+        client_name: item.clients ? item.clients.client_name : undefined,
         assigned_to: item.assigned_to,
-        assignee_name: item.users?.name,
+        assignee_name: item.users ? item.users.name : undefined,
         status: item.status,
         priority: item.priority || 'medium',
         estimated_time: item.estimated_time,
@@ -95,9 +95,9 @@ const taskService = {
           title,
           description,
           client_id,
-          clients (client_name),
+          clients(client_name),
           assigned_to,
-          users:assigned_to (name),
+          users:assigned_to(name),
           status,
           priority,
           estimated_time,
@@ -118,9 +118,9 @@ const taskService = {
         title: data.title,
         description: data.description,
         client_id: data.client_id,
-        client_name: data.clients?.client_name,
+        client_name: data.clients ? data.clients.client_name : undefined,
         assigned_to: data.assigned_to,
-        assignee_name: data.users?.name,
+        assignee_name: data.users ? data.users.name : undefined,
         status: data.status,
         priority: data.priority || 'medium',
         estimated_time: data.estimated_time,
@@ -149,7 +149,7 @@ const taskService = {
           id,
           task_id,
           user_id,
-          users (name),
+          users(name),
           comment,
           created_at
         `)
@@ -172,7 +172,7 @@ const taskService = {
         id: comment.id,
         taskId: comment.task_id,
         userId: comment.user_id,
-        userName: comment.users?.name || 'Unknown User',
+        userName: comment.users ? comment.users.name : 'Unknown User',
         comment: comment.comment,
         createdAt: comment.created_at
       }));
@@ -272,7 +272,7 @@ const taskService = {
           id,
           task_id,
           user_id,
-          users (name),
+          users(name),
           comment,
           created_at
         `)
@@ -285,7 +285,7 @@ const taskService = {
         id: comment.id,
         taskId: comment.task_id,
         userId: comment.user_id,
-        userName: comment.users?.name || 'Unknown User',
+        userName: comment.users ? comment.users.name : 'Unknown User',
         comment: comment.comment,
         createdAt: comment.created_at
       }));
@@ -304,7 +304,7 @@ const taskService = {
           id,
           task_id,
           user_id,
-          users (name),
+          users(name),
           comment,
           created_at
         `);
@@ -316,7 +316,7 @@ const taskService = {
         id: comment.id,
         taskId: comment.task_id,
         userId: comment.user_id,
-        userName: comment.users?.name || 'Unknown User',
+        userName: comment.users ? comment.users.name : 'Unknown User',
         comment: comment.comment,
         createdAt: comment.created_at
       };

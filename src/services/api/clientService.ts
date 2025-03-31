@@ -1,94 +1,58 @@
 
+import apiClient, { handleApiError } from '@/utils/apiUtils';
 import { supabase } from '@/integrations/supabase/client';
 
-// Define ClientPreferences interface
-export interface ClientPreferences {
-  id: number;
-  client_id: number;
-  preferred_contact_method: string;
-  communication_frequency: string;
-  feedback_frequency?: string;
-  design_preferences: {
-    colors?: string[];
-    style?: string;
-    fonts?: string[];
-  };
-  industry_specific_requirements: {
-    compliance?: string[];
-    accessibility?: string;
-    [key: string]: any;
-  };
-  dos: string[];
-  donts: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Client service for managing client-related operations
- */
 const clientService = {
-  /**
-   * Get all clients
-   */
+  // Get all clients
   getClients: async () => {
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .order('client_name');
-        
+        .order('client_name', { ascending: true });
+      
       if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error fetching clients:', error);
-      return [];
+      return handleApiError(error, []);
     }
   },
   
-  /**
-   * Get client details by ID
-   */
-  getClientDetails: async (clientId: number) => {
+  // Get client by ID
+  getClientById: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select(`
-          *,
-          brands (*)
-        `)
+        .select('*')
         .eq('client_id', clientId)
         .single();
-        
+      
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error(`Error fetching client ${clientId}:`, error);
-      return null;
+      console.error('Error fetching client details:', error);
+      return handleApiError(error, null);
     }
   },
   
-  /**
-   * Create a new client
-   */
+  // Create a new client
   createClient: async (clientData: any) => {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .insert(clientData)
+        .insert([clientData])
         .select();
-        
+      
       if (error) throw error;
       return data[0];
     } catch (error) {
       console.error('Error creating client:', error);
-      throw error;
+      return handleApiError(error, null);
     }
   },
   
-  /**
-   * Update client details
-   */
+  // Update client
   updateClient: async (clientId: number, clientData: any) => {
     try {
       const { data, error } = await supabase
@@ -96,58 +60,32 @@ const clientService = {
         .update(clientData)
         .eq('client_id', clientId)
         .select();
-        
+      
       if (error) throw error;
       return data[0];
     } catch (error) {
-      console.error(`Error updating client ${clientId}:`, error);
-      throw error;
+      console.error('Error updating client:', error);
+      return handleApiError(error, null);
     }
   },
   
-  /**
-   * Get tasks for a specific client
-   */
-  getClientTasks: async (clientId: number) => {
+  // Delete client
+  deleteClient: async (clientId: number) => {
     try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          users (name, email)
-        `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
-        
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('client_id', clientId);
+      
       if (error) throw error;
-      return data;
+      return { success: true };
     } catch (error) {
-      console.error(`Error fetching tasks for client ${clientId}:`, error);
-      return [];
+      console.error('Error deleting client:', error);
+      return handleApiError(error, { success: false });
     }
   },
   
-  /**
-   * Create a new task
-   */
-  createTask: async (taskData: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert(taskData)
-        .select();
-        
-      if (error) throw error;
-      return data[0];
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Get client preferences
-   */
+  // Get client preferences
   getClientPreferences: async (clientId: number) => {
     try {
       const { data, error } = await supabase
@@ -155,101 +93,179 @@ const clientService = {
         .select('*')
         .eq('client_id', clientId)
         .single();
-        
-      if (error) throw error;
       
-      // Format preferences with default values if needed
-      const formattedPreferences: ClientPreferences = {
-        ...data,
-        design_preferences: data.design_preferences || {
-          colors: [],
-          style: 'Modern',
-          fonts: []
-        },
-        industry_specific_requirements: data.industry_specific_requirements || {},
-        dos: data.dos || [],
-        donts: data.donts || []
-      };
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned" which is fine
       
-      return formattedPreferences;
+      return data || { client_id: clientId, design_preferences: {}, industry_specific_requirements: {} };
     } catch (error) {
-      console.error(`Error fetching preferences for client ${clientId}:`, error);
-      
-      // Return default preferences structure
-      return {
-        id: 0,
-        client_id: clientId,
-        preferred_contact_method: 'Email',
-        communication_frequency: 'Weekly',
-        design_preferences: {
-          colors: [],
-          style: 'Modern',
-          fonts: []
-        },
-        industry_specific_requirements: {},
-        dos: [],
-        donts: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      console.error('Error fetching client preferences:', error);
+      return handleApiError(error, { client_id: clientId, design_preferences: {}, industry_specific_requirements: {} });
     }
   },
   
-  /**
-   * Get client brands
-   */
+  // Update client preferences
+  updateClientPreferences: async (clientId: number, preferencesData: any) => {
+    try {
+      // Check if preferences exist
+      const { data: existingData, error: checkError } = await supabase
+        .from('client_preferences')
+        .select('id')
+        .eq('client_id', clientId)
+        .single();
+      
+      let result;
+      
+      if (existingData) {
+        // Update existing preferences
+        const { data, error } = await supabase
+          .from('client_preferences')
+          .update({
+            ...preferencesData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('client_id', clientId)
+          .select();
+        
+        if (error) throw error;
+        result = data[0];
+      } else {
+        // Create new preferences
+        const { data, error } = await supabase
+          .from('client_preferences')
+          .insert([{
+            client_id: clientId,
+            ...preferencesData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+          .select();
+        
+        if (error) throw error;
+        result = data[0];
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error updating client preferences:', error);
+      return handleApiError(error, null);
+    }
+  },
+  
+  // Get client communication logs
+  getClientCommunicationLogs: async (clientId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('communication_logs')
+        .select(`
+          log_id,
+          client_id,
+          sender_id,
+          users:sender_id (name),
+          channel,
+          message,
+          created_at
+        `)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching client communication logs:', error);
+      return handleApiError(error, []);
+    }
+  },
+  
+  // Add client communication log
+  addClientCommunicationLog: async (logData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('communication_logs')
+        .insert([logData])
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    } catch (error) {
+      console.error('Error adding client communication log:', error);
+      return handleApiError(error, null);
+    }
+  },
+  
+  // Get client brands
   getClientBrands: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('brands')
         .select('*')
-        .eq('client_id', clientId);
-        
+        .eq('client_id', clientId)
+        .order('name', { ascending: true });
+      
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error(`Error fetching brands for client ${clientId}:`, error);
-      return [];
+      console.error('Error fetching client brands:', error);
+      return handleApiError(error, []);
     }
   },
   
-  /**
-   * Get tasks for a specific brand
-   */
-  getBrandTasks: async (brandId: number) => {
+  // Create client brand
+  createClientBrand: async (brandData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('brands')
+        .insert([brandData])
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    } catch (error) {
+      console.error('Error creating client brand:', error);
+      return handleApiError(error, null);
+    }
+  },
+  
+  // Get client tasks
+  getClientTasks: async (clientId: number) => {
     try {
       const { data, error } = await supabase
         .from('tasks')
         .select(`
-          *,
-          users (name, email)
+          task_id,
+          title,
+          description,
+          status,
+          assigned_to,
+          users:assigned_to (name),
+          start_time,
+          end_time,
+          created_at
         `)
-        .eq('brand_id', brandId)
+        .eq('client_id', clientId)
         .order('created_at', { ascending: false });
-        
+      
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error(`Error fetching tasks for brand ${brandId}:`, error);
-      return [];
+      console.error('Error fetching client tasks:', error);
+      return handleApiError(error, []);
     }
   },
   
-  /**
-   * Create a new brand
-   */
-  createBrand: async (brandData: any) => {
+  // Get client invoices
+  getClientInvoices: async (clientId: number) => {
     try {
       const { data, error } = await supabase
-        .from('brands')
-        .insert(brandData)
-        .select();
-        
+        .from('invoices')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      return data[0];
+      return data;
     } catch (error) {
-      console.error('Error creating brand:', error);
-      throw error;
+      console.error('Error fetching client invoices:', error);
+      return handleApiError(error, []);
     }
   }
 };

@@ -63,8 +63,8 @@ const TaskDetail = () => {
             created_at,
             updated_at,
             assigned_to,
-            users:assigned_to (name),
-            clients (client_name)
+            users:assigned_to(name),
+            clients(client_name)
           `)
           .eq('task_id', parseInt(taskId || '0'))
           .single();

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import aiService from "@/services/api/aiService";
 import { useAuth } from "@/hooks/use-auth";
-import { useTasks } from "@/utils/apiUtils";
+import { useTasks } from "@/hooks/useTasks";
 import { toast } from "sonner";
 
 type Message = {
@@ -40,7 +40,7 @@ export const AIAssistant = () => {
   const { user } = useAuth();
   
   // Use custom hooks to fetch data for context
-  const { data: tasks } = useTasks();
+  const { tasks } = useTasks();
 
   const suggestionCategories: SuggestionCategory[] = [
     {

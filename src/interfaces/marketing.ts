@@ -1,36 +1,27 @@
 
-export interface EmailOutreach {
+export interface Campaign {
   id: number;
-  recipient: string;
-  recipientCompany: string;
-  subject: string;
-  status: 'sent' | 'opened' | 'replied' | 'bounced' | 'scheduled';
-  sentAt: string;
-  source: string;
-  followUpScheduled: boolean;
-}
-
-export interface CompetitorInsight {
-  id: number;
-  competitor_name: string;
-  description: string;
-  impact: 'high' | 'medium' | 'low';
+  title: string;
   type: string;
-  discoveredAt: string;
-  source: string;
-  suggestedResponse: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  budget: number;
+  roi: string;
+  leads_generated: number;
+  conversion_rate: string;
 }
 
-export interface MarketingMeeting {
+export interface Meeting {
   id: number;
-  leadName: string;
-  leadCompany: string;
-  scheduledTime: string;
-  duration: number;
-  platform: string;
+  title: string;
+  type: string;
+  date: string;
+  time: string;
+  contact_name: string;
+  company: string;
   status: string;
-  notes?: string;
-  followUpDate?: string;
+  notes: string;
 }
 
 export interface EmailTemplate {
@@ -38,109 +29,17 @@ export interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
-  usage_count: number;
-  conversion_rate: number;
   variables: string[];
-  tags: string[];
-  created_at: string;
-  last_modified: string;
-}
-
-export interface MarketingMetrics {
-  lead_generation: {
-    total_leads: number;
-    qualified_leads: number;
-    lead_quality_score: number;
-    cost_per_lead: number;
-    conversion_rate: number;
-    trends: Array<{
-      month: string;
-      leads: number;
-      qualified: number;
-    }>;
+  category: string;
+  performance: {
+    open_rate: number;
+    response_rate: number;
+    meetings_booked: number;
   };
-  campaign_performance: {
-    active_campaigns: number;
-    top_performing: string;
-    avg_engagement_rate: number;
-    avg_conversion_rate: number;
-    roi: number;
-    by_channel: Array<{
-      channel: string;
-      engagement: number;
-      conversion: number;
-      roi: number;
-    }>;
-  };
-  website_performance: {
-    traffic: number;
-    bounce_rate: number;
-    avg_session_duration: number;
-    top_landing_pages: Array<{
-      page: string;
-      visits: number;
-      conversion: number;
-    }>;
-  };
+  improvements?: string[];
 }
 
-export interface MarketingPlan {
-  id: number;
-  title: string;
-  description: string;
-  status: string;
-  start_date: string;
-  end_date: string;
-  owner_id: number;
-  owner_name: string;
-  budget: number;
-  kpis: Array<{
-    name: string;
-    target: number;
-    current: number;
-    unit: string;
-  }>;
-  channels: Array<{
-    name: string;
-    budget_allocation: number;
-    status: string;
-  }>;
-  milestones: Array<{
-    name: string;
-    due_date: string;
-    status: string;
-  }>;
-}
-
-export interface MarketingTrends {
-  industry_trends: Array<{
-    id: number;
-    title: string;
-    description: string;
-    impact: string;
-    source: string;
-    discovery_date: string;
-    tags: string[];
-  }>;
-  platform_updates: Array<{
-    id: number;
-    platform: string;
-    update: string;
-    impact: string;
-    effective_date: string;
-    recommendations: string;
-  }>;
-  recommended_actions: Array<{
-    id: number;
-    title: string;
-    description: string;
-    priority: string;
-    resources_needed: string;
-    estimated_impact: string;
-  }>;
-}
-
-export interface MarketingLead {
+export interface Lead {
   id: number;
   name: string;
   company: string;
@@ -149,11 +48,143 @@ export interface MarketingLead {
   phone: string;
   source: string;
   status: string;
-  assigned_to: number;
-  assigned_to_name: string;
-  created_at: string;
   last_contact: string;
+  next_follow_up: string;
+  estimated_value: number;
+  probability: number;
   notes: string;
-  score: number;
-  tags: string[];
+}
+
+export interface MarketingPlan {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  budget: number;
+  goals: {
+    id: number;
+    title: string;
+    target: string;
+    current: string;
+  }[];
+  channels: string[];
+  target_audience: string[];
+  milestones: {
+    id: number;
+    title: string;
+    date: string;
+    status: string;
+  }[];
+}
+
+export interface MarketingTrends {
+  id: number;
+  title: string;
+  description: string;
+  relevance_score: number;
+  adoption_level: string;
+  expected_impact: string;
+  suggested_actions: string[];
+  resources_needed: string[];
+  implementation_timeline: string;
+  industry_examples: string[];
+}
+
+export interface CompetitorInsight {
+  id: number;
+  competitor_name: string;
+  website: string;
+  strengths: string[];
+  weaknesses: string[];
+  recent_activities: string[];
+  target_audience: string[];
+  pricing_strategy: string;
+  market_share: string;
+  growth_rate: string;
+  threat_level: string;
+  opportunity_areas: string[];
+}
+
+export interface MarketingMetrics {
+  website_traffic: {
+    total_visits: number;
+    growth_rate: string;
+    bounce_rate: string;
+    avg_session_duration: string;
+    by_source: {
+      name: string;
+      value: number;
+    }[];
+    monthly_trend: {
+      month: string;
+      value: number;
+    }[];
+  };
+  social_media: {
+    followers: number;
+    growth_rate: string;
+    engagement_rate: string;
+    reach: number;
+    by_platform: {
+      name: string;
+      value: number;
+      growth: string;
+    }[];
+    top_posts: {
+      id: number;
+      platform: string;
+      content: string;
+      engagement: number;
+      reach: number;
+      date: string;
+    }[];
+  };
+  email_marketing: {
+    total_subscribers: number;
+    growth_rate: string;
+    avg_open_rate: string;
+    avg_click_rate: string;
+    unsubscribe_rate: string;
+    best_performing_campaign: {
+      name: string;
+      open_rate: string;
+      click_rate: string;
+      conversion_rate: string;
+    };
+  };
+  content_marketing: {
+    total_content_pieces: number;
+    avg_engagement: string;
+    conversion_rate: string;
+    by_type: {
+      name: string;
+      value: number;
+    }[];
+    top_performing: {
+      id: number;
+      title: string;
+      type: string;
+      views: number;
+      engagement: number;
+      conversion_rate: string;
+    }[];
+  };
+}
+
+export interface MeetingAnalysis {
+  summary: string;
+  key_points: string[];
+  action_items: {
+    task: string;
+    assignee: string;
+    deadline: string;
+  }[];
+  client_pain_points: string[];
+  opportunities: string[];
+  follow_up_schedule: {
+    next_meeting: string;
+    deliverables: string[];
+  };
 }

@@ -1,10 +1,12 @@
 
 export interface Task {
   task_id: number;
+  id?: number; // Adding for backward compatibility
   title: string;
   description: string;
   client_id?: number;
   client_name?: string; // Added for joining with client table
+  client?: string; // For backward compatibility
   assigned_to?: number;
   assignee_name?: string; // Added for joining with users table
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -14,23 +16,39 @@ export interface Task {
   start_time?: string;
   end_time?: string;
   due_date?: string;
+  dueDate?: Date; // For backward compatibility
   created_at: string;
   updated_at?: string;
 }
 
 export interface DetailedTask {
   id: number;
+  task_id?: number; // For backward compatibility
   title: string;
   description: string;
   client: string;
+  client_id?: number;
+  clientLogo?: string;
   priority: 'high' | 'medium' | 'low';
   status: string;
-  dueDate: Date;
+  dueDate?: Date;
+  startDate?: Date;
+  progress: number;
   estimatedHours: number;
   actualHours: number;
   assignedTo: string;
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
+  tags?: string[];
+  drive_link?: string;
+  progress_description?: string;
+  recentActivity?: {
+    id: number;
+    type: string;
+    user: string;
+    timestamp: Date;
+    description: string;
+  }[];
 }
 
 export interface TaskComment {
