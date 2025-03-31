@@ -88,3 +88,8 @@ export interface ChartData {
   color?: string;
   key?: string;
 }
+
+export interface SalesGrowthTrackingProps {
+  period?: 'month' | 'quarter' | 'year';
+  dateRange?: string;
+}

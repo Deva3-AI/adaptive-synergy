@@ -8,10 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import AnalyticsChart from '@/components/dashboard/AnalyticsChart';
 import DashboardCard from '@/components/dashboard/DashboardCard';
-
-interface SalesGrowthTrackingProps {
-  period: 'month' | 'quarter' | 'year';
-}
+import { SalesGrowthTrackingProps } from '@/types';
 
 interface GrowthData {
   name: string;
@@ -42,11 +39,11 @@ interface SalesGrowthData {
   insights?: string[];
 }
 
-const SalesGrowthTracking = ({ period }: SalesGrowthTrackingProps) => {
+const SalesGrowthTracking: React.FC<SalesGrowthTrackingProps> = ({ period = 'month', dateRange }) => {
   // Fetch sales growth data
   const { data: salesGrowth, isLoading: isGrowthLoading } = useQuery({
     queryKey: ['sales-growth', period],
-    queryFn: () => financeService.getSalesGrowth(period),
+    queryFn: () => financeService.getSalesGrowthData(period),
   });
 
   const growthData = salesGrowth as SalesGrowthData || {};
@@ -202,7 +199,7 @@ const SalesGrowthTracking = ({ period }: SalesGrowthTrackingProps) => {
           </div>
         ) : (
           <ul className="space-y-3">
-            {insights.map((insight, idx) => (
+            {Array.isArray(insights) && insights.map((insight, idx) => (
               <li key={idx} className="flex items-start">
                 <CheckCircle className="h-5 w-5 mr-2 text-green-500 shrink-0 mt-0.5" />
                 <span className="text-sm">{insight}</span>

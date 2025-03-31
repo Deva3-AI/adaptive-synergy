@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,8 @@ const SalesDashboard = () => {
     from: new Date(new Date().getFullYear(), 0, 1),
     to: new Date(),
   });
+  
+  const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
 
   // Fetch metrics data
   const { data: metricsData, isLoading: isMetricsLoading } = useQuery({
@@ -44,7 +47,7 @@ const SalesDashboard = () => {
         </TabsContent>
         
         <TabsContent value="growth" className="space-y-4">
-          <SalesGrowthTracking dateRange="month" />
+          <SalesGrowthTracking period={period} />
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-4">

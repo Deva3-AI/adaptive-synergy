@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeService } from "@/services/api";
@@ -30,6 +31,27 @@ const TeamCostsAnalysis = ({ startDate, endDate }: TeamCostsAnalysisProps) => {
     }).format(amount);
   };
 
+  // Safe access to the data with type checking and defaults
+  const costsBreakdown = costAnalysis && typeof costAnalysis === 'object' && 'costsBreakdown' in costAnalysis 
+    ? costAnalysis.costsBreakdown 
+    : [];
+    
+  const costTrends = costAnalysis && typeof costAnalysis === 'object' && 'costTrends' in costAnalysis 
+    ? costAnalysis.costTrends 
+    : [];
+    
+  const employeeCosts = costAnalysis && typeof costAnalysis === 'object' && 'employeeCosts' in costAnalysis 
+    ? costAnalysis.employeeCosts 
+    : [];
+    
+  const savingOpportunities = costAnalysis && typeof costAnalysis === 'object' && 'savingOpportunities' in costAnalysis 
+    ? costAnalysis.savingOpportunities 
+    : [];
+    
+  const budgetReviews = costAnalysis && typeof costAnalysis === 'object' && 'budgetReviews' in costAnalysis 
+    ? costAnalysis.budgetReviews 
+    : [];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -45,7 +67,7 @@ const TeamCostsAnalysis = ({ startDate, endDate }: TeamCostsAnalysisProps) => {
             </div>
           ) : (
             <AnalyticsChart 
-              data={costAnalysis?.costsBreakdown || []} 
+              data={costsBreakdown} 
               height={300}
               defaultType="pie"
             />
@@ -64,7 +86,7 @@ const TeamCostsAnalysis = ({ startDate, endDate }: TeamCostsAnalysisProps) => {
             </div>
           ) : (
             <AnalyticsChart 
-              data={costAnalysis?.costTrends || []} 
+              data={costTrends} 
               height={300}
               defaultType="line"
             />
@@ -92,7 +114,7 @@ const TeamCostsAnalysis = ({ startDate, endDate }: TeamCostsAnalysisProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(costAnalysis?.employeeCosts || []).map((employee: any) => (
+              {Array.isArray(employeeCosts) && employeeCosts.map((employee: any) => (
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">{employee.name}</TableCell>
                   <TableCell>{employee.department}</TableCell>
@@ -125,7 +147,7 @@ const TeamCostsAnalysis = ({ startDate, endDate }: TeamCostsAnalysisProps) => {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Based on your team costs, here are potential saving opportunities:</p>
               <ul className="space-y-2">
-                {(costAnalysis?.savingOpportunities || []).map((opportunity: string, index: number) => (
+                {Array.isArray(savingOpportunities) && savingOpportunities.map((opportunity: string, index: number) => (
                   <li key={index} className="text-sm flex items-start">
                     <CheckSquare className="h-4 w-4 mr-2 mt-0.5 text-primary" />
                     <span>{opportunity}</span>
@@ -150,7 +172,7 @@ const TeamCostsAnalysis = ({ startDate, endDate }: TeamCostsAnalysisProps) => {
             </div>
           ) : (
             <div className="space-y-4">
-              {(costAnalysis?.budgetReviews || []).map((review: any) => (
+              {Array.isArray(budgetReviews) && budgetReviews.map((review: any) => (
                 <div key={review.id} className="flex items-start space-x-3 pb-3 border-b last:border-0 last:pb-0">
                   <div className="p-2 bg-primary/10 rounded-full">
                     <Calendar className="h-4 w-4 text-primary" />

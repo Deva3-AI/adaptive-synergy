@@ -25,7 +25,7 @@ const AppLayout = () => {
     <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
-        <Sidebar expanded={sidebarExpanded} className="h-full" />
+        <Sidebar expanded={sidebarExpanded} />
       </div>
 
       {/* Mobile Sidebar */}

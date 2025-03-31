@@ -51,11 +51,7 @@ export const ExpensesDashboard = () => {
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['financial-records', 'expense', dateFilter],
     queryFn: async () => {
-      return await financeService.getFinancialRecords(
-        'expense', 
-        dateFilter.from?.toISOString().split('T')[0], 
-        dateFilter.to?.toISOString().split('T')[0]
-      );
+      return await financeService.getFinancialRecords('expense');
     }
   });
 
@@ -106,7 +102,7 @@ export const ExpensesDashboard = () => {
   };
 
   // Filter expenses based on search term and category
-  const filteredExpenses = expenses?.filter(expense => {
+  const filteredExpenses = expenses && Array.isArray(expenses) ? expenses.filter(expense => {
     const matchesSearch = searchTerm === '' || 
       expense.description.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -114,15 +110,15 @@ export const ExpensesDashboard = () => {
       (expense.category && expense.category === categoryFilter);
     
     return matchesSearch && matchesCategory;
-  });
+  }) : [];
 
   // Extract unique categories for the filter dropdown
-  const categories = expenses?.reduce((acc: string[], expense) => {
+  const categories = expenses && Array.isArray(expenses) ? expenses.reduce((acc: string[], expense) => {
     if (expense.category && !acc.includes(expense.category)) {
       acc.push(expense.category);
     }
     return acc;
-  }, []) || [];
+  }, []) : [];
 
   return (
     <div className="space-y-6">
@@ -359,7 +355,7 @@ export const ExpensesDashboard = () => {
             </ScrollArea>
           ) : (
             <div className="text-center py-6 text-muted-foreground">
-              {expenses && expenses.length > 0
+              {expenses && Array.isArray(expenses) && expenses.length > 0
                 ? "No expenses match your search criteria."
                 : "No expenses found. Add your first expense using the button above."}
             </div>
