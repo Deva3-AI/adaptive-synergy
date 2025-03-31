@@ -1,3 +1,4 @@
+
 // Import necessary dependencies
 import { mockUserData } from '@/utils/mockData';
 
@@ -259,8 +260,8 @@ export const taskService = {
           id: Math.floor(Math.random() * 1000) + 10,
           task_id: taskId,
           user_id: commentData.user_id,
-          user_name: commentData.user_name,
-          content: commentData.content,
+          user: commentData.user_name,
+          text: commentData.content,
           created_at: new Date().toISOString()
         };
         
