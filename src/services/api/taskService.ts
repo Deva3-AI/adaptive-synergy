@@ -452,7 +452,6 @@ export const taskService = {
     });
   },
   
-  // Alias for getTasksByEmployee for compatibility with existing code
   getTasksByUser: async (userId: number) => {
     return taskService.getTasksByEmployee(userId);
   },
