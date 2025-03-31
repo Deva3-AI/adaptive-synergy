@@ -29,12 +29,10 @@ import LeaveBalanceDisplay from '@/components/employee/LeaveBalanceDisplay';
 import EmployeeLeaveRequests from '@/components/employee/EmployeeLeaveRequests';
 import EmployeeTaskStats from '@/components/employee/EmployeeTaskStats';
 import { useQuery } from '@tanstack/react-query';
-
-// Import DateRange type from react-day-picker
 import { DateRange } from "react-day-picker";
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 
-const EmployeeProfile = () => {
+const Profile: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { user: authUser } = useAuth();
   const { user, loading, error } = useUser(userId);
@@ -43,7 +41,6 @@ const EmployeeProfile = () => {
     to: new Date(),
   });
 
-  // Fetch employee details
   const { data: employeeDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['employeeDetails', userId],
     queryFn: async () => {
@@ -54,7 +51,6 @@ const EmployeeProfile = () => {
     enabled: !!userId,
   });
 
-  // Fetch performance data
   const { data: performanceData, isLoading: isLoadingPerformance } = useQuery({
     queryKey: ['performanceData', userId],
     queryFn: async () => {
@@ -65,7 +61,6 @@ const EmployeeProfile = () => {
     enabled: !!userId,
   });
 
-  // Fetch attendance data
   const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
     queryKey: ['attendanceData', userId],
     queryFn: async () => {
@@ -76,7 +71,6 @@ const EmployeeProfile = () => {
     enabled: !!userId,
   });
 
-  // Fetch leave balance data
   const { data: leaveBalanceData, isLoading: isLoadingLeaveBalance } = useQuery({
     queryKey: ['leaveBalanceData', userId],
     queryFn: async () => {
@@ -161,7 +155,26 @@ const EmployeeProfile = () => {
   ];
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-6 space-y-8">
+      <div className="flex flex-col md:flex-row justify-between md:items-center space-y-4 md:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{user?.name || 'Employee Profile'}</h1>
+          <p className="text-muted-foreground">
+            Manage your profile and view your performance metrics
+          </p>
+        </div>
+        <div className="space-x-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/employee/leave-requests')}
+            className="flex items-center gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Apply for Leave
+          </Button>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Employee Profile</CardTitle>
@@ -315,4 +328,4 @@ const EmployeeProfile = () => {
   );
 };
 
-export default EmployeeProfile;
+export default Profile;
