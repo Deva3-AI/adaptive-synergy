@@ -1,244 +1,191 @@
 
-export interface Campaign {
+export interface MarketingCampaign {
   id: number;
   title: string;
-  type: string;
-  status: string;
-  start_date: string;
-  end_date: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: 'draft' | 'active' | 'paused' | 'completed';
   budget: number;
-  roi: string;
-  leads_generated: number;
-  conversion_rate: string;
-}
-
-export interface Meeting {
-  id: number;
-  title: string;
-  type: string;
-  date: string;
-  time: string;
-  contact_name: string;
-  company: string;
-  status: string;
-  notes: string;
-}
-
-export interface EmailTemplate {
-  id: number;
-  name: string;
-  subject: string;
-  body: string;
-  variables: string[];
-  category: string;
-  performance: {
-    open_rate: number;
-    response_rate: number;
-    meetings_booked: number;
+  channels: string[];
+  targets: {
+    audience: string;
+    goals: string[];
   };
-  improvements?: string[];
+  performance?: {
+    reach: number;
+    engagement: number;
+    conversion: number;
+    roi: number;
+  };
 }
 
-export interface Lead {
+export interface MarketingLead {
   id: number;
   name: string;
   company: string;
-  position: string;
   email: string;
-  phone: string;
+  phone?: string;
   source: string;
-  status: string;
-  last_contact: string;
-  next_follow_up: string;
-  estimated_value: number;
-  probability: number;
-  notes: string;
+  status: 'new' | 'contacted' | 'qualified' | 'proposal' | 'closed' | 'lost';
+  notes?: string;
+  lastContactDate?: string;
+  assignedTo?: number;
+  assignedToName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  score?: number;
+  tags?: string[];
+}
+
+export interface MarketingMetrics {
+  timeframe: string;
+  leads: {
+    total: number;
+    new: number;
+    qualified: number;
+    conversion: number;
+  };
+  campaigns: {
+    active: number;
+    reach: number;
+    engagement: number;
+    conversion: number;
+  };
+  channels: {
+    name: string;
+    performance: number;
+    trend: 'up' | 'down' | 'stable';
+  }[];
+  sales: {
+    total: number;
+    average: number;
+    trend: number;
+  };
 }
 
 export interface MarketingPlan {
   id: number;
   title: string;
   description: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  budget: number;
+  period: {
+    start: string;
+    end: string;
+  };
+  status: 'draft' | 'active' | 'completed';
   goals: {
+    description: string;
+    metric: string;
+    target: number;
+    current?: number;
+  }[];
+  strategies: {
     id: number;
     title: string;
-    target: string;
-    current: string;
+    description: string;
+    tactics: string[];
   }[];
-  channels: string[];
-  target_audience: string[];
-  milestones: {
-    id: number;
-    title: string;
-    date: string;
-    status: string;
-  }[];
+  budget: {
+    total: number;
+    allocated: number;
+    remaining: number;
+  };
+  timeline: {
+    milestones: {
+      date: string;
+      description: string;
+      completed: boolean;
+    }[];
+  };
 }
 
 export interface MarketingTrends {
-  id: number;
-  title: string;
-  description: string;
-  relevance_score: number;
-  adoption_level: string;
-  expected_impact: string;
-  suggested_actions: string[];
-  resources_needed: string[];
-  implementation_timeline: string;
-  industry_examples: string[];
+  trends: {
+    id: number;
+    name: string;
+    description: string;
+    impact: 'low' | 'medium' | 'high';
+    relevance: string;
+    source: string;
+    date: string;
+  }[];
+  industryBenchmarks: {
+    metric: string;
+    industry: number;
+    company: number;
+    difference: number;
+  }[];
+  recommendations: string[];
 }
 
-export interface MarketingTrend {
+export interface CompetitorInsight {
   id: number;
-  title: string;
+  competitor: string;
+  impact: 'low' | 'medium' | 'high';
   type: string;
   description: string;
-  impact: string;
   discoveredAt: string;
   source: string;
   suggestedResponse: string;
-  relevance_score: number;
-  category: string;
-  actionable: boolean;
-  suggestedActions: string[];
+}
+
+export interface EmailOutreach {
+  id: number;
+  title: string;
+  recipients: number;
+  sentDate: string;
+  openRate: number;
+  clickRate: number;
+  responses: number;
+  meetings: number;
+  status: 'draft' | 'scheduled' | 'sent' | 'completed';
+  template?: string;
+  results?: {
+    leads: number;
+    opportunities: number;
+    sales: number;
+  };
 }
 
 export interface MarketingMeeting {
   id: number;
   title: string;
   date: string;
-  attendees: string[];
-  summary: string;
-  action_items: string[];
-  leadName: string;
-  leadCompany: string;
-  duration: string;
-  platform: string;
-  scheduledTime: string;
-  status: string;
-}
-
-export interface EmailOutreach {
-  id: number;
-  campaign_name: string;
-  status: string;
-  sent_date: string;
-  recipients: number;
-  open_rate: string;
-  click_rate: string;
-  response_rate: string;
-  meetings_booked: number;
-  recipient: string;
-  recipientCompany: string;
-  subject: string;
-  sentAt: string;
-  source: string;
-  followUpScheduled: boolean;
-}
-
-export interface CompetitorInsight {
-  id: number;
-  competitor_name: string;
-  website: string;
-  strengths: string[];
-  weaknesses: string[];
-  recent_activities: string[];
-  target_audience: string[];
-  pricing_strategy: string;
-  market_share: string;
-  growth_rate: string;
-  threat_level: string;
-  opportunity_areas: string[];
-  impact: string;
-  type: string;
-  description: string;
-  discoveredAt: string;
-  source: string;
-  suggestedResponse: string;
-}
-
-export interface MarketingMetrics {
-  website_traffic: {
-    total_visits: number;
-    growth_rate: string;
-    bounce_rate: string;
-    avg_session_duration: string;
-    by_source: {
-      name: string;
-      value: number;
-    }[];
-    monthly_trend: {
-      month: string;
-      value: number;
-    }[];
-  };
-  social_media: {
-    followers: number;
-    growth_rate: string;
-    engagement_rate: string;
-    reach: number;
-    by_platform: {
-      name: string;
-      value: number;
-      growth: string;
-    }[];
-    top_posts: {
-      id: number;
-      platform: string;
-      content: string;
-      engagement: number;
-      reach: number;
-      date: string;
-    }[];
-  };
-  email_marketing: {
-    total_subscribers: number;
-    growth_rate: string;
-    avg_open_rate: string;
-    avg_click_rate: string;
-    unsubscribe_rate: string;
-    best_performing_campaign: {
-      name: string;
-      open_rate: string;
-      click_rate: string;
-      conversion_rate: string;
-    };
-  };
-  content_marketing: {
-    total_content_pieces: number;
-    avg_engagement: string;
-    conversion_rate: string;
-    by_type: {
-      name: string;
-      value: number;
-    }[];
-    top_performing: {
-      id: number;
-      title: string;
-      type: string;
-      views: number;
-      engagement: number;
-      conversion_rate: string;
-    }[];
-  };
-}
-
-export interface MeetingAnalysis {
-  summary: string;
-  key_points: string[];
-  action_items: {
-    task: string;
-    assignee: string;
-    deadline: string;
+  time: string;
+  duration: number;
+  company: string;
+  contacts: {
+    name: string;
+    title: string;
+    email?: string;
+    phone?: string;
   }[];
-  client_pain_points: string[];
-  opportunities: string[];
-  follow_up_schedule: {
-    next_meeting: string;
-    deliverables: string[];
+  agenda: string[];
+  notes?: string;
+  outcome?: string;
+  nextSteps?: string[];
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
+  followUp?: {
+    date: string;
+    type: 'email' | 'call' | 'meeting';
+    completed: boolean;
   };
+}
+
+export interface MeetingTranscript {
+  id: number;
+  meetingId: number;
+  meetingTitle: string;
+  date: string;
+  duration: number;
+  participants: string[];
+  content: string;
+  keyPoints?: string[];
+  action_items?: {
+    description: string;
+    assignee?: string;
+    dueDate?: string;
+    completed: boolean;
+  }[];
+  sentiment?: 'positive' | 'neutral' | 'negative';
 }

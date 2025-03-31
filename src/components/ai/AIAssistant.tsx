@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrainCircuit, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { aiService } from '@/services/api';
+import aiService from '@/services/api/aiService';
 import { useAuth } from '@/hooks/useAuth';
 import useTasks from '@/hooks/useTasks';
 

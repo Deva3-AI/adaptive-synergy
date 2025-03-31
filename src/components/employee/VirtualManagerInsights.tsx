@@ -1,141 +1,95 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lightbulb, Timer, ThumbsUp, Coffee, Users, ArrowRight } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { aiService } from '@/services/api';
+import { AlertCircle, Clock, CheckCircle, CalendarDays, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import aiService from '@/services/api/aiService';
+import { cn } from '@/lib/utils';
 
 interface VirtualManagerInsightsProps {
-  taskId: number | null;
+  taskId: number;
+  className?: string;
 }
 
-const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ taskId }) => {
-  const [tips, setTips] = useState<string[]>([]);
-  const [timelineRisk, setTimelineRisk] = useState<string>('low');
-  const [timelineSuggestions, setTimelineSuggestions] = useState<string[]>([]);
-  const [qualityInsights, setQualityInsights] = useState<string[]>([]);
-  const [resources, setResources] = useState<any[]>([]);
-
-  const { data, isLoading, error } = useQuery({
+const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ taskId, className }) => {
+  // Fetch insights for a specific task
+  const { data: insights, isLoading, error } = useQuery({
     queryKey: ['manager-insights', taskId],
     queryFn: () => aiService.generateManagerInsights(taskId),
     enabled: !!taskId,
   });
 
-  useEffect(() => {
-    if (data) {
-      setTips(data.tips || []);
-      setTimelineRisk(data.timeline_risk || 'low');
-      setTimelineSuggestions(data.timeline_suggestions || []);
-      setQualityInsights(data.quality_insights || []);
-      setResources(data.resources || []);
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'deadline':
+        return <Clock className="h-4 w-4 text-amber-500" />;
+      case 'quality':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'planning':
+        return <CalendarDays className="h-4 w-4 text-blue-500" />;
+      case 'risk':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
-  }, [data]);
+  };
+
+  const getBadgeVariant = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'destructive';
+      case 'medium':
+        return 'default';
+      case 'low':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
 
   return (
-    <Card className="w-full">
+    <Card className={cn(className)}>
       <CardHeader>
-        <CardTitle className="text-lg font-semibold flex items-center">
-          <Lightbulb className="mr-2 h-5 w-5 text-yellow-500" />
-          Virtual Manager Insights
-        </CardTitle>
+        <CardTitle className="text-base">Virtual Manager Insights</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent>
         {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-1/2" />
-          </div>
+          <>
+            <Skeleton className="h-16 w-full mb-3" />
+            <Skeleton className="h-16 w-full mb-3" />
+            <Skeleton className="h-16 w-full" />
+          </>
         ) : error ? (
-          <div className="text-red-500">Error loading insights.</div>
+          <div className="text-center p-4">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Failed to load insights</p>
+            <Button variant="outline" size="sm" className="mt-2">Retry</Button>
+          </div>
+        ) : !insights || insights.length === 0 ? (
+          <div className="text-center p-4">
+            <p className="text-sm text-muted-foreground">No insights available for this task</p>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {tips.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium flex items-center">
-                  <Coffee className="mr-1 h-4 w-4 text-gray-400" />
-                  Quick Tips
-                </h4>
-                <ul className="list-disc pl-5 space-y-1">
-                  {tips.map((tip, index) => (
-                    <li key={index} className="text-sm text-gray-700">{tip}</li>
-                  ))}
-                </ul>
+          <div className="space-y-3">
+            {insights.map((insight: any, i: number) => (
+              <div key={i} className="p-3 bg-muted rounded-lg flex items-start">
+                <div className="flex-shrink-0 p-1">
+                  {getIconForType(insight.type)}
+                </div>
+                <div className="ml-2 flex-grow">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-sm font-medium">{insight.title}</h4>
+                    <Badge variant={getBadgeVariant(insight.priority)} className="text-[10px]">
+                      {insight.priority}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{insight.description}</p>
+                </div>
               </div>
-            )}
-
-            <Separator />
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium flex items-center">
-                <Timer className="mr-1 h-4 w-4 text-gray-400" />
-                Timeline Risk
-                <Badge
-                  variant={timelineRisk === 'high' ? 'destructive' : timelineRisk === 'medium' ? 'warning' : 'success'}
-                  className="ml-2"
-                >
-                  {timelineRisk}
-                </Badge>
-              </h4>
-              {timelineSuggestions.length > 0 ? (
-                <ul className="list-disc pl-5 space-y-1">
-                  {timelineSuggestions.map((suggestion, index) => (
-                    <li key={index} className="text-sm text-gray-700">{suggestion}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No timeline suggestions available.</p>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium flex items-center">
-                <ThumbsUp className="mr-1 h-4 w-4 text-gray-400" />
-                Quality Insights
-              </h4>
-              {qualityInsights.length > 0 ? (
-                <ul className="list-disc pl-5 space-y-1">
-                  {qualityInsights.map((insight, index) => (
-                    <li key={index} className="text-sm text-gray-700">{insight}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No quality insights available.</p>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium flex items-center">
-                <Users className="mr-1 h-4 w-4 text-gray-400" />
-                Resources
-              </h4>
-              {resources.length > 0 ? (
-                <ul className="space-y-2">
-                  {resources.map((resource, index) => (
-                    <li key={index} className="flex items-center justify-between">
-                      <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline">
-                        {resource.title}
-                      </a>
-                      <Button variant="link" size="sm">
-                        View
-                        <ArrowRight className="ml-1 h-4 w-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No resources available.</p>
-              )}
-            </div>
+            ))}
           </div>
         )}
       </CardContent>

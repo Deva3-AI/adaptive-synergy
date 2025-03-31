@@ -20,6 +20,7 @@ export interface Task {
   progress: number;
   attachments?: any[];
   comments?: any[];
+  due_date?: string; // Add the missing due_date field
 }
 
 export interface DetailedTask {
@@ -39,6 +40,7 @@ export interface DetailedTask {
   attachments: TaskAttachment[];
   tags: string[];
   recentActivity: TaskActivity[];
+  task_id?: number; // Add this to avoid property error
 }
 
 export interface TaskAttachment {
@@ -93,3 +95,11 @@ export interface TaskComment {
   updated_at?: string;
   attachments?: TaskAttachment[];
 }
+
+export type TaskFilter = {
+  status?: string[];
+  priority?: string[];
+  client?: string[];
+  assigned?: string[];
+  dueDate?: [Date | null, Date | null];
+};

@@ -25,7 +25,7 @@ const TaskRecommendations: React.FC<TaskRecommendationsProps> = ({ userId, class
   // Fetch AI task recommendations
   const { data: recommendations = [], isLoading, error } = useQuery({
     queryKey: ['ai-task-recommendations', userId],
-    queryFn: () => aiService.getAITaskRecommendations(userId),
+    queryFn: () => aiService.generateAITaskRecommendations(userId),
   });
 
   // Add task mutation

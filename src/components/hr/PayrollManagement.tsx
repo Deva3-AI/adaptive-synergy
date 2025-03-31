@@ -71,8 +71,8 @@ const PayrollManagement = () => {
       total: payslips.length,
       paid: payslips.filter(p => p.status === 'paid').length,
       pending: payslips.filter(p => p.status !== 'paid').length,
-      totalAmount: payslips.reduce((sum, p) => sum + p.netSalary, 0),
-      paidAmount: payslips.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.netSalary, 0)
+      totalAmount: payslips.reduce((sum, p) => sum + p.net_salary, 0),
+      paidAmount: payslips.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.net_salary, 0)
     };
   }, [payslips]);
   
@@ -84,7 +84,7 @@ const PayrollManagement = () => {
   
   // Handle payslip download
   const handleDownloadPayslip = (payslip: PaySlip) => {
-    toast.success(`Downloading payslip for ${payslip.employeeName}`);
+    toast.success(`Downloading payslip for ${payslip.employee_name}`);
     
     // In a real implementation, this would make an API call to download the payslip PDF
     setTimeout(() => {
@@ -94,7 +94,7 @@ const PayrollManagement = () => {
   
   // Handle send payslip email
   const handleSendPayslip = (payslip: PaySlip) => {
-    toast.success(`Sending payslip to ${payslip.employeeName}`);
+    toast.success(`Sending payslip to ${payslip.employee_name}`);
     
     // In a real implementation, this would make an API call to send the payslip via email
     setTimeout(() => {
@@ -312,11 +312,11 @@ const PayrollManagement = () => {
                   <TableBody>
                     {payslips.map((payslip) => (
                       <TableRow key={payslip.id}>
-                        <TableCell className="font-medium">{payslip.employeeName}</TableCell>
-                        <TableCell>${payslip.basicSalary.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium">{payslip.employee_name}</TableCell>
+                        <TableCell>${payslip.basic_salary.toLocaleString()}</TableCell>
                         <TableCell>${payslip.allowances.toLocaleString()}</TableCell>
                         <TableCell>${payslip.deductions.toLocaleString()}</TableCell>
-                        <TableCell className="font-medium">${payslip.netSalary.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium">${payslip.net_salary.toLocaleString()}</TableCell>
                         <TableCell>
                           <Badge variant={
                             payslip.status === 'paid' ? 'success' : 
@@ -413,8 +413,8 @@ const PayrollManagement = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-bold text-lg">{selectedPayslip.employeeName}</h3>
-                  <div className="text-sm text-muted-foreground">Employee ID: EMP-{selectedPayslip.employeeId}</div>
+                  <h3 className="font-bold text-lg">{selectedPayslip.employee_name}</h3>
+                  <div className="text-sm text-muted-foreground">Employee ID: EMP-{selectedPayslip.employee_id}</div>
                 </div>
                 <Badge variant={
                   selectedPayslip.status === 'paid' ? 'success' : 
@@ -438,7 +438,7 @@ const PayrollManagement = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Basic Salary</h4>
-                  <div className="font-medium">${selectedPayslip.basicSalary.toLocaleString()}</div>
+                  <div className="font-medium">${selectedPayslip.basic_salary.toLocaleString()}</div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Position</h4>
@@ -451,7 +451,7 @@ const PayrollManagement = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between py-1 border-b">
                     <span>Basic Salary</span>
-                    <span className="font-medium">${selectedPayslip.basicSalary.toLocaleString()}</span>
+                    <span className="font-medium">${selectedPayslip.basic_salary.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b">
                     <span>Performance Bonus</span>
@@ -467,7 +467,7 @@ const PayrollManagement = () => {
                   </div>
                   <div className="flex justify-between py-1 font-medium">
                     <span>Total Earnings</span>
-                    <span>${(selectedPayslip.basicSalary + selectedPayslip.allowances).toLocaleString()}</span>
+                    <span>${(selectedPayslip.basic_salary + selectedPayslip.allowances).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -496,7 +496,7 @@ const PayrollManagement = () => {
               
               <div className="flex justify-between py-2 font-bold text-lg border-t border-b">
                 <span>Net Pay</span>
-                <span>${selectedPayslip.netSalary.toLocaleString()}</span>
+                <span>${selectedPayslip.net_salary.toLocaleString()}</span>
               </div>
             </div>
           )}
