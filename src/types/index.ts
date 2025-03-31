@@ -11,7 +11,7 @@ export interface Candidate {
   skills: string[];
   experience: number;
   education: string;
-  status: "rejected" | "new" | "screening" | "interview" | "offer" | "hired";
+  status: string; // Changed from enum to string to match actual data
   notes: string;
   source: string;
   interview_feedback: string;
@@ -92,4 +92,31 @@ export interface ChartData {
 export interface SalesGrowthTrackingProps {
   period?: 'month' | 'quarter' | 'year';
   dateRange?: string;
+}
+
+// Define the correct LeaveRequest interface for Attendance pages
+export interface AttendanceLeaveRequest {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  start_date: string;
+  end_date?: string;
+  reason: string;
+  status: string;
+  leaveType?: string;
+}
+
+// Define PaySlip interface
+export interface PaySlip {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  month: string;
+  year: number;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  netSalary: number;
+  paidDate?: string;
+  status: string;
 }

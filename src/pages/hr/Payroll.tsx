@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PayrollManagement } from '@/components/hr/PayrollManagement';
+import PayrollManagement from '@/components/hr/PayrollManagement';
 
 const Payroll = () => {
   return (

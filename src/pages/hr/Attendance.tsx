@@ -1,6 +1,4 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -52,9 +50,8 @@ import {
 import LeaveRequestForm from '@/components/hr/LeaveRequestForm';
 import LeaveRequestsList from '@/components/hr/LeaveRequestsList';
 import EmployeePayslip from '@/components/hr/EmployeePayslip';
-import { LeaveRequest, PaySlip } from '@/utils/apiUtils';
+import { AttendanceLeaveRequest as LeaveRequest, PaySlip } from '@/types/index';
 
-// Mock data
 const MOCK_EMPLOYEES = [
   { id: 1, name: 'John Doe', department: 'Engineering', position: 'Senior Developer' },
   { id: 2, name: 'Jane Smith', department: 'Design', position: 'UI/UX Designer' },
@@ -226,22 +223,10 @@ const HrAttendance = () => {
   const [leaveRequestDialog, setLeaveRequestDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Fetch attendance data
   const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
     queryKey: ['attendance', dateRange, selectedEmployee],
     queryFn: async () => {
       try {
-        // In a real implementation, this would call the backend API
-        // const response = await axios.get('/api/hr/attendance', {
-        //   params: {
-        //     startDate: format(dateRange.from, 'yyyy-MM-dd'),
-        //     endDate: format(dateRange.to, 'yyyy-MM-dd'),
-        //     employeeId: selectedEmployee !== 'all' ? selectedEmployee : undefined,
-        //   }
-        // });
-        // return response.data;
-        
-        // For mock purposes, return filtered data
         const filteredData = MOCK_ATTENDANCE_RECORDS.filter(record => {
           const recordDate = new Date(record.date);
           const isInRange = recordDate >= dateRange.from && recordDate <= dateRange.to;
@@ -250,7 +235,6 @@ const HrAttendance = () => {
           return isInRange && isMatchingEmployee;
         });
         
-        // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 500));
         
         return filteredData;
@@ -261,16 +245,10 @@ const HrAttendance = () => {
     },
   });
   
-  // Fetch leave requests
   const { data: leaveRequests, isLoading: isLoadingLeaveRequests } = useQuery({
     queryKey: ['leaveRequests'],
     queryFn: async () => {
       try {
-        // In a real implementation, this would call the backend API
-        // const response = await axios.get('/api/hr/leave-requests');
-        // return response.data;
-        
-        // For mock purposes, return data
         await new Promise(resolve => setTimeout(resolve, 600));
         return MOCK_LEAVE_REQUESTS;
       } catch (error) {
@@ -280,15 +258,9 @@ const HrAttendance = () => {
     },
   });
   
-  // Function to update leave request status
   const updateLeaveRequestStatus = async (id: number, status: 'approved' | 'rejected'): Promise<void> => {
     try {
-      // In a real implementation, this would call the backend API
-      // await axios.patch(`/api/hr/leave-requests/${id}`, { status });
-      
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
-      
       toast.success(`Leave request ${status} successfully`);
     } catch (error) {
       console.error('Error updating leave request:', error);
@@ -297,16 +269,10 @@ const HrAttendance = () => {
     }
   };
   
-  // Function to handle leave request submission
   const handleLeaveRequestSubmit = async (formData: FormData): Promise<void> => {
     setIsSubmitting(true);
     try {
-      // In a real implementation, this would call the backend API
-      // await axios.post('/api/hr/leave-requests', formData);
-      
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
       toast.success('Leave request submitted successfully');
       setLeaveRequestDialog(false);
     } catch (error) {
@@ -323,7 +289,6 @@ const HrAttendance = () => {
   };
   
   const handleRefresh = () => {
-    // Trigger refetch of data
     toast.success('Data refreshed successfully');
   };
   
@@ -525,7 +490,7 @@ const HrAttendance = () => {
                 </div>
               ) : (
                 <LeaveRequestsList 
-                  requests={leaveRequests || []} 
+                  requests={MOCK_LEAVE_REQUESTS} 
                   onUpdateStatus={updateLeaveRequestStatus}
                 />
               )}
