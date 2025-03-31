@@ -11,7 +11,7 @@ export interface Candidate {
   skills: string[];
   experience: number;
   education: string;
-  status: string; // Changed from enum to string to match actual data
+  status: "new" | "rejected" | "screening" | "interview" | "offer" | "hired";
   notes: string;
   source: string;
   interview_feedback: string;
@@ -40,7 +40,7 @@ export interface DateRangePickerProps {
   className?: string;
   value?: DateRange;
   onChange?: (date: DateRange | undefined) => void;
-  // Add these properties to match how components are using it
+  // Support for both property patterns
   date?: DateRange;
   setDate?: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
 }
@@ -95,7 +95,7 @@ export interface SalesGrowthTrackingProps {
   dateRange?: string;
 }
 
-// Define the correct LeaveRequest interface for Attendance pages
+// Define the AttendanceLeaveRequest interface for Attendance pages
 export interface AttendanceLeaveRequest {
   id: number;
   employee_id: number;
@@ -119,5 +119,5 @@ export interface PaySlip {
   deductions: number;
   netSalary: number;
   paidDate?: string;
-  status: string;
+  status: "pending" | "paid";
 }

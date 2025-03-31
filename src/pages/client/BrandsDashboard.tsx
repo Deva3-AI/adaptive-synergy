@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,8 +24,12 @@ interface Brand {
   created_at?: string;
 }
 
-interface BrandsDashboardProps {
-  clientId?: number;
+interface BrandFormData {
+  name: string;
+  logo: string;
+  description: string;
+  website: string;
+  industry: string;
 }
 
 const BrandsDashboard = () => {
@@ -33,6 +38,58 @@ const BrandsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [currentBrand, setCurrentBrand] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<BrandFormData>({
+    name: '',
+    logo: '',
+    description: '',
+    website: '',
+    industry: ''
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // In a real app, this would call an API to create the brand
+      console.log('Creating brand with data:', formData);
+      
+      // Simulate API call success
+      setTimeout(() => {
+        // Add the new brand to the list
+        const newBrand = {
+          id: Date.now(), // Use timestamp as temporary ID
+          ...formData,
+          client_id: user?.client_id || 0
+        };
+        
+        setBrands(prev => [...prev, newBrand]);
+        setOpenModal(false);
+        toast.success('Brand created successfully!');
+        
+        // Reset form
+        setFormData({
+          name: '',
+          logo: '',
+          description: '',
+          website: '',
+          industry: ''
+        });
+        
+        setIsSubmitting(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error creating brand:', error);
+      toast.error('Failed to create brand');
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchBrands = async () => {

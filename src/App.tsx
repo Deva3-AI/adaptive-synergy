@@ -13,6 +13,14 @@ import Profile from './pages/employee/Profile';
 import LeaveRequests from './pages/employee/LeaveRequests';
 import AppLayout from './components/layout/AppLayout';
 
+// Client pages
+import ClientDashboard from './pages/client/Dashboard';
+import ClientTasks from './pages/client/Tasks';
+import ClientTaskDetail from './pages/client/TaskDetail';
+import ClientReports from './pages/client/Reports';
+import ClientsList from './pages/Clients';
+import BrandsDashboard from './pages/client/BrandsDashboard';
+
 // Finance pages
 import FinanceDashboard from './pages/finance/Dashboard';
 import FinancialDashboard from './pages/finance/FinancialDashboard';
@@ -60,6 +68,14 @@ function App() {
               <Route path="/employee/tasks/:taskId" element={<TaskDetail />} />
               <Route path="/employee/profile" element={<Profile />} />
               <Route path="/employee/leave-requests" element={<LeaveRequests />} />
+              
+              {/* Client routes */}
+              <Route path="/client/dashboard" element={<ClientDashboard />} />
+              <Route path="/client/tasks" element={<ClientTasks />} />
+              <Route path="/client/tasks/:taskId" element={<ClientTaskDetail />} />
+              <Route path="/client/reports" element={<ClientReports />} />
+              <Route path="/client/brands" element={<BrandsDashboard />} />
+              <Route path="/clients" element={<ClientsList />} />
               
               {/* Finance routes */}
               <Route path="/finance/dashboard" element={<FinanceDashboard />} />

@@ -1,335 +1,516 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Settings,
-  Calendar,
-  Mail,
-  MessageSquare,
-  LogOut,
-  Menu,
-  ChevronRight,
-  ChevronLeft,
-  Building,
-  DollarSign,
-  TrendingUp,
-  ClipboardList,
-  UserCheck,
-  Clock,
-  BarChart2,
-  Shield,
-  User,
-  CheckSquare as ListChecks,
-  FileText as File,
-  BarChart,
-  ShieldCheck
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
+// Import necessary dependencies
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { 
+  ChevronLeft, ChevronRight, 
+  LayoutDashboard, Users, Briefcase, FileText, Calendar, 
+  BarChart, Settings, Mail, MessageSquare, PieChart, 
+  User, ScrollText, ClipboardList, Workflow, Brain, 
+  UserCog, CreditCard
+} from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LucideIcon } from '@/types';
+import { SidebarProps } from '@/types';
 
-interface SidebarProps {
-  expanded?: boolean;
-  isMobile?: boolean;
-  className?: string;
-}
+// Use a type alias to avoid the conflict
+import type { LucideIcon as LucideIconType } from '@/types';
 
-type LucideIcon = React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement> & { title?: string, titleId?: string }>;
-
-interface NavItem {
-  href: string;
+interface NavItemProps {
+  to: string;
+  icon: LucideIconType;
   label: string;
-  icon: LucideIcon;
-  permission?: string;
+  expanded: boolean;
+  active?: boolean;
+  subItems?: { to: string; label: string }[];
 }
 
-const navItems: {
-  main: NavItem[];
-  employee: NavItem[];
-  hr: NavItem[];
-  finance: NavItem[];
-  marketing: NavItem[];
-  adminTools: NavItem[];
-} = {
-  main: [
-    {
-      href: '/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-    },
-  ],
-  employee: [
-    {
-      href: '/employee/tasks',
-      label: 'My Tasks',
-      icon: ListChecks,
-    },
-    {
-      href: '/employee/attendance',
-      label: 'Attendance',
-      icon: Clock,
-    },
-    {
-      href: '/employee/profile',
-      label: 'My Profile',
-      icon: User,
-    },
-  ],
-  hr: [
-    {
-      href: '/hr/employees',
-      label: 'Employees',
-      icon: Users,
-    },
-    {
-      href: '/hr/recruitment',
-      label: 'Recruitment',
-      icon: Building,
-    },
-    {
-      href: '/hr/leave-requests',
-      label: 'Leave Requests',
-      icon: Calendar,
-    },
-    {
-      href: '/hr/performance',
-      label: 'Performance',
-      icon: TrendingUp,
-    },
-  ],
-  finance: [
-    {
-      href: '/finance/dashboard',
-      label: 'Dashboard',
-      icon: BarChart,
-    },
-    {
-      href: '/finance/invoices',
-      label: 'Invoices',
-      icon: FileText,
-    },
-    {
-      href: '/finance/reports',
-      label: 'Reports',
-      icon: File,
-    },
-  ],
-  marketing: [
-    {
-      href: '/marketing/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      href: '/marketing/campaigns',
-      label: 'Campaigns',
-      icon: TrendingUp,
-    },
-    {
-      href: '/marketing/analytics',
-      label: 'Analytics',
-      icon: BarChart,
-    },
-    {
-      href: '/marketing/leads',
-      label: 'Leads',
-      icon: Users,
-    },
-    {
-      href: '/marketing/meetings',
-      label: 'Meetings',
-      icon: MessageSquare,
-    },
-  ],
-  adminTools: [
-    {
-      href: '/admin/users',
-      label: 'Manage Users',
-      icon: Users,
-      permission: 'manage_users',
-    },
-    {
-      href: '/admin/roles',
-      label: 'Manage Roles',
-      icon: ShieldCheck,
-      permission: 'manage_roles',
-    },
-    {
-      href: '/admin/settings',
-      label: 'System Settings',
-      icon: Settings,
-      permission: 'manage_settings',
-    },
-  ],
+const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label, expanded, active, subItems }) => {
+  return (
+    <li>
+      <NavLink
+        to={to}
+        className={({ isActive }) =>
+          cn(
+            "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+            isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+            active && "bg-accent text-accent-foreground"
+          )
+        }
+      >
+        <TooltipProvider>
+          <div className="flex items-center">
+            <Icon className="mr-2 h-4 w-4" />
+            <span className={cn(expanded ? "block" : "hidden", "ml-2")}>{label}</span>
+          </div>
+          {!expanded && (
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" className="p-0 ml-auto">
+                  {label}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                {label}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </TooltipProvider>
+      </NavLink>
+      {subItems && expanded && (
+        <ul className="ml-4 mt-1 space-y-1">
+          {subItems.map((subItem) => (
+            <li key={subItem.to}>
+              <NavLink
+                to={subItem.to}
+                className={({ isActive }) =>
+                  cn(
+                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  )
+                }
+              >
+                {subItem.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 };
 
-const Sidebar = ({ expanded = true, isMobile, className }: SidebarProps) => {
-  const { user, hasRole } = useAuth();
+const Sidebar: React.FC<SidebarProps> = ({ expanded, className, isMobile }) => {
+  const { user, signOut } = useAuth();
   const location = useLocation();
-  
-  const showEmployeeSection = hasRole('employee') || hasRole('admin');
-  const showMarketingSection = hasRole('marketing') || hasRole('admin');
-  const showHRSection = hasRole('hr') || hasRole('admin');
-  const showFinanceSection = hasRole('finance') || hasRole('admin');
+  const [isExpanded, setIsExpanded] = useState(expanded);
+  const matches = useMediaQuery('(max-width: 768px)');
 
-  const isActive = (href: string) => {
-    return location.pathname === href;
+  const toggleSidebar = () => {
+    setIsExpanded(!isExpanded);
   };
+
+  // Conditionally set isExpanded based on the 'expanded' prop
+  React.useEffect(() => {
+    setIsExpanded(expanded);
+  }, [expanded]);
+
+  // Collapse sidebar on mobile when a route is clicked
+  React.useEffect(() => {
+    if (matches) {
+      setIsExpanded(false);
+    }
+  }, [location.pathname, matches]);
 
   return (
     <div
       className={cn(
-        "flex flex-col space-y-4 border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-850",
-        expanded ? "w-64" : "w-20",
-        "transition-width duration-300 ease-in-out",
+        "flex flex-col border-r bg-secondary/50 text-secondary-foreground",
+        expanded ? "w-64" : "w-[5rem]",
         className
       )}
     >
-      <div className="flex items-center justify-center py-4">
-        <span className="font-bold text-xl dark:text-white">
-          {expanded ? 'AI Workflow' : 'AI'}
-        </span>
+      <div className="flex items-center justify-between py-3 px-3">
+        <Button variant="ghost" onClick={toggleSidebar}>
+          {isExpanded ? <ChevronLeft className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
+        </Button>
+        {isExpanded && (
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" className="rounded-full h-8 w-8">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-white border rounded-md shadow-md p-4">
+                <div className="flex flex-col items-start">
+                  <p className="text-sm font-semibold">{user?.email}</p>
+                  <Button variant="secondary" size="sm" onClick={signOut} className="mt-2">Sign Out</Button>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
-
-      <nav className="flex-1 space-y-1 px-2">
-        {navItems.main.map((item) => (
-          <Link
-            key={item.href}
-            to={item.href}
-            className={cn(
-              "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-              isActive(item.href)
-                ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                : "text-gray-700 dark:text-gray-400"
-            )}
-          >
-            <item.icon className="mr-2.5 h-4 w-4" />
-            {expanded && item.label}
-          </Link>
-        ))}
-
-        {showEmployeeSection && (
-          <>
-            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
-              {expanded && "Employee Tools"}
-            </div>
-            {navItems.employee.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                  isActive(item.href)
-                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    : "text-gray-700 dark:text-gray-400"
+      <ScrollArea className="flex-1 space-y-4 px-3 py-2">
+        <ul className="mt-3 space-y-2">
+          <li>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Dashboard</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Dashboard
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Dashboard
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              >
-                <item.icon className="mr-2.5 h-4 w-4" />
-                {expanded && item.label}
-              </Link>
-            ))}
-          </>
-        )}
-
-        {showHRSection && (
-          <>
-            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
-              {expanded && "HR Management"}
-            </div>
-            {navItems.hr.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                  isActive(item.href)
-                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    : "text-gray-700 dark:text-gray-400"
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/clients"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Clients</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Clients
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Clients
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              >
-                <item.icon className="mr-2.5 h-4 w-4" />
-                {expanded && item.label}
-              </Link>
-            ))}
-          </>
-        )}
-
-        {showFinanceSection && (
-          <>
-            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
-              {expanded && "Finance Management"}
-            </div>
-            {navItems.finance.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                  isActive(item.href)
-                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    : "text-gray-700 dark:text-gray-400"
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/client/brands"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Brands</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Brands
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Brands
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              >
-                <item.icon className="mr-2.5 h-4 w-4" />
-                {expanded && item.label}
-              </Link>
-            ))}
-          </>
-        )}
-
-        {showMarketingSection && (
-          <>
-            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
-              {expanded && "Marketing Tools"}
-            </div>
-            {navItems.marketing.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                  isActive(item.href)
-                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    : "text-gray-700 dark:text-gray-400"
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/client/tasks"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <ClipboardList className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Tasks</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Tasks
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Tasks
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              >
-                <item.icon className="mr-2.5 h-4 w-4" />
-                {expanded && item.label}
-              </Link>
-            ))}
-          </>
-        )}
-
-        {hasRole('admin') && (
-          <>
-            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3">
-              {expanded && "Admin Tools"}
-            </div>
-            {navItems.adminTools.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                  isActive(item.href)
-                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                    : "text-gray-700 dark:text-gray-400"
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/client/reports"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Reports</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Reports
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Reports
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              >
-                <item.icon className="mr-2.5 h-4 w-4" />
-                {expanded && item.label}
-              </Link>
-            ))}
-          </>
-        )}
-      </nav>
+              </TooltipProvider>
+            </NavLink>
+          </li>
+        </ul>
+        {isExpanded && <Separator />}
+        <ul className="mt-3 space-y-2">
+          <li>
+            <NavLink
+              to="/employee/dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Employee Dashboard</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Employee Dashboard
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Employee Dashboard
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/employee/tasks"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <ClipboardList className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Employee Tasks</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Employee Tasks
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Employee Tasks
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/employee/leave-requests"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Leave Requests</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Leave Requests
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Leave Requests
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/employee/profile"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Profile</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Profile
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Profile
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+        </ul>
+        {isExpanded && <Separator />}
+        <ul className="mt-3 space-y-2">
+          <li>
+            <NavLink
+              to="/finance/dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Finance</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Finance
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Finance
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/hr/dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <UserCog className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>HR</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        HR
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      HR
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/marketing/dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                )
+              }
+            >
+              <TooltipProvider>
+                <div className="flex items-center">
+                  <Brain className="mr-2 h-4 w-4" />
+                  <span className={cn(isExpanded ? "block" : "hidden", "ml-2")}>Marketing</span>
+                </div>
+                {!isExpanded && (
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" className="p-0 ml-auto">
+                        Marketing
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      Marketing
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </TooltipProvider>
+            </NavLink>
+          </li>
+        </ul>
+      </ScrollArea>
     </div>
   );
 };
 
 export default Sidebar;
+
