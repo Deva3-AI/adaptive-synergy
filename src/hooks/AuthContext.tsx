@@ -1,283 +1,169 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  ReactNode,
+} from 'react';
+import { authService } from '@/services/api';
+import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 
-export interface User {
+interface User {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role_id: number;
 }
 
-export interface AuthContextType {
+interface AuthContextProps {
   user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+  token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (userData: { name: string; email: string; password: string; role: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  
-  // Role checking methods
-  isAdmin: boolean;
-  isEmployee: boolean;
-  isClient: boolean;
-  isMarketing: boolean;
-  isHR: boolean;
-  isFinance: boolean;
+  logout: () => void;
+  isLoading: boolean;
+  roles: any[];
+  permissions: any[];
+  hasPermission: (permission: string) => boolean;
+  userRole: string | undefined;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps>({
+  user: null,
+  token: null,
+  login: async () => {},
+  logout: () => {},
+  isLoading: true,
+  roles: [],
+  permissions: [],
+  hasPermission: () => false,
+  userRole: undefined,
+});
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
+  const [roles, setRoles] = useState<any[]>([]);
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const router = useRouter();
 
-  // Check for existing session on mount
   useEffect(() => {
-    const checkSession = async () => {
+    const loadUserFromLocalStorage = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          // Get user details from users table
-          const { data, error } = await supabase
-            .from('users')
-            .select(`
-              user_id,
-              name,
-              email,
-              roles (role_name)
-            `)
-            .eq('user_id', session.user.id)
-            .single();
-            
-          if (data && !error) {
-            setUser({
-              id: data.user_id,
-              name: data.name,
-              email: data.email,
-              role: data.roles?.role_name || 'user',
-            });
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (token && userStr) {
+          const user = JSON.parse(userStr);
+          setUser(user);
+          setToken(token);
+
+          // Fetch roles and permissions
+          try {
+            const rolesResponse = await authService.getUserRoles();
+            setRoles(rolesResponse);
+
+            const permissionsResponse = await authService.getUserPermissions(user.id);
+            setPermissions(permissionsResponse);
+          } catch (error) {
+            console.error('Failed to fetch roles or permissions:', error);
+            toast.error('Failed to fetch roles or permissions.');
           }
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        console.error('Error loading user from localStorage:', error);
+        toast.error('Failed to load user data.');
       } finally {
         setIsLoading(false);
       }
     };
-    
-    checkSession();
-    
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const { data, error } = await supabase
-          .from('users')
-          .select(`
-            user_id,
-            name,
-            email,
-            roles (role_name)
-          `)
-          .eq('user_id', session.user.id)
-          .single();
-          
-        if (data && !error) {
-          setUser({
-            id: data.user_id,
-            name: data.name,
-            email: data.email,
-            role: data.roles?.role_name || 'user',
-          });
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
+
+    loadUserFromLocalStorage();
   }, []);
 
   const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        // Get user details from users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
-            user_id,
-            name,
-            email,
-            roles (role_name)
-          `)
-          .eq('user_id', data.user.id)
-          .single();
-          
-        if (userError) throw userError;
-        
-        if (userData) {
-          setUser({
-            id: userData.user_id,
-            name: userData.name,
-            email: userData.email,
-            role: userData.roles?.role_name || 'user',
-          });
-          
-          // Determine redirect based on role
-          const role = userData.roles?.role_name;
-          if (role === 'admin') {
-            navigate('/admin/dashboard');
-          } else if (role === 'employee') {
-            navigate('/employee/dashboard');
-          } else if (role === 'client') {
-            navigate('/client/dashboard');
-          } else if (role === 'marketing') {
-            navigate('/marketing/dashboard');
-          } else if (role === 'hr') {
-            navigate('/hr/dashboard');
-          } else if (role === 'finance') {
-            navigate('/finance/dashboard');
-          } else {
-            navigate('/dashboard');
-          }
-          
-          toast.success('Logged in successfully');
-        }
+      const data = await authService.login(email, password);
+      setToken(data.access_token);
+      localStorage.setItem('token', data.access_token);
+
+      const userResponse = {
+        id: data.user_id,
+        name: data.name,
+        email: data.email,
+        role_id: data.role,
+      };
+      setUser(userResponse);
+      localStorage.setItem('user', JSON.stringify(userResponse));
+
+      // Fetch roles and permissions
+      try {
+        const rolesResponse = await authService.getUserRoles();
+        setRoles(rolesResponse);
+
+        const permissionsResponse = await authService.getUserPermissions(data.user_id);
+        setPermissions(permissionsResponse);
+      } catch (error) {
+        console.error('Failed to fetch roles or permissions:', error);
+        toast.error('Failed to fetch roles or permissions.');
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Failed to login');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const signup = async (userData: { name: string; email: string; password: string; role: string }) => {
-    try {
-      setIsLoading(true);
-      
-      // Register with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-      });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        // Get role_id for the specified role
-        const { data: roleData, error: roleError } = await supabase
-          .from('roles')
-          .select('role_id')
-          .eq('role_name', userData.role)
-          .single();
-          
-        if (roleError) throw roleError;
-        
-        // Create user record in users table
-        const { data: newUser, error: userError } = await supabase
-          .from('users')
-          .insert({
-            user_id: data.user.id,
-            name: userData.name,
-            email: userData.email,
-            role_id: roleData.role_id,
-          })
-          .select()
-          .single();
-          
-        if (userError) throw userError;
-        
-        setUser({
-          id: newUser.user_id,
-          name: newUser.name,
-          email: newUser.email,
-          role: userData.role,
-        });
-        
-        toast.success('Account created successfully!');
-        navigate('/dashboard');
+      const role = roles.find(r => r.role_id === userResponse.role_id)?.role_name;
+
+      if (role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/employee/dashboard');
       }
+      toast.success('Login successful!');
     } catch (error: any) {
-      console.error('Signup error:', error);
-      toast.error(error.message || 'Failed to create account');
-      throw error;
+      console.error('Login failed:', error);
+      toast.error(error?.response?.data?.detail || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setUser(null);
-      navigate('/login');
-      toast.success('Logged out successfully');
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      toast.error(error.message || 'Failed to logout');
-    } finally {
-      setIsLoading(false);
-    }
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    setPermissions([]);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
+    toast.success('Logged out successfully!');
   };
 
-  // Role checking properties
-  const isAdmin = user?.role === 'admin';
-  const isEmployee = user?.role === 'employee';
-  const isClient = user?.role === 'client';
-  const isMarketing = user?.role === 'marketing';
-  const isHR = user?.role === 'hr';
-  const isFinance = user?.role === 'finance';
-  
+  const hasPermission = (permission: string): boolean => {
+    return permissions.includes(permission);
+  };
+
+  const userRole = roles.find(r => r.role_id === user?.role_id)?.role_name;
+
+  const value: AuthContextProps = {
+    user,
+    token,
+    login,
+    logout,
+    isLoading,
+    roles,
+    permissions,
+    hasPermission,
+    userRole,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        signup,
-        logout,
-        isAdmin,
-        isEmployee,
-        isClient,
-        isMarketing,
-        isHR,
-        isFinance
-      }}
-    >
-      {children}
+    <AuthContext.Provider value={value}>
+      {!isLoading ? children : <div>Loading...</div>}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

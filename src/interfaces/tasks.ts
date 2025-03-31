@@ -1,93 +1,95 @@
 
 export interface Task {
   task_id: number;
-  id?: number; // Adding for backward compatibility
+  id?: number;
   title: string;
   description: string;
   client_id?: number;
-  client_name?: string; // Added for joining with client table
+  client_name?: string;
   client?: string; // For backward compatibility
   assigned_to?: number;
-  assignee_name?: string; // Added for joining with users table
+  assignee_name?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  priority?: 'high' | 'medium' | 'low';
   estimated_time?: number;
   actual_time?: number;
   start_time?: string;
   end_time?: string;
-  due_date?: string;
-  dueDate?: Date; // For backward compatibility
-  created_at: string;
+  created_at?: string;
   updated_at?: string;
+  priority: string;
+  progress: number;
+  attachments?: any[];
+  comments?: any[];
 }
 
 export interface DetailedTask {
   id: number;
-  task_id?: number; // For backward compatibility
   title: string;
   description: string;
   client: string;
-  client_id?: number;
   clientLogo?: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: 'low' | 'medium' | 'high';
   status: string;
-  dueDate?: Date;
-  startDate?: Date;
+  dueDate: Date;
+  startDate: Date;
   progress: number;
   estimatedHours: number;
   actualHours: number;
   assignedTo: string;
-  comments?: TaskComment[];
-  attachments?: TaskAttachment[];
-  tags?: string[];
-  drive_link?: string;
-  progress_description?: string;
-  recentActivity?: {
-    id: number;
-    type: string;
-    user: string;
-    timestamp: Date;
-    description: string;
-  }[];
-}
-
-export interface TaskComment {
-  id: number;
-  taskId: number;
-  userId: number;
-  userName: string;
-  comment: string;
-  createdAt: string;
+  attachments: TaskAttachment[];
+  tags: string[];
+  recentActivity: TaskActivity[];
 }
 
 export interface TaskAttachment {
   id: number;
-  taskId: number;
   fileName: string;
-  fileType: string;
   fileSize: number;
-  url: string;
+  fileType: string;
+  uploadedAt: Date;
   uploadedBy: string;
-  uploadedAt: string;
+  url: string;
 }
 
-export interface TaskFilter {
-  status?: string;
+export interface TaskActivity {
+  id: number;
+  type: 'comment' | 'status' | 'attachment' | 'assignment';
+  user: string;
+  userAvatar?: string;
+  timestamp: Date;
+  content: string;
+}
+
+export interface TaskFilterOptions {
+  status?: string[];
+  priority?: string[];
+  client?: string[];
+  assigned?: string[];
+  dueDate?: [Date | null, Date | null];
+}
+
+export interface TaskUpdateInput {
+  title?: string;
+  description?: string;
+  status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  client_id?: number;
+  assigned_to?: number;
+  estimated_time?: number;
+  actual_time?: number;
+  start_time?: string;
+  end_time?: string;
   priority?: string;
-  assignedTo?: number;
-  clientId?: number;
-  search?: string;
-  startDate?: string;
-  endDate?: string;
+  progress?: number;
 }
 
-export interface TasksSummary {
-  total: number;
-  pending: number;
-  inProgress: number;
-  completed: number;
-  cancelled: number;
-  overdueCount: number;
-  dueSoonCount: number;
-  completionRate: number;
+export interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: number;
+  user_name: string;
+  user_avatar?: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  attachments?: TaskAttachment[];
 }

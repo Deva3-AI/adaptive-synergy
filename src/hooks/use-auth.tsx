@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -83,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: userData.user_id,
               name: userData.name,
               email: userData.email,
-              role: userData.roles?.role_name || 'unknown'
+              role: userData.roles?.find(r => r.role_id === userData.role_id)?.role_name || 'unknown'
             };
             
             setUser(user);
@@ -127,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: userData.user_id,
                 name: userData.name,
                 email: userData.email,
-                role: userData.roles?.role_name || 'unknown'
+                role: userData.roles?.find(r => r.role_id === userData.role_id)?.role_name || 'unknown'
               };
               
               setUser(user);
@@ -177,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: userData.user_id,
         name: userData.name,
         email: userData.email,
-        role: userData.roles?.role_name || 'unknown'
+        role: userData.roles?.find(r => r.role_id === userData.role_id)?.role_name || 'unknown'
       };
       
       setUser(user);

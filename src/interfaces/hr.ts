@@ -1,46 +1,18 @@
 
 export interface LeaveRequest {
   id: number;
-  employeeId: number;
-  employeeName: string;
-  leaveType: 'annual' | 'sick' | 'personal' | 'wfh' | 'halfDay' | 'other';
-  startDate: string;
-  endDate?: string;
+  employee_id: number;
+  employee_name: string;
+  start_date: string;
+  end_date: string;
+  leaveType: "annual" | "sick" | "personal" | "wfh" | "halfDay" | "other";
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  documentUrl?: string;
-}
-
-export interface PaySlip {
-  id: number;
-  employeeId: number;
-  employeeName: string;
-  month: string;
-  year: number;
-  basicSalary: number;
-  allowances: number;
-  deductions: number;
-  netSalary: number;
-  paidDate?: string;
-  status: 'draft' | 'final' | 'pending' | 'paid';
-}
-
-export interface HRTask {
-  id: number;
-  title: string;
-  description: string;
-  assignee: number;
-  assigneeName: string;
-  dueDate: string;
-  priority: 'high' | 'medium' | 'low';
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-  category: 'recruitment' | 'payroll' | 'training' | 'administrative' | 'other';
-  estimatedHours: number;
-  actualHours?: number;
+  status: "pending" | "approved" | "rejected";
+  approver_id?: number;
+  approver_name?: string;
+  created_at: string;
+  documents?: string[];
+  comments?: string[];
 }
 
 export interface Candidate {
@@ -55,11 +27,63 @@ export interface Candidate {
   skills: string[];
   experience: number;
   education: string;
-  status: 'new' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected';
-  notes: string;
-  match_score: number;
-  source: string;
+  status: "new" | "screening" | "interview" | "offer" | "hired" | "rejected";
+  interview_date?: string;
+  interviewer_id?: number;
+  interviewer_name?: string;
+  feedback?: string;
+  rating?: number;
+  salary_expectation?: number;
+  notes?: string;
   last_contact: string;
+}
+
+export interface Job {
+  id: number;
+  title: string;
+  department: string;
+  location: string;
+  type: "full-time" | "part-time" | "contract" | "remote";
+  description: string;
+  requirements: string[];
+  responsibilities: string[];
+  salary_range: {
+    min: number;
+    max: number;
+  };
+  posted_date: string;
+  closing_date: string;
+  status: "open" | "filled" | "closed";
+  applicants_count: number;
+  shortlisted_count: number;
+}
+
+export interface PaySlip {
+  id: number;
+  employee_id: number;
+  employee_name: string;
+  period: string;
+  basic_salary: number;
+  allowances: {
+    name: string;
+    amount: number;
+  }[];
+  deductions: {
+    name: string;
+    amount: number;
+  }[];
+  reimbursements: {
+    name: string;
+    amount: number;
+  }[];
+  gross_pay: number;
+  net_pay: number;
+  tax: number;
+  generation_date: string;
+  payment_date: string;
+  status: "pending" | "paid" | "draft" | "final";
+  bank_account?: string;
+  notes?: string;
 }
 
 export interface EmployeeAttendance {
@@ -67,61 +91,48 @@ export interface EmployeeAttendance {
   employee_id: number;
   employee_name: string;
   date: string;
-  login_time?: string;
-  logout_time?: string;
-  working_hours?: number;
-  status: 'present' | 'absent' | 'half-day' | 'leave' | 'holiday' | 'weekend';
+  login_time: string;
+  logout_time: string;
+  total_hours: number;
+  status: "present" | "absent" | "late" | "half-day" | "leave";
   notes?: string;
+}
+
+export interface Department {
+  id: number;
+  name: string;
+  head_id: number;
+  head_name: string;
+  employee_count: number;
+  budget: number;
+  created_at: string;
 }
 
 export interface PerformanceReview {
   id: number;
   employee_id: number;
   employee_name: string;
-  review_period: string;
-  review_date: string;
   reviewer_id: number;
   reviewer_name: string;
-  ratings: {
+  review_period: {
+    start: string;
+    end: string;
+  };
+  review_date: string;
+  scores: {
     category: string;
     score: number;
+    max_score: number;
     comments: string;
   }[];
-  overall_rating: number;
+  overall_score: number;
   strengths: string[];
-  areas_for_improvement: string[];
+  areas_to_improve: string[];
   goals: {
     description: string;
     deadline: string;
-    metrics: string;
+    status: "pending" | "in_progress" | "completed" | "overdue";
   }[];
-  status: 'draft' | 'submitted' | 'reviewed' | 'acknowledged';
-}
-
-export interface JobPosting {
-  id: number;
-  title: string;
-  department: string;
-  location: string;
-  employment_type: 'full-time' | 'part-time' | 'contract' | 'temporary' | 'internship';
-  experience_level: 'entry' | 'mid' | 'senior' | 'executive';
-  salary_range?: {
-    min: number;
-    max: number;
-    currency: string;
-  };
-  description: string;
-  responsibilities: string[];
-  requirements: string[];
-  benefits: string[];
-  posting_date: string;
-  closing_date?: string;
-  status: 'draft' | 'active' | 'filled' | 'closed';
-  applicant_count: number;
-  platform_postings: {
-    platform: string;
-    url: string;
-    status: 'active' | 'expired';
-    applicants: number;
-  }[];
+  employee_comments?: string;
+  status: "draft" | "pending" | "completed";
 }

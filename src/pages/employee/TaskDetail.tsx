@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ const TaskDetail = () => {
   const [comment, setComment] = useState('');
   const queryClient = useQueryClient();
 
-  // Fetch task details from taskService
   const { data: task, isLoading, error } = useQuery({
     queryKey: ['task-detail', taskId],
     enabled: !!taskId,
@@ -33,12 +31,11 @@ const TaskDetail = () => {
       try {
         const taskData = await taskService.getTaskById(parseInt(taskId || '0'));
         
-        // Mock additional data for UI demonstration
         return {
           ...taskData,
-          priority: 'Medium', // Default priority
-          progress: 70, // Mock progress percentage
-          comments: [], // Mock empty comments array
+          priority: 'Medium',
+          progress: 70,
+          comments: [],
         };
       } catch (error) {
         console.error('Error fetching task details:', error);
@@ -47,31 +44,21 @@ const TaskDetail = () => {
     }
   });
 
-  // Mutation for adding a comment
   const addCommentMutation = useMutation({
     mutationFn: async (commentText: string) => {
-      // In a real app, call an API endpoint to add the comment
-      // For now, we'll just return a mock result
       const mockComment = {
         id: Date.now(),
         task_id: parseInt(taskId || '0'),
-        user_id: 1, // Current user ID
+        user_id: 1,
         comment: commentText,
         created_at: new Date().toISOString(),
-        user: { name: 'Current User' } // Mock user object
+        user: { name: 'Current User' }
       };
-      
-      // In a real app:
-      // return await taskService.addTaskComment({
-      //   task_id: parseInt(taskId || '0'),
-      //   user_id: 1, // Current user ID
-      //   comment: commentText
-      // });
       
       return mockComment;
     },
     onSuccess: () => {
-      setComment(''); // Clear the input
+      setComment('');
       toast.success('Comment added');
       queryClient.invalidateQueries({ queryKey: ['task-detail', taskId] });
     },
@@ -171,7 +158,7 @@ const TaskDetail = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Client:</span>
-                  <span>{task.clients?.client_name || 'Unknown Client'}</span>
+                  <div className="text-sm font-medium">{task.client_name || "No client assigned"}</div>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Estimated Hours:</span>

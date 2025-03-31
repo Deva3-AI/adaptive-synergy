@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lightbulb, Timer, ThumbsUp, Coffee, Users, ArrowRight } from 'lucide-react';
@@ -19,7 +20,6 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ taskId 
   const [qualityInsights, setQualityInsights] = useState<string[]>([]);
   const [resources, setResources] = useState<any[]>([]);
 
-  // Update the getManagerInsights call
   const { data, isLoading, error } = useQuery({
     queryKey: ['manager-insights', taskId],
     queryFn: () => aiService.generateManagerInsights(taskId),
@@ -76,9 +76,8 @@ const VirtualManagerInsights: React.FC<VirtualManagerInsightsProps> = ({ taskId 
                 <Timer className="mr-1 h-4 w-4 text-gray-400" />
                 Timeline Risk
                 <Badge
-                  variant="secondary"
-                  className={`ml-2 ${timelineRisk === 'high' ? 'bg-red-500 text-white' : timelineRisk === 'medium' ? 'bg-yellow-500 text-black' : 'bg-green-500 text-white'
-                    }`}
+                  variant={timelineRisk === 'high' ? 'destructive' : timelineRisk === 'medium' ? 'warning' : 'success'}
+                  className="ml-2"
                 >
                   {timelineRisk}
                 </Badge>
