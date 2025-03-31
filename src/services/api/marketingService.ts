@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 import { supabase } from '@/lib/supabase';
-import { mockMarketingData } from '@/utils/mockData';
+import { mockMarketingData } from '@/utils/mockMarketingData';
 
 const marketingService = {
   // Campaign management

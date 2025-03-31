@@ -1,4 +1,3 @@
-
 // Import necessary dependencies
 import { mockUserData } from '@/utils/mockData';
 

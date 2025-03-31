@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -34,6 +35,16 @@ const SalesFollowUp = () => {
     queryKey: ["improvement-suggestions"],
     queryFn: () => financeService.getImprovementSuggestions(),
   });
+
+  // Safe access to followUps data with type checking
+  const followUpsArray = followUps && Array.isArray(followUps) 
+    ? followUps.filter(f => f.status !== 'completed')
+    : [];
+    
+  // Safe access to suggestions data
+  const suggestionsArray = improvementSuggestions && Array.isArray(improvementSuggestions)
+    ? improvementSuggestions
+    : [];
 
   // Mutation to complete a follow-up
   const completeFollowUpMutation = useMutation({
@@ -111,7 +122,7 @@ const SalesFollowUp = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(followUps || []).filter((f: any) => f.status !== "completed").map((followUp: any) => {
+                {followUpsArray.map((followUp: any) => {
                   const urgency = getUrgency(followUp.dueDate);
                   
                   return (
@@ -244,7 +255,7 @@ const SalesFollowUp = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {(improvementSuggestions || []).map((suggestion: any) => (
+                {suggestionsArray.map((suggestion: any) => (
                   <Card key={suggestion.id} className="border rounded-lg p-4">
                     <div className="flex items-start space-x-3">
                       {suggestion.priority === "high" ? (

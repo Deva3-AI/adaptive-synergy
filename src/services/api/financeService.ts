@@ -1,3 +1,4 @@
+
 import { mockFinanceData } from '@/utils/mockData';
 
 // Define finance service methods
@@ -99,13 +100,13 @@ const financeService = {
   },
   
   // Financial records
-  getFinancialRecords: async (type?: string) => {
+  getFinancialRecords: async (recordType?: string) => {
     return new Promise((resolve) => {
       setTimeout(() => {
         let records = mockFinanceData.financialRecords || [];
         
-        if (type) {
-          records = records.filter(record => record.type === type);
+        if (recordType) {
+          records = records.filter(record => record.record_type === recordType);
         }
         
         resolve(records);
@@ -245,46 +246,32 @@ const financeService = {
     });
   },
   
-  // Financial records
-  getFinancialRecords: async (type?: string) => {
+  // Weekly and Monthly Reports
+  getWeeklyReports: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        let records = mockFinanceData.financialRecords || [];
-        
-        if (type) {
-          records = records.filter(record => record.type === type);
-        }
-        
-        resolve(records);
+        resolve(mockFinanceData.weeklyReports);
       }, 500);
     });
   },
   
-  createFinancialRecord: async (recordData: any) => {
+  getMonthlyReports: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // In a real app, this would create a record in the database
-        resolve({
-          success: true,
-          data: {
-            record_id: Math.floor(Math.random() * 1000),
-            ...recordData,
-            created_at: new Date().toISOString()
-          }
-        });
+        resolve(mockFinanceData.monthlyReports);
       }, 500);
     });
   },
   
-  updateFinancialRecord: async (recordId: number, recordData: any) => {
+  // Invoice status and reminders
+  updateInvoiceStatus: async (invoiceId: number, status: string) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // In a real app, this would update a record in the database
         resolve({
           success: true,
           data: {
-            record_id: recordId,
-            ...recordData,
+            id: invoiceId,
+            status,
             updated_at: new Date().toISOString()
           }
         });
@@ -292,14 +279,34 @@ const financeService = {
     });
   },
   
-  deleteFinancialRecord: async (recordId: number) => {
+  sendInvoiceReminder: async (invoiceId: number) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // In a real app, this would delete a record from the database
-        resolve({ success: true });
+        resolve({
+          success: true,
+          message: `Reminder sent for invoice #${invoiceId}`
+        });
       }, 500);
     });
   },
+  
+  // Financial planning
+  getFinancialPlans: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(mockFinanceData.financialPlans);
+      }, 500);
+    });
+  },
+  
+  // Upsell opportunities
+  getUpsellOpportunities: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(mockFinanceData.upsellOpportunities);
+      }, 500);
+    });
+  }
 };
 
 export default financeService;

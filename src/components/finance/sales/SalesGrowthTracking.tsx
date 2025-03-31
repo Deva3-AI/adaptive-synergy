@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -32,6 +33,29 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
     queryFn: () => financeService.getGrowthForecast(),
   });
 
+  // Type-safe access to nested properties
+  const growthTrends = salesGrowth && typeof salesGrowth === 'object' && 'trends' in salesGrowth 
+    ? salesGrowth.trends 
+    : [];
+    
+  const targetsArray = Array.isArray(salesTargets) ? salesTargets : [];
+  
+  const currentPeriod = salesGrowth && typeof salesGrowth === 'object' && 'currentPeriod' in salesGrowth 
+    ? salesGrowth.currentPeriod as Record<string, any>
+    : { revenueGrowth: 0, customerGrowth: 0 };
+    
+  const growthDrivers = salesGrowth && typeof salesGrowth === 'object' && 'growthDrivers' in salesGrowth 
+    ? salesGrowth.growthDrivers as any[]
+    : [];
+    
+  const forecastChart = growthForecast && typeof growthForecast === 'object' && 'chart' in growthForecast 
+    ? growthForecast.chart as any[]
+    : [];
+    
+  const forecastInsights = growthForecast && typeof growthForecast === 'object' && 'insights' in growthForecast 
+    ? growthForecast.insights as any[]
+    : [];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -47,7 +71,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
             </div>
           ) : (
             <AnalyticsChart 
-              data={salesGrowth?.trends || []} 
+              data={growthTrends} 
               height={300}
               defaultType="line"
             />
@@ -69,7 +93,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
             </div>
           ) : (
             <div className="space-y-6">
-              {(salesTargets || []).map((target: any) => (
+              {targetsArray.map((target: any) => (
                 <div key={target.id} className="space-y-2">
                   <div className="flex justify-between items-center">
                     <div>
@@ -114,7 +138,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Revenue Growth</p>
                   <p className="text-2xl font-bold">
-                    {salesGrowth?.currentPeriod?.revenueGrowth || 0}%
+                    {currentPeriod.revenueGrowth || 0}%
                   </p>
                   <div className="flex items-center text-xs text-green-500">
                     <ArrowUpRight className="h-3 w-3 mr-1" />
@@ -124,7 +148,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Customer Growth</p>
                   <p className="text-2xl font-bold">
-                    {salesGrowth?.currentPeriod?.customerGrowth || 0}%
+                    {currentPeriod.customerGrowth || 0}%
                   </p>
                   <div className="flex items-center text-xs text-green-500">
                     <ArrowUpRight className="h-3 w-3 mr-1" />
@@ -136,7 +160,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
               <div className="pt-4 border-t">
                 <p className="text-sm font-medium mb-2">Growth Drivers</p>
                 <div className="space-y-3">
-                  {(salesGrowth?.growthDrivers || []).map((driver: any, index: number) => (
+                  {growthDrivers.map((driver: any, index: number) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className={`w-2 h-2 rounded-full mr-2 ${driver.performance === 'positive' ? 'bg-green-500' : driver.performance === 'neutral' ? 'bg-amber-500' : 'bg-red-500'}`}></div>
@@ -165,7 +189,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
           ) : (
             <div className="space-y-4">
               <AnalyticsChart 
-                data={growthForecast?.chart || []} 
+                data={forecastChart} 
                 height={200}
                 defaultType="bar"
               />
@@ -173,7 +197,7 @@ const SalesGrowthTracking = ({ dateRange }: SalesGrowthTrackingProps) => {
               <div className="border-t pt-4">
                 <p className="text-sm font-medium mb-2">Forecast Insights</p>
                 <ul className="space-y-2">
-                  {(growthForecast?.insights || []).map((insight: any, index: number) => (
+                  {forecastInsights.map((insight: any, index: number) => (
                     <li key={index} className="text-sm flex items-start">
                       {insight.type === 'warning' ? (
                         <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 text-amber-500" />

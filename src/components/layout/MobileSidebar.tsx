@@ -13,10 +13,10 @@ const MobileSidebar = ({ isOpen, onClose }: MobileSidebarProps) => {
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="left" className="p-0 sm:max-w-xs">
         <SheetHeader className="p-4 border-b text-left">
-          <SheetTitle>Hive</SheetTitle>
+          <SheetTitle>AI Workflow</SheetTitle>
         </SheetHeader>
         <div className="overflow-y-auto h-full">
-          <Sidebar isMobile />
+          <Sidebar isMobile expanded={false} />
         </div>
       </SheetContent>
     </Sheet>

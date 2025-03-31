@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { financeService } from "@/services/api";
@@ -40,6 +41,20 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
     }).format(amount);
   };
 
+  // Ensure we have arrays for charts
+  const trendsData = Array.isArray(salesTrends) ? salesTrends : [];
+  const channelData = Array.isArray(salesByChannel) ? salesByChannel : [];
+  const productData = Array.isArray(topProducts) ? topProducts : [];
+  
+  // Safely get insights and activities from salesTrends
+  const insights = salesTrends && typeof salesTrends === 'object' && 'insights' in salesTrends 
+    ? salesTrends.insights as string[] 
+    : [];
+    
+  const activities = salesTrends && typeof salesTrends === 'object' && 'activities' in salesTrends 
+    ? salesTrends.activities as any[] 
+    : [];
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -56,7 +71,7 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
             </div>
           ) : (
             <AnalyticsChart 
-              data={salesTrends || []} 
+              data={trendsData} 
               height={300}
               defaultType="line"
             />
@@ -75,7 +90,7 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
             </div>
           ) : (
             <AnalyticsChart 
-              data={salesByChannel || []} 
+              data={channelData} 
               height={300}
               defaultType="pie"
             />
@@ -103,7 +118,7 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(topProducts || []).map((product: any) => (
+              {productData.map((product: any) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.sales}</TableCell>
@@ -143,7 +158,7 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Based on your sales data, here are key insights:</p>
               <ul className="space-y-2">
-                {(salesTrends?.insights || []).map((insight: string, index: number) => (
+                {insights.map((insight: string, index: number) => (
                   <li key={index} className="text-sm flex items-start">
                     <CheckSquare className="h-4 w-4 mr-2 mt-0.5 text-primary" />
                     <span>{insight}</span>
@@ -168,7 +183,7 @@ const SalesTrackingAnalysis = ({ dateRange }: SalesTrackingAnalysisProps) => {
             </div>
           ) : (
             <div className="space-y-4">
-              {(salesTrends?.activities || []).map((activity: any) => (
+              {activities.map((activity: any) => (
                 <div key={activity.id} className="flex items-start space-x-3 pb-3 border-b last:border-0 last:pb-0">
                   <div className="p-2 bg-primary/10 rounded-full">
                     <Calendar className="h-4 w-4 text-primary" />

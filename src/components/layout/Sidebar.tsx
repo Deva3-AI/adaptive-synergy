@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -17,8 +18,14 @@ import {
   TrendingUp,
   ClipboardList,
   UserCheck,
-  Clock as ClockIcon,
-  BarChart2
+  Clock,
+  BarChart2,
+  Shield,
+  User,
+  CheckSquare as ListChecks,
+  FileText as File,
+  BarChart,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -28,7 +35,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SidebarProps {
   expanded?: boolean;
+  isMobile?: boolean;
+  className?: string;
 }
+
+// Define LucideIcon type
+type LucideIcon = React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement> & { title?: string, titleId?: string }>;
 
 interface NavItem {
   href: string;
@@ -61,7 +73,7 @@ const navItems: {
     {
       href: '/employee/attendance',
       label: 'Attendance',
-      icon: ClockIcon,
+      icon: Clock,
     },
     {
       href: '/employee/profile',
@@ -157,7 +169,7 @@ const navItems: {
   ],
 };
 
-const Sidebar = ({ expanded = true }: SidebarProps) => {
+const Sidebar = ({ expanded = true, isMobile, className }: SidebarProps) => {
   const { user, hasRole } = useAuth();
   const location = useLocation();
   
@@ -175,7 +187,8 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
       className={cn(
         "flex flex-col space-y-4 border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-850",
         expanded ? "w-64" : "w-20",
-        "transition-width duration-300 ease-in-out"
+        "transition-width duration-300 ease-in-out",
+        className
       )}
     >
       <div className="flex items-center justify-center py-4">
@@ -186,21 +199,19 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
 
       <nav className="flex-1 space-y-1 px-2">
         {navItems.main.map((item) => (
-          <NavLink
+          <Link
             key={item.href}
             to={item.href}
-            className={({ isActive }) =>
-              cn(
-                "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                isActive
-                  ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                  : "text-gray-700 dark:text-gray-400"
-              )
-            }
+            className={cn(
+              "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+              isActive(item.href)
+                ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                : "text-gray-700 dark:text-gray-400"
+            )}
           >
             <item.icon className="mr-2.5 h-4 w-4" />
             {expanded && item.label}
-          </NavLink>
+          </Link>
         ))}
 
         {showEmployeeSection && (
@@ -209,21 +220,19 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
               {expanded && "Employee Tools"}
             </div>
             {navItems.employee.map((item) => (
-              <NavLink
+              <Link
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                      : "text-gray-700 dark:text-gray-400"
-                  )
-                }
+                className={cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                  isActive(item.href)
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                    : "text-gray-700 dark:text-gray-400"
+                )}
               >
                 <item.icon className="mr-2.5 h-4 w-4" />
                 {expanded && item.label}
-              </NavLink>
+              </Link>
             ))}
           </>
         )}
@@ -234,21 +243,19 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
               {expanded && "HR Management"}
             </div>
             {navItems.hr.map((item) => (
-              <NavLink
+              <Link
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                      : "text-gray-700 dark:text-gray-400"
-                  )
-                }
+                className={cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                  isActive(item.href)
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                    : "text-gray-700 dark:text-gray-400"
+                )}
               >
                 <item.icon className="mr-2.5 h-4 w-4" />
                 {expanded && item.label}
-              </NavLink>
+              </Link>
             ))}
           </>
         )}
@@ -259,21 +266,19 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
               {expanded && "Finance Management"}
             </div>
             {navItems.finance.map((item) => (
-              <NavLink
+              <Link
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                      : "text-gray-700 dark:text-gray-400"
-                  )
-                }
+                className={cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                  isActive(item.href)
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                    : "text-gray-700 dark:text-gray-400"
+                )}
               >
                 <item.icon className="mr-2.5 h-4 w-4" />
                 {expanded && item.label}
-              </NavLink>
+              </Link>
             ))}
           </>
         )}
@@ -284,21 +289,19 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
               {expanded && "Marketing Tools"}
             </div>
             {navItems.marketing.map((item) => (
-              <NavLink
+              <Link
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                      : "text-gray-700 dark:text-gray-400"
-                  )
-                }
+                className={cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                  isActive(item.href)
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                    : "text-gray-700 dark:text-gray-400"
+                )}
               >
                 <item.icon className="mr-2.5 h-4 w-4" />
                 {expanded && item.label}
-              </NavLink>
+              </Link>
             ))}
           </>
         )}
@@ -309,21 +312,19 @@ const Sidebar = ({ expanded = true }: SidebarProps) => {
               {expanded && "Admin Tools"}
             </div>
             {navItems.adminTools.map((item) => (
-              <NavLink
+              <Link
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
-                    isActive
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
-                      : "text-gray-700 dark:text-gray-400"
-                  )
-                }
+                className={cn(
+                  "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700",
+                  isActive(item.href)
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-50"
+                    : "text-gray-700 dark:text-gray-400"
+                )}
               >
                 <item.icon className="mr-2.5 h-4 w-4" />
                 {expanded && item.label}
-              </NavLink>
+              </Link>
             ))}
           </>
         )}

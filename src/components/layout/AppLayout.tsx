@@ -4,46 +4,46 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileSidebar from './MobileSidebar';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import AIAssistant from '@/components/ai/AIAssistant';
-import { Toaster } from '@/components/ui/sonner';
 
 const AppLayout = () => {
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  
-  // Function to toggle the mobile sidebar
-  const handleMenuClick = () => {
-    setIsMobileSidebarOpen(prev => !prev);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarExpanded(!sidebarExpanded);
+  };
+
+  const openMobileSidebar = () => {
+    setMobileSidebarOpen(true);
+  };
+
+  const closeMobileSidebar = () => {
+    setMobileSidebarOpen(false);
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar - only visible on desktop */}
-      {isDesktop ? (
-        <Sidebar className="hidden lg:flex" />
-      ) : (
-        <MobileSidebar 
-          isOpen={isMobileSidebarOpen} 
-          onClose={() => setIsMobileSidebarOpen(false)}
-        />
-      )}
-      
-      <div className="flex flex-col flex-1 w-full overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <Sidebar expanded={sidebarExpanded} className="h-full" />
+      </div>
+
+      {/* Mobile Sidebar */}
+      <MobileSidebar 
+        isOpen={mobileSidebarOpen} 
+        onClose={closeMobileSidebar} 
+      />
+
+      <div className="flex flex-col flex-1 overflow-hidden">
         <Header 
-          onMenuClick={handleMenuClick} 
-          appName="Hive" 
+          onMenuClick={openMobileSidebar}
+          onToggleSidebar={toggleSidebar}
+          sidebarExpanded={sidebarExpanded}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>
-      
-      {/* AI Assistant */}
-      <AIAssistant />
-      
-      {/* Toaster for notifications */}
-      <Toaster />
     </div>
   );
 };
