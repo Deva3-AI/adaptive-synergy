@@ -13,7 +13,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { userService } from '@/services/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {

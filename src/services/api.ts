@@ -6,6 +6,7 @@ import hrService from './api/hrServiceSupabase';
 import financeService from './api/financeService';
 import marketingService from './api/marketingService';
 import aiService from './api/aiService';
+import userService from './api/userService';
 
 // Create axios instance with base URL and default headers
 const api = axios.create({
@@ -297,7 +298,7 @@ export const clientService = {
 };
 
 // Export all our services
-export { hrService, financeService, marketingService, aiService };
+export { hrService, financeService, marketingService, aiService, userService };
 
 // Export a default API object with all services
 export default {
@@ -308,4 +309,5 @@ export default {
   finance: financeService,
   marketing: marketingService,
   ai: aiService,
+  user: userService,
 };

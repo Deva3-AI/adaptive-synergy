@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -31,15 +30,13 @@ import WorkTracker from '@/components/employee/WorkTracker';
 import AIAssistant from '@/components/ai/AIAssistant';
 import VirtualManagerInsights from '@/components/employee/VirtualManagerInsights';
 import EmployeeLeaveRequests from '@/components/employee/EmployeeLeaveRequests';
-import { hrService, financeService } from '@/services/api';
-import userService from '@/services/api/userService';
+import { hrService, userService } from '@/services/api';
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [taskFilter, setTaskFilter] = useState<any>({});
   
-  // Fetch tasks for the current user
   const { data: tasks, isLoading: tasksLoading, error: tasksError } = useQuery({
     queryKey: ['employee-tasks', user?.id],
     queryFn: async () => {
@@ -54,7 +51,6 @@ const EmployeeDashboard: React.FC = () => {
     enabled: !!user?.id,
   });
   
-  // Fetch today's attendance record
   const { data: todayAttendance, isLoading: attendanceLoading } = useQuery({
     queryKey: ['today-attendance', user?.id],
     queryFn: async () => {
@@ -76,7 +72,6 @@ const EmployeeDashboard: React.FC = () => {
     enabled: !!user?.id,
   });
   
-  // Calculate dashboard metrics
   const pendingTasksCount = tasks?.filter((task: any) => task.status === 'pending').length || 0;
   const inProgressTasksCount = tasks?.filter((task: any) => task.status === 'in_progress').length || 0;
   const completedTasksCount = tasks?.filter((task: any) => task.status === 'completed').length || 0;
@@ -360,7 +355,7 @@ const EmployeeDashboard: React.FC = () => {
               <AIAssistant />
             </TabsContent>
             <TabsContent value="manager-insights" className="space-y-4">
-              <VirtualManagerInsights />
+              <VirtualManagerInsights taskId={tasks && tasks.length > 0 ? tasks[0].task_id : 1} />
             </TabsContent>
           </Tabs>
           
