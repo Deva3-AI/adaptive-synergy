@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { taskService } from '@/services/api';
 import { useAuth } from '@/hooks/use-auth';
@@ -153,7 +154,7 @@ const TaskList = () => {
   const [isBulkSnoozeOpen, setIsBulkSnoozeOpen] = useState(false);
   const [isBulkUnsnoozeOpen, setIsBulkUnsnoozeOpen] = useState(false);
   const [isBulkMuteOpen, setIsBulkMuteOpen] = useState(false);
-  const [isBulkUnmuteOpen] = useState(false);
+  const [isBulkUnmuteOpen, setIsBulkUnmuteOpen] = useState(false);
   const [isBulkFlagOpen, setIsBulkFlagOpen] = useState(false);
   const [isBulkUnflagOpen, setIsBulkUnflagOpen] = useState(false);
   const [isBulkTagAsOpen, setIsBulkTagAsOpen] = useState(false);
@@ -797,3 +798,320 @@ const TaskList = () => {
   const handleOpenBulkUnapprove = () => {
     setIsBulkUnapproveOpen(true);
   };
+
+  const handleCloseBulkUnapprove = () => {
+    setIsBulkUnapproveOpen(false);
+  };
+
+  const handleOpenBulkReject = () => {
+    setIsBulkRejectOpen(true);
+  };
+
+  const handleCloseBulkReject = () => {
+    setIsBulkRejectOpen(false);
+  };
+
+  const handleOpenBulkUnreject = () => {
+    setIsBulkUnrejectOpen(true);
+  };
+
+  const handleCloseBulkUnreject = () => {
+    setIsBulkUnrejectOpen(false);
+  };
+
+  const handleOpenBulkComplete = () => {
+    setIsBulkCompleteOpen(true);
+  };
+
+  const handleCloseBulkComplete = () => {
+    setIsBulkCompleteOpen(false);
+  };
+
+  const handleOpenBulkIncomplete = () => {
+    setIsBulkIncompleteOpen(true);
+  };
+
+  const handleCloseBulkIncomplete = () => {
+    setIsBulkIncompleteOpen(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Tasks</h2>
+        <Button onClick={handleOpenCreateTask} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Create Task
+        </Button>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex-1 relative w-full md:max-w-sm">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tasks..." 
+            className="pl-10" 
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleOpenFilter} className="flex items-center gap-1">
+            <Filter className="h-4 w-4 mr-1" />
+            Filters
+          </Button>
+          <DateRangePicker date={filter.dateRange} setDate={(dateRange) => setFilter({ ...filter, dateRange })} align="end" />
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-800 p-4 rounded-md border border-red-200">
+          {error}
+        </div>
+      )}
+
+      <Card>
+        <CardHeader className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl">All Tasks</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleOpenBulkEdit} className="flex items-center gap-1">
+                <FileText className="h-4 w-4 mr-1" />
+                Bulk Edit
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+              <ListChecks className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-2">No tasks found</p>
+              <p className="text-sm text-muted-foreground mb-4">Try adjusting your filters or create a new task</p>
+              <Button onClick={handleOpenCreateTask} size="sm" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Create Task
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox />
+                  </TableHead>
+                  <TableHead>Task</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Assignee</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTasks.map((task) => (
+                  <TableRow key={task.id || task.task_id}>
+                    <TableCell>
+                      <Checkbox />
+                    </TableCell>
+                    <TableCell>
+                      <div 
+                        className="font-medium hover:underline cursor-pointer"
+                        onClick={() => handleOpenTaskDetail(task)}
+                      >
+                        {task.title}
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground max-w-[300px]">
+                        {task.description}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {task.client_name || task.client || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback>
+                            {task.assignee_name ? task.assignee_name.charAt(0) : "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{task.assignee_name || "Unassigned"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        task.status === "completed" ? "success" :
+                        task.status === "in_progress" ? "default" :
+                        task.status === "pending" ? "secondary" :
+                        task.status === "cancelled" ? "destructive" :
+                        "outline"
+                      }>
+                        {task.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        task.priority === "high" ? "destructive" :
+                        task.priority === "medium" ? "warning" :
+                        "secondary"
+                      }>
+                        {task.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {task.due_date ? format(new Date(task.due_date), 'MMM dd, yyyy') : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleOpenTaskDetail(task)}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleOpenEditTask(task)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleOpenShareTask(task)}>
+                            Share
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenDeleteTask(task)}
+                            className="text-destructive"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Task Details Dialog */}
+      {selectedTask && (
+        <Dialog open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedTask.title}</DialogTitle>
+              <DialogDescription>
+                {selectedTask.description}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Status</Label>
+                  <Badge className="mt-1" variant={
+                    selectedTask.status === "completed" ? "success" :
+                    selectedTask.status === "in_progress" ? "default" :
+                    selectedTask.status === "pending" ? "secondary" :
+                    selectedTask.status === "cancelled" ? "destructive" :
+                    "outline"
+                  }>
+                    {selectedTask.status}
+                  </Badge>
+                </div>
+                <div>
+                  <Label>Priority</Label>
+                  <Badge className="mt-1" variant={
+                    selectedTask.priority === "high" ? "destructive" :
+                    selectedTask.priority === "medium" ? "warning" :
+                    "secondary"
+                  }>
+                    {selectedTask.priority}
+                  </Badge>
+                </div>
+                <div>
+                  <Label>Client</Label>
+                  <p className="text-sm mt-1">{selectedTask.client_name || selectedTask.client || "-"}</p>
+                </div>
+                <div>
+                  <Label>Assignee</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback>
+                        {selectedTask.assignee_name ? selectedTask.assignee_name.charAt(0) : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{selectedTask.assignee_name || "Unassigned"}</span>
+                  </div>
+                </div>
+                <div>
+                  <Label>Due Date</Label>
+                  <p className="text-sm mt-1">
+                    {selectedTask.due_date ? format(new Date(selectedTask.due_date), 'MMMM dd, yyyy') : "-"}
+                  </p>
+                </div>
+                <div>
+                  <Label>Created At</Label>
+                  <p className="text-sm mt-1">
+                    {selectedTask.created_at ? format(new Date(selectedTask.created_at), 'MMMM dd, yyyy') : "-"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="mt-6">
+                <Label className="text-base font-medium">Comments ({selectedTask.comments?.length || 0})</Label>
+                <ScrollArea className="h-[200px] mt-2">
+                  {selectedTask.comments && selectedTask.comments.length > 0 ? (
+                    <div className="space-y-4">
+                      {selectedTask.comments.map((comment: TaskComment, index: number) => (
+                        <div key={index} className="flex gap-4 text-sm">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback>U</AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">User</span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(comment.created_at), 'MMM dd, yyyy HH:mm')}
+                              </span>
+                            </div>
+                            <p>{comment.comment}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No comments yet</p>
+                  )}
+                </ScrollArea>
+                <div className="mt-2">
+                  <Textarea placeholder="Add a comment..." className="min-h-[80px]" />
+                  <div className="mt-2 flex justify-end">
+                    <Button>Post Comment</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseTaskDetail}>Close</Button>
+              <Button onClick={() => handleOpenEditTask(selectedTask)}>Edit Task</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add more dialogs for edit, delete, share, etc. */}
+    </div>
+  );
+};
+
+export default TaskList;
