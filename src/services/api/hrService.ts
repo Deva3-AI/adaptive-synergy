@@ -1,4 +1,3 @@
-
 import apiClient from '@/utils/apiUtils';
 import { mockUserData } from '@/utils/mockData';
 
@@ -364,6 +363,243 @@ const hrService = {
   
   getAttendanceHistory: async (startDate?: string, endDate?: string) => {
     return mockAttendance;
+  },
+
+  getInterviewAssessments: async (candidateId?: number) => {
+    try {
+      // Mock data for interview assessments
+      const assessments = [
+        {
+          id: 1,
+          candidate_id: 1,
+          candidate_name: 'Alice Johnson',
+          position: 'Frontend Developer',
+          assessment_date: '2023-06-15',
+          coding_score: 85,
+          coding_notes: 'Good problem-solving skills, clean code structure',
+          english_score: 78,
+          english_notes: 'Fluent, occasional grammatical errors',
+          aptitude_score: 90,
+          aptitude_notes: 'Strong logical reasoning abilities',
+          total_score: 84,
+          result: 'pass',
+          conducted_by: 'John Examiner',
+          status: 'completed'
+        },
+        {
+          id: 2,
+          candidate_id: 2,
+          candidate_name: 'Bob Wilson',
+          position: 'UX Designer',
+          assessment_date: '2023-06-10',
+          coding_score: 65,
+          coding_notes: 'Basic understanding of HTML/CSS',
+          english_score: 88,
+          english_notes: 'Excellent communication skills',
+          aptitude_score: 82,
+          aptitude_notes: 'Good analytical thinking',
+          total_score: 78,
+          result: 'pass',
+          conducted_by: 'Jane Assessor',
+          status: 'completed'
+        },
+        {
+          id: 3,
+          candidate_id: 3,
+          candidate_name: 'Charlie Brooks',
+          position: 'Backend Developer',
+          assessment_date: '2023-06-20',
+          status: 'draft'
+        }
+      ];
+      
+      if (candidateId) {
+        return assessments.filter(a => a.candidate_id === candidateId);
+      }
+      return assessments;
+    } catch (error) {
+      console.error('Error fetching interview assessments:', error);
+      return [];
+    }
+  },
+
+  getCodingChallenges: async () => {
+    try {
+      return [
+        {
+          id: 1,
+          title: 'FizzBuzz Implementation',
+          description: 'Write a function that prints numbers from 1 to n, but for multiples of 3 print "Fizz", for multiples of 5 print "Buzz", and for multiples of both 3 and 5 print "FizzBuzz".',
+          difficulty: 'easy',
+          expected_duration: 15,
+          language: 'JavaScript',
+          content: 'function fizzBuzz(n) {\n  // Your implementation here\n}'
+        },
+        {
+          id: 2,
+          title: 'String Reversal',
+          description: 'Write a function to reverse a string without using built-in reverse methods.',
+          difficulty: 'easy',
+          expected_duration: 10,
+          language: 'JavaScript',
+          content: 'function reverseString(str) {\n  // Your implementation here\n}'
+        },
+        {
+          id: 3,
+          title: 'JSON Parser Implementation',
+          description: 'Write a simple JSON parser that can handle basic JSON structures.',
+          difficulty: 'hard',
+          expected_duration: 60,
+          language: 'JavaScript',
+          content: 'function parseJSON(jsonString) {\n  // Your implementation here\n}'
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching coding challenges:', error);
+      return [];
+    }
+  },
+
+  getEnglishAssessments: async () => {
+    try {
+      return [
+        {
+          id: 1,
+          title: 'Business Communication Assessment',
+          type: 'writing',
+          questions: [
+            {
+              id: 1,
+              question: 'Write a professional email to a client explaining a project delay.',
+              type: 'essay'
+            },
+            {
+              id: 2,
+              question: 'Choose the correctly written sentence:',
+              type: 'multiple-choice',
+              options: [
+                'The team have completed their tasks.',
+                'The team has completed their tasks.',
+                'The team has completed its tasks.',
+                'The team have completed its tasks.'
+              ],
+              correct_answer: 'The team has completed its tasks.'
+            }
+          ]
+        },
+        {
+          id: 2,
+          title: 'English Grammar Test',
+          type: 'grammar',
+          questions: [
+            {
+              id: 1,
+              question: 'Fill in the blank: "If I _____ known about the meeting, I would have attended."',
+              type: 'fill-in-blank',
+              correct_answer: 'had'
+            },
+            {
+              id: 2,
+              question: 'Which of the following is a correct sentence?',
+              type: 'multiple-choice',
+              options: [
+                'She don\'t know the answer.',
+                'They was working yesterday.',
+                'He has been working here since 2010.',
+                'We is going to the meeting.'
+              ],
+              correct_answer: 'He has been working here since 2010.'
+            }
+          ]
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching English assessments:', error);
+      return [];
+    }
+  },
+
+  getAptitudeAssessments: async () => {
+    try {
+      return [
+        {
+          id: 1,
+          title: 'Logical Reasoning Test',
+          category: 'logical',
+          questions: [
+            {
+              id: 1,
+              question: 'If all roses are flowers and some flowers fade quickly, which statement must be true?',
+              options: [
+                'All roses fade quickly',
+                'Some roses fade quickly',
+                'No roses fade quickly',
+                'All flowers are roses'
+              ],
+              correct_answer: 'Some roses fade quickly'
+            },
+            {
+              id: 2,
+              question: 'What comes next in the sequence: 2, 4, 8, 16, __?',
+              options: ['24', '32', '36', '64'],
+              correct_answer: '32'
+            }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Numerical Reasoning Test',
+          category: 'numerical',
+          questions: [
+            {
+              id: 1,
+              question: 'If a software project increases in cost by 20% and then decreases by 10%, what is the net percentage change?',
+              options: ['10% increase', '8% increase', '10% decrease', '8% decrease'],
+              correct_answer: '8% increase'
+            },
+            {
+              id: 2,
+              question: 'A team completes 40% of a project in 10 days. At this rate, how many more days will it take to complete the project?',
+              options: ['10', '15', '20', '25'],
+              correct_answer: '15'
+            }
+          ]
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching aptitude assessments:', error);
+      return [];
+    }
+  },
+
+  createInterviewAssessment: async (assessmentData) => {
+    try {
+      console.log('Creating interview assessment:', assessmentData);
+      // Mock response - in a real app this would be saved to the database
+      return {
+        id: Math.floor(Math.random() * 1000),
+        ...assessmentData,
+        created_at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error creating interview assessment:', error);
+      throw error;
+    }
+  },
+
+  updateInterviewAssessment: async (id, assessmentData) => {
+    try {
+      console.log(`Updating interview assessment ${id}:`, assessmentData);
+      // Mock response - in a real app this would update the database
+      return {
+        id,
+        ...assessmentData,
+        updated_at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error updating interview assessment:', error);
+      throw error;
+    }
   }
 };
 

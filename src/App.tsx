@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './hooks/use-auth';
@@ -36,6 +35,7 @@ import Recruitment from './pages/hr/Recruitment';
 import Payroll from './pages/hr/Payroll';
 import HRReports from './pages/hr/Reports';
 import PerformanceReviews from './pages/hr/PerformanceReviews';
+import InterviewAssessment from './pages/hr/InterviewAssessment';
 
 // Marketing pages
 import MarketingDashboard from './pages/marketing/Dashboard';
@@ -92,6 +92,7 @@ function App() {
               <Route path="/hr/payroll" element={<Payroll />} />
               <Route path="/hr/reports" element={<HRReports />} />
               <Route path="/hr/performance" element={<PerformanceReviews />} />
+              <Route path="/hr/interview-assessment/:candidateId" element={<InterviewAssessment />} />
               
               {/* Marketing routes */}
               <Route path="/marketing/dashboard" element={<MarketingDashboard />} />

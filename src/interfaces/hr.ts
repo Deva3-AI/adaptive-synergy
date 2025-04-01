@@ -1,4 +1,3 @@
-
 export interface Employee {
   id: number;
   name: string;
@@ -151,4 +150,57 @@ export interface HRDashboardData {
     description: string;
     timestamp: string;
   }>;
+}
+
+export interface InterviewAssessment {
+  id: number;
+  candidate_id: number;
+  candidate_name: string;
+  position: string;
+  assessment_date: string;
+  coding_score?: number;
+  coding_notes?: string;
+  english_score?: number;
+  english_notes?: string;
+  aptitude_score?: number;
+  aptitude_notes?: string;
+  total_score?: number;
+  result?: 'pass' | 'fail' | 'pending';
+  conducted_by?: string;
+  status: 'draft' | 'completed';
+}
+
+export interface CodingChallenge {
+  id: number;
+  title: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  expected_duration: number; // in minutes
+  language: string;
+  content: string;
+}
+
+export interface EnglishAssessment {
+  id: number;
+  title: string;
+  type: 'writing' | 'speaking' | 'comprehension' | 'grammar';
+  questions: {
+    id: number;
+    question: string;
+    type: 'multiple-choice' | 'essay' | 'fill-in-blank';
+    options?: string[];
+    correct_answer?: string;
+  }[];
+}
+
+export interface AptitudeAssessment {
+  id: number;
+  title: string;
+  category: 'logical' | 'numerical' | 'verbal' | 'abstract';
+  questions: {
+    id: number;
+    question: string;
+    options: string[];
+    correct_answer: string;
+  }[];
 }

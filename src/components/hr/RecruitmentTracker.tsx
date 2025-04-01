@@ -1,354 +1,186 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { hrService } from '@/services/api';
-import { Candidate } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableCaption,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Filter, Plus, ArrowUpDown, UserPlus, Download, User, FileText, Building, MailOpen } from 'lucide-react';
-
-// Helper function to convert string status to enum type
-const normalizeStatus = (status: string): "new" | "rejected" | "screening" | "interview" | "offer" | "hired" => {
-  const validStatuses = ["new", "rejected", "screening", "interview", "offer", "hired"];
-  return validStatuses.includes(status.toLowerCase()) 
-    ? status.toLowerCase() as "new" | "rejected" | "screening" | "interview" | "offer" | "hired"
-    : "new";
-};
+import { Candidate } from '@/interfaces/hr';
+import { useNavigate } from 'react-router-dom';
+import { CalendarClock, User, Mail, Phone, Briefcase, CheckCircle, XCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 const RecruitmentTracker = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
-  // Fetch candidates
-  const { data: candidatesData, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['candidates'],
-    queryFn: async () => {
-      const data = await hrService.getCandidates();
-      
-      // Normalize the data to match the Candidate type
-      return data.map((candidate: any) => ({
-        ...candidate,
-        status: normalizeStatus(candidate.status)
-      })) as Candidate[];
+    queryFn: () => hrService.getCandidates(),
+  });
+
+  useEffect(() => {
+    if (data) {
+      setCandidates(data);
     }
-  });
+  }, [data]);
 
-  // Fetch open positions
-  const { data: positions, isLoading: isLoadingPositions } = useQuery({
-    queryKey: ['openPositions'],
-    queryFn: () => hrService.getOpenPositions()
-  });
+  const filteredCandidates = candidates.filter(candidate =>
+    candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    candidate.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    candidate.job_title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // Filter candidates based on search term and filters
-  const filteredCandidates = candidatesData?.filter(candidate => {
-    const matchesSearch = 
-      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.job_title.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter ? candidate.status === statusFilter : true;
-    const matchesSource = sourceFilter ? candidate.source === sourceFilter : true;
-    
-    return matchesSearch && matchesStatus && matchesSource;
-  });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'new':
-        return <Badge variant="secondary">New</Badge>;
-      case 'screening':
-        return <Badge variant="outline">Screening</Badge>;
-      case 'interview':
-        return <Badge variant="primary">Interview</Badge>;
-      case 'offer':
-        return <Badge variant="warning">Offer</Badge>;
-      case 'hired':
-        return <Badge variant="success">Hired</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+  const handleCandidateClick = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
   };
 
-  const countCandidatesByStatus = (status: string) => {
-    return candidatesData?.filter(candidate => candidate.status === status).length || 0;
+  const handleCloseCandidateDetail = () => {
+    setSelectedCandidate(null);
   };
-
-  const sources = candidatesData ? Array.from(new Set(candidatesData.map(c => c.source))) : [];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Recruitment Tracker</h1>
-          <p className="text-muted-foreground">Manage candidates and job openings</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Candidate
-          </Button>
-          <Button variant="outline">
-            <Plus className="mr-2 h-4 w-4" />
-            New Position
-          </Button>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Recruitment Tracker</h1>
+        <Input
+          type="search"
+          placeholder="Search candidates..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-md"
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">All Candidates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{candidatesData?.length || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">In Process</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {countCandidatesByStatus('screening') + countCandidatesByStatus('interview')}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Offers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{countCandidatesByStatus('offer')}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{positions?.length || 0}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search candidates..."
-            className="pl-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="inline-flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setStatusFilter(null)} className={!statusFilter ? "bg-muted" : ""}>
-              All
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setStatusFilter('new')} className={statusFilter === 'new' ? "bg-muted" : ""}>
-              New
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setStatusFilter('screening')} className={statusFilter === 'screening' ? "bg-muted" : ""}>
-              Screening
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setStatusFilter('interview')} className={statusFilter === 'interview' ? "bg-muted" : ""}>
-              Interview
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setStatusFilter('offer')} className={statusFilter === 'offer' ? "bg-muted" : ""}>
-              Offer
-            </Button>
-          </div>
-          <div className="inline-flex gap-2">
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
-            <Button variant="outline" size="sm">
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              Sort
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <Tabs defaultValue="candidates">
-        <TabsList className="mb-4">
-          <TabsTrigger value="candidates">Candidates</TabsTrigger>
-          <TabsTrigger value="positions">Open Positions</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline Analytics</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="candidates">
+      <Table>
+        <TableCaption>A list of your recent candidates.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[200px]">Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Position</TableHead>
+            <TableHead>Application Date</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {isLoading ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              </CardContent>
-            </Card>
+            <TableRow>
+              <TableCell colSpan={5} className="text-center">Loading candidates...</TableCell>
+            </TableRow>
+          ) : filteredCandidates.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center">No candidates found.</TableCell>
+            </TableRow>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[60vh] w-full">
-                  <div className="p-4 flex flex-col gap-3">
-                    {filteredCandidates && filteredCandidates.length > 0 ? (
-                      filteredCandidates.map((candidate) => (
-                        <div key={candidate.id} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="md:w-1/4">
-                            <div className="flex gap-3 items-center">
-                              <div className="bg-primary/10 h-10 w-10 rounded-full flex items-center justify-center">
-                                <User className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <h3 className="font-medium">{candidate.name}</h3>
-                                <p className="text-sm text-muted-foreground">{candidate.email}</p>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="md:w-1/4">
-                            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
-                              <Building className="h-3 w-3" /> Position
-                            </div>
-                            <p className="font-medium">{candidate.job_title}</p>
-                            <div className="flex gap-2 mt-1">
-                              <Badge variant="outline">{candidate.source}</Badge>
-                            </div>
-                          </div>
-                          
-                          <div className="md:w-1/4">
-                            <div className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
-                              <FileText className="h-3 w-3" /> Experience & Education
-                            </div>
-                            <p className="text-sm">{candidate.experience} years • {candidate.education}</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {candidate.skills.slice(0, 3).map((skill, i) => (
-                                <span key={i} className="text-xs bg-secondary/50 px-2 py-0.5 rounded-full">{skill}</span>
-                              ))}
-                              {candidate.skills.length > 3 && (
-                                <span className="text-xs bg-secondary/50 px-2 py-0.5 rounded-full">+{candidate.skills.length - 3}</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="md:w-1/4 flex flex-col md:items-end justify-between">
-                            <div className="flex gap-2 mb-2">
-                              {getStatusBadge(candidate.status)}
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(candidate.application_date).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm">View</Button>
-                              <Button variant="secondary" size="sm">Update</Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        {candidatesData?.length === 0 ? 
-                          "No candidates found. Start by adding your first candidate." : 
-                          "No candidates match your search criteria."
-                        }
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            filteredCandidates.map((candidate) => (
+              <TableRow key={candidate.id} onClick={() => handleCandidateClick(candidate)} className="cursor-pointer">
+                <TableCell className="font-medium">{candidate.name}</TableCell>
+                <TableCell>{candidate.email}</TableCell>
+                <TableCell>{candidate.job_title}</TableCell>
+                <TableCell>{candidate.application_date}</TableCell>
+                <TableCell className="text-right">
+                  {candidate.status === 'new' && <Badge variant="secondary">New</Badge>}
+                  {candidate.status === 'screening' && <Badge variant="outline">Screening</Badge>}
+                  {candidate.status === 'interview' && <Badge>Interview</Badge>}
+                  {candidate.status === 'offer' && <Badge variant="success">Offer</Badge>}
+                  {candidate.status === 'hired' && <Badge variant="success">Hired</Badge>}
+                  {candidate.status === 'rejected' && <Badge variant="destructive">Rejected</Badge>}
+                </TableCell>
+              </TableRow>
+            ))
           )}
-        </TabsContent>
-        
-        <TabsContent value="positions">
-          <Card>
-            <CardContent className="p-6">
-              {isLoadingPositions ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                positions && positions.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {positions.map((position: any) => (
-                      <Card key={position.id} className="overflow-hidden">
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg">{position.title}</CardTitle>
-                            <Badge>{position.department}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-sm text-muted-foreground mb-1">Location</p>
-                              <p>{position.location}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground mb-1">Candidates</p>
-                              <div className="flex items-center">
-                                <MailOpen className="h-4 w-4 mr-1 text-muted-foreground" />
-                                <p>{position.applicants} applicants</p>
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground mb-1">Posted Date</p>
-                              <p>{new Date(position.posted_date).toLocaleDateString()}</p>
-                            </div>
-                            <div className="pt-2 flex justify-between">
-                              <Button variant="outline" size="sm">View Candidates</Button>
-                              <Button variant="secondary" size="sm">Edit</Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No open positions found. Create a position to get started.
-                  </div>
-                )
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="pipeline">
-          <Card>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Pipeline charts would go here */}
-                <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Pipeline Stage Distribution Chart</p>
-                </div>
-                <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Time in Stage Chart</p>
-                </div>
-                <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Source Effectiveness Chart</p>
-                </div>
-                <div className="h-64 bg-muted/50 rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Conversion Rate Chart</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </TableBody>
+      </Table>
+
+      <Dialog open={selectedCandidate !== null} onOpenChange={(open) => {
+        if (!open) handleCloseCandidateDetail();
+      }}>
+        <DialogContent className="sm:max-w-[825px]">
+          <ScrollArea className="h-[600px] w-full">
+            {selectedCandidate && (
+              <CandidateDetail candidate={selectedCandidate} onClose={handleCloseCandidateDetail} />
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+import { Button } from '@/components/ui/button';
+import { Candidate } from '@/interfaces/hr';
+import { useNavigate } from 'react-router-dom';
+
+// Find the Candidate detail view section of the code and add the assessment button
+const CandidateDetail = ({ candidate, onClose }: { candidate: Candidate; onClose: () => void }) => {
+  const navigate = useNavigate();
+  
+  const handleStartAssessment = () => {
+    navigate(`/hr/interview-assessment/${candidate.id}`);
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">{candidate.name}</h2>
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Contact Information</h3>
+          <div className="text-muted-foreground space-y-1">
+            <p className="flex items-center"><Mail className="h-4 w-4 mr-2" /> {candidate.email}</p>
+            <p className="flex items-center"><Phone className="h-4 w-4 mr-2" /> {candidate.phone}</p>
+          </div>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">Job Details</h3>
+          <div className="text-muted-foreground space-y-1">
+            <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2" /> {candidate.job_title}</p>
+            <p className="flex items-center"><CalendarClock className="h-4 w-4 mr-2" /> Applied on {candidate.application_date}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-semibold">Skills</h3>
+        <div className="flex flex-wrap gap-2">
+          {candidate.skills.map((skill, index) => (
+            <Badge key={index}>{skill}</Badge>
+          ))}
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-semibold">Notes</h3>
+        <p className="text-muted-foreground">{candidate.notes || 'No notes provided.'}</p>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline">Send Email</Button>
+        <Button variant="outline">Schedule Interview</Button>
+        <Button onClick={handleStartAssessment}>Start Assessment</Button>
+      </div>
     </div>
   );
 };
