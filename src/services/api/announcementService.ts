@@ -1,76 +1,79 @@
 
-import { Announcement } from '@/interfaces/announcement';
+import { Announcement } from '@/interfaces/announcements';
 
 const announcements: Announcement[] = [
   {
     id: 1,
-    title: 'Company Picnic',
-    content: 'Join us for our annual company picnic this Saturday at Central Park. Food and drinks will be provided.',
-    author: 'HR Team',
-    date: '2023-07-15',
-    category: 'event',
+    title: "Company Retreat Announcement",
+    content: "We're excited to announce our annual company retreat will be held from July 15-17.",
+    author: "HR Team",
+    date: new Date(2023, 5, 1).toISOString(),
+    category: "company",
     isPinned: true
   },
   {
     id: 2,
-    title: 'New Health Insurance Plan',
-    content: 'We are switching to a new health insurance provider starting next month. Please check your email for details.',
-    author: 'Benefits Department',
-    date: '2023-07-10',
-    category: 'hr',
+    title: "New Health Benefits",
+    content: "Starting next month, we'll be offering enhanced health benefits to all employees.",
+    author: "HR Team",
+    date: new Date(2023, 4, 15).toISOString(),
+    category: "hr",
     isPinned: false
   },
   {
     id: 3,
-    title: 'Quarterly Results',
-    content: 'Our Q2 results exceeded expectations. Thank you all for your hard work and dedication.',
-    author: 'CEO',
-    date: '2023-07-05',
-    category: 'company',
+    title: "Office Closing Early",
+    content: "The office will close at 3pm this Friday for building maintenance.",
+    author: "Facilities Manager",
+    date: new Date(2023, 5, 10).toISOString(),
+    category: "general",
     isPinned: true
   }
 ];
 
-const announcementService = {
+export const announcementService = {
   getAnnouncements: async (): Promise<Announcement[]> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return [...announcements];
+    // Simulate API call
+    return new Promise((resolve) => {
+      setTimeout(() => resolve([...announcements]), 500);
+    });
   },
-
-  getAnnouncementById: async (id: number): Promise<Announcement | undefined> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return announcements.find(a => a.id === id);
+  
+  getAnnouncement: async (id: number): Promise<Announcement | null> => {
+    const announcement = announcements.find(a => a.id === id);
+    return announcement || null;
   },
-
+  
   createAnnouncement: async (announcement: Omit<Announcement, 'id' | 'date'>): Promise<Announcement> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
     const newAnnouncement: Announcement = {
-      id: Math.max(...announcements.map(a => a.id)) + 1,
-      date: new Date().toISOString().split('T')[0],
+      id: announcements.length + 1,
+      date: new Date().toISOString(),
       ...announcement
     };
+    
     announcements.push(newAnnouncement);
     return newAnnouncement;
   },
-
-  updateAnnouncement: async (id: number, announcement: Partial<Announcement>): Promise<Announcement | undefined> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+  
+  updateAnnouncement: async (id: number, updates: Partial<Omit<Announcement, 'id' | 'date'>>): Promise<Announcement | null> => {
     const index = announcements.findIndex(a => a.id === id);
-    if (index === -1) return undefined;
+    if (index === -1) {
+      return null;
+    }
     
-    const updatedAnnouncement = {
+    announcements[index] = {
       ...announcements[index],
-      ...announcement
+      ...updates
     };
-    announcements[index] = updatedAnnouncement;
-    return updatedAnnouncement;
+    
+    return announcements[index];
   },
-
+  
   deleteAnnouncement: async (id: number): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
     const index = announcements.findIndex(a => a.id === id);
-    if (index === -1) return false;
+    if (index === -1) {
+      return false;
+    }
     
     announcements.splice(index, 1);
     return true;

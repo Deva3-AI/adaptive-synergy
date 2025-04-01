@@ -21,7 +21,9 @@ const EmployeeWorkTracker = () => {
 
       try {
         setLoading(true);
-        const attendanceData = await employeeService.getTodayAttendance(user.id);
+        // Convert user.id to number if it's a string
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        const attendanceData = await employeeService.getTodayAttendance(userId);
         setTodayAttendance(attendanceData);
       } catch (error) {
         console.error('Error fetching today attendance:', error);
@@ -39,7 +41,8 @@ const EmployeeWorkTracker = () => {
 
     try {
       setStartingWork(true);
-      const attendanceData = await employeeService.startWork(user.id);
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      const attendanceData = await employeeService.startWork(userId);
       setTodayAttendance(attendanceData);
       toast.success('Work session started successfully');
     } catch (error) {
@@ -51,13 +54,16 @@ const EmployeeWorkTracker = () => {
   };
 
   const stopWork = async () => {
-    if (!isAuthenticated || !isEmployee || !user) return;
-
-    if (!todayAttendance) return;
+    if (!isAuthenticated || !isEmployee || !user || !todayAttendance) return;
 
     try {
       setStoppingWork(true);
-      await employeeService.stopWork(todayAttendance.attendance_id, user.id);
+      const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+      const attendanceId = typeof todayAttendance.attendance_id === 'string' 
+        ? parseInt(todayAttendance.attendance_id, 10) 
+        : todayAttendance.attendance_id;
+        
+      await employeeService.stopWork(attendanceId, userId);
       setTodayAttendance(null);
       toast.success('Work session ended successfully');
     } catch (error) {

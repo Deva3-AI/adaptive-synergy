@@ -1,118 +1,90 @@
 
 import { CalendarEvent } from '@/interfaces/calendar';
-import { addDays, format } from 'date-fns';
 
-// Mock data for calendar events
-const today = new Date();
-const calendarEvents: CalendarEvent[] = [
+// Mock calendar service implementation
+const events: CalendarEvent[] = [
   {
     id: 1,
     title: 'Company Meeting',
-    description: 'Quarterly company meeting to discuss goals and progress',
-    start: format(today, 'yyyy-MM-dd'),
-    allDay: true,
+    start: new Date(2023, 5, 10, 10, 0),
+    end: new Date(2023, 5, 10, 11, 30),
+    description: 'Monthly company-wide meeting',
+    location: 'Main Conference Room',
     type: 'meeting',
-    createdBy: 'HR Team',
-    location: 'Main Conference Room'
+    createdBy: 'HR Department'
   },
   {
     id: 2,
-    title: 'Independence Day',
-    description: 'National holiday - office closed',
-    start: format(addDays(today, 5), 'yyyy-MM-dd'),
-    allDay: true,
-    type: 'holiday',
-    createdBy: 'HR Team'
+    title: 'Team Building',
+    start: new Date(2023, 5, 15, 13, 0),
+    end: new Date(2023, 5, 15, 17, 0),
+    description: 'Team building activities',
+    location: 'Central Park',
+    type: 'event',
+    createdBy: 'HR Department'
   },
   {
     id: 3,
-    title: 'John Doe - Vacation',
-    description: 'Annual leave',
-    start: format(addDays(today, 7), 'yyyy-MM-dd'),
-    end: format(addDays(today, 14), 'yyyy-MM-dd'),
-    allDay: true,
-    type: 'leave',
-    createdBy: 'HR Team',
-    userId: 1
-  },
-  {
-    id: 4,
-    title: 'Team Building',
-    description: 'Team building activity at Adventure Park',
-    start: format(addDays(today, 20), 'yyyy-MM-dd'),
-    allDay: true,
-    type: 'company',
-    createdBy: 'HR Team',
-    location: 'Adventure Park'
+    title: 'Public Holiday - Independence Day',
+    start: new Date(2023, 6, 4),
+    end: new Date(2023, 6, 4),
+    description: 'Independence Day holiday',
+    type: 'holiday',
+    createdBy: 'System'
   }
 ];
 
-const calendarService = {
-  // Get all calendar events
+export const calendarService = {
   getEvents: async (): Promise<CalendarEvent[]> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return [...calendarEvents];
+    // Simulate API call
+    return new Promise((resolve) => {
+      setTimeout(() => resolve([...events]), 500);
+    });
   },
-
-  // Get events for a specific user
-  getUserEvents: async (userId: number): Promise<CalendarEvent[]> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return calendarEvents.filter(
-      event => event.userId === userId || event.type === 'company' || event.type === 'holiday'
-    );
-  },
-
-  // Add a new event (HR only)
-  addEvent: async (event: Omit<CalendarEvent, 'id'>, userRole: string): Promise<CalendarEvent | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if user is HR
+  
+  addEvent: async (event: Omit<CalendarEvent, 'id' | 'createdBy'>, userRole: string): Promise<CalendarEvent | null> => {
+    // Only HR and admin can add events
     if (userRole !== 'hr' && userRole !== 'admin') {
-      console.error('Only HR can add events');
       return null;
     }
     
     const newEvent: CalendarEvent = {
-      id: Math.max(...calendarEvents.map(e => e.id)) + 1,
+      id: events.length + 1,
+      createdBy: 'HR Department',
       ...event
     };
     
-    calendarEvents.push(newEvent);
+    events.push(newEvent);
     return newEvent;
   },
-
-  // Update an existing event (HR only)
+  
   updateEvent: async (event: CalendarEvent, userRole: string): Promise<CalendarEvent | null> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if user is HR
+    // Only HR and admin can update events
     if (userRole !== 'hr' && userRole !== 'admin') {
-      console.error('Only HR can update events');
       return null;
     }
     
-    const index = calendarEvents.findIndex(e => e.id === event.id);
-    if (index === -1) return null;
+    const index = events.findIndex(e => e.id === event.id);
+    if (index === -1) {
+      return null;
+    }
     
-    calendarEvents[index] = event;
+    events[index] = event;
     return event;
   },
-
-  // Delete an event (HR only)
+  
   deleteEvent: async (eventId: number, userRole: string): Promise<boolean> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if user is HR
+    // Only HR and admin can delete events
     if (userRole !== 'hr' && userRole !== 'admin') {
-      console.error('Only HR can delete events');
       return false;
     }
     
-    const index = calendarEvents.findIndex(e => e.id === eventId);
-    if (index === -1) return false;
+    const index = events.findIndex(e => e.id === eventId);
+    if (index === -1) {
+      return false;
+    }
     
-    calendarEvents.splice(index, 1);
+    events.splice(index, 1);
     return true;
   }
 };

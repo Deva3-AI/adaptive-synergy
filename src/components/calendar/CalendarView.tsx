@@ -1,356 +1,400 @@
 
 import React, { useState } from 'react';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { CalendarEvent, CalendarViewProps } from '@/interfaces/calendar';
-import { CalendarIcon, Plus, Edit, Trash2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { format, addDays, isWithinInterval, parseISO } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { CalendarEvent } from '@/interfaces/calendar';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { format } from 'date-fns';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 
-const eventTypeColors = {
-  company: 'bg-blue-500',
-  leave: 'bg-amber-500',
-  holiday: 'bg-green-500',
-  meeting: 'bg-purple-500',
-  other: 'bg-gray-500'
-};
+interface CalendarViewProps {
+  events: CalendarEvent[];
+  isHR: boolean;
+  onAddEvent: (event: Omit<CalendarEvent, 'id' | 'createdBy'>) => void;
+  onEditEvent: (event: CalendarEvent) => void;
+  onDeleteEvent: (eventId: number) => void;
+}
+
+const eventSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  type: z.enum(['meeting', 'event', 'holiday', 'leave', 'other']),
+  start: z.date(),
+  end: z.date(),
+});
+
+type EventFormValues = z.infer<typeof eventSchema>;
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ 
   events, 
-  isHR,
-  onAddEvent,
-  onEditEvent,
-  onDeleteEvent
+  isHR, 
+  onAddEvent, 
+  onEditEvent, 
+  onDeleteEvent 
 }) => {
-  const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewEventDialogOpen, setIsViewEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [isEditing, setIsEditing] = useState(false);
   
-  const [newEvent, setNewEvent] = useState<Partial<CalendarEvent>>({
-    title: '',
-    description: '',
-    type: 'company',
-    allDay: true,
-    start: format(new Date(), 'yyyy-MM-dd')
-  });
-  
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    const formattedDate = date ? format(date, 'yyyy-MM-dd') : '';
-    setNewEvent(prev => ({ ...prev, start: formattedDate }));
-  };
-  
-  const getEventsForDate = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return events.filter(event => {
-      if (event.start === dateStr) return true;
-      if (event.end && event.start <= dateStr && event.end >= dateStr) return true;
-      return false;
-    });
-  };
-  
-  const handleAddEvent = () => {
-    if (!newEvent.title || !newEvent.type || !newEvent.start) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (onAddEvent) {
-      onAddEvent(newEvent as Omit<CalendarEvent, 'id' | 'createdBy'>);
-      toast({
-        title: "Success",
-        description: "Event added successfully",
-      });
-    }
-    
-    setIsDialogOpen(false);
-    setNewEvent({
+  const form = useForm<EventFormValues>({
+    resolver: zodResolver(eventSchema),
+    defaultValues: {
       title: '',
       description: '',
-      type: 'company',
-      allDay: true,
-      start: format(new Date(), 'yyyy-MM-dd')
+      location: '',
+      type: 'event',
+      start: new Date(),
+      end: new Date(),
+    },
+  });
+  
+  const handleAddEvent = () => {
+    setIsEditing(false);
+    form.reset({
+      title: '',
+      description: '',
+      location: '',
+      type: 'event',
+      start: selectedDate || new Date(),
+      end: selectedDate || new Date(),
     });
+    setIsDialogOpen(true);
+  };
+  
+  const handleViewEvent = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setIsViewEventDialogOpen(true);
   };
   
   const handleEditEvent = () => {
     if (!selectedEvent) return;
     
-    if (onEditEvent) {
-      onEditEvent(selectedEvent);
-      toast({
-        title: "Success",
-        description: "Event updated successfully",
-      });
-    }
-    
-    setIsDialogOpen(false);
-    setSelectedEvent(null);
+    setIsEditing(true);
+    form.reset({
+      title: selectedEvent.title,
+      description: selectedEvent.description || '',
+      location: selectedEvent.location || '',
+      type: selectedEvent.type,
+      start: selectedEvent.start,
+      end: selectedEvent.end,
+    });
+    setIsViewEventDialogOpen(false);
+    setIsDialogOpen(true);
   };
   
   const handleDeleteEvent = () => {
-    if (!selectedEvent || !onDeleteEvent) return;
+    if (!selectedEvent) return;
     
     onDeleteEvent(selectedEvent.id);
-    toast({
-      title: "Success",
-      description: "Event deleted successfully",
-    });
+    setIsViewEventDialogOpen(false);
+  };
+  
+  const onSubmit = (values: EventFormValues) => {
+    if (isEditing && selectedEvent) {
+      onEditEvent({
+        ...selectedEvent,
+        ...values,
+      });
+    } else {
+      onAddEvent(values);
+    }
     
     setIsDialogOpen(false);
-    setSelectedEvent(null);
   };
   
-  const openEditDialog = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setIsDialogOpen(true);
+  const dateHasEvent = (date: Date): boolean => {
+    return events.some(event => {
+      const eventDate = new Date(event.start);
+      return (
+        eventDate.getDate() === date.getDate() &&
+        eventDate.getMonth() === date.getMonth() &&
+        eventDate.getFullYear() === date.getFullYear()
+      );
+    });
   };
   
-  const openAddDialog = () => {
-    setSelectedEvent(null);
-    if (selectedDate) {
-      setNewEvent(prev => ({ ...prev, start: format(selectedDate, 'yyyy-MM-dd') }));
-    }
-    setIsDialogOpen(true);
-  };
-  
-  const renderDayContent = (day: Date) => {
-    const dayEvents = getEventsForDate(day);
-    if (dayEvents.length === 0) return null;
-    
-    return (
-      <div className="absolute bottom-0 left-0 right-0 px-1">
-        {dayEvents.slice(0, 2).map((event, index) => (
-          <div 
-            key={event.id} 
-            className={`${eventTypeColors[event.type]} text-white text-xs px-1 my-0.5 truncate rounded cursor-pointer`}
-            onClick={() => openEditDialog(event)}
-          >
-            {event.title}
-          </div>
-        ))}
-        {dayEvents.length > 2 && (
-          <div className="text-xs text-center text-muted-foreground">
-            +{dayEvents.length - 2} more
-          </div>
-        )}
-      </div>
-    );
+  const getEventsForDay = (date: Date): CalendarEvent[] => {
+    return events.filter(event => {
+      const eventDate = new Date(event.start);
+      return (
+        eventDate.getDate() === date.getDate() &&
+        eventDate.getMonth() === date.getMonth() &&
+        eventDate.getFullYear() === date.getFullYear()
+      );
+    });
   };
   
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Company Calendar</CardTitle>
+    <div className="flex flex-col space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">
+          {selectedDate ? format(selectedDate, 'MMMM yyyy') : 'Calendar'}
+        </h2>
+        
         {isHR && (
-          <Button variant="outline" size="sm" onClick={openAddDialog}>
+          <Button onClick={handleAddEvent}>
             <Plus className="h-4 w-4 mr-2" />
             Add Event
           </Button>
         )}
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="lg:w-3/4">
-            <CalendarComponent
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleDateSelect}
-              className="rounded-md border"
-              components={{
-                DayContent: ({ date }) => (
-                  <>
-                    <div>{date.getDate()}</div>
-                    {renderDayContent(date)}
-                  </>
-                )
-              }}
-            />
-          </div>
-          
-          <div className="lg:w-1/4">
-            <h3 className="text-lg font-medium mb-4">
-              {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Select a date'}
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="col-span-1">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            modifiers={{ hasEvent: dateHasEvent }}
+            modifiersClassNames={{ hasEvent: 'bg-primary/10' }}
+            className="rounded-md border"
+          />
+        </div>
+        
+        <div className="col-span-1 md:col-span-2">
+          <div className="border rounded-md p-4">
+            <h3 className="font-medium mb-4">
+              {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Select a date'}
             </h3>
             
             {selectedDate && (
-              <div className="space-y-4">
-                {getEventsForDate(selectedDate).length > 0 ? (
-                  getEventsForDate(selectedDate).map(event => (
-                    <div key={event.id} className="border rounded-lg p-3 relative">
-                      <div className="flex justify-between">
-                        <Badge className={eventTypeColors[event.type]}>
-                          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                        </Badge>
-                        {isHR && (
-                          <div className="space-x-2">
-                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              setSelectedEvent(event);
-                              handleDeleteEvent();
-                            }}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+              <div className="space-y-3">
+                {getEventsForDay(selectedDate).length > 0 ? (
+                  getEventsForDay(selectedDate).map(event => (
+                    <div 
+                      key={event.id} 
+                      className="flex flex-col p-3 border rounded-md cursor-pointer hover:bg-secondary/50"
+                      onClick={() => handleViewEvent(event)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-semibold">{event.title}</h4>
+                        <span className="text-xs bg-primary/10 px-2 py-1 rounded">
+                          {event.type}
+                        </span>
                       </div>
-                      <h4 className="font-medium mt-2">{event.title}</h4>
-                      {event.description && <p className="text-sm text-muted-foreground">{event.description}</p>}
-                      {event.end && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(parseISO(event.start), 'MMM d')} - {format(parseISO(event.end), 'MMM d')}
-                        </p>
-                      )}
+                      
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {format(new Date(event.start), 'h:mm a')} - {format(new Date(event.end), 'h:mm a')}
+                      </div>
+                      
                       {event.location && (
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <div className="text-sm mt-1">
                           Location: {event.location}
-                        </p>
+                        </div>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Created by: {event.createdBy}
-                      </p>
+                      
+                      {event.description && (
+                        <div className="text-sm mt-1 line-clamp-2">
+                          {event.description}
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No events for this date
+                  <div className="text-center py-6 text-muted-foreground">
+                    No events scheduled for this day.
                   </div>
                 )}
               </div>
             )}
           </div>
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{selectedEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
-              <DialogDescription>
-                {selectedEvent ? 'Update the event details' : 'Fill in the details for the new event'}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Event Title</Label>
-                <Input
-                  id="title"
-                  value={selectedEvent ? selectedEvent.title : newEvent.title}
-                  onChange={(e) => selectedEvent 
-                    ? setSelectedEvent({...selectedEvent, title: e.target.value})
-                    : setNewEvent({...newEvent, title: e.target.value})
-                  }
-                  placeholder="Enter event title"
-                />
-              </div>
+      </div>
+      
+      {/* Add/Edit Event Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isEditing ? 'Edit Event' : 'Add New Event'}</DialogTitle>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
               
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={selectedEvent ? selectedEvent.description || '' : newEvent.description || ''}
-                  onChange={(e) => selectedEvent 
-                    ? setSelectedEvent({...selectedEvent, description: e.target.value})
-                    : setNewEvent({...newEvent, description: e.target.value})
-                  }
-                  placeholder="Enter event description"
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Event Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select event type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                        <SelectItem value="event">Event</SelectItem>
+                        <SelectItem value="holiday">Holiday</SelectItem>
+                        <SelectItem value="leave">Leave</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start">Start Date</Label>
-                  <Input
-                    id="start"
-                    type="date"
-                    value={selectedEvent ? selectedEvent.start : newEvent.start}
-                    onChange={(e) => selectedEvent 
-                      ? setSelectedEvent({...selectedEvent, start: e.target.value})
-                      : setNewEvent({...newEvent, start: e.target.value})
-                    }
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="start"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="datetime-local" 
+                          {...field} 
+                          value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ''} 
+                          onChange={(e) => field.onChange(new Date(e.target.value))} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
                 
-                <div className="space-y-2">
-                  <Label htmlFor="end">End Date (Optional)</Label>
-                  <Input
-                    id="end"
-                    type="date"
-                    value={selectedEvent ? selectedEvent.end || '' : newEvent.end || ''}
-                    onChange={(e) => selectedEvent 
-                      ? setSelectedEvent({...selectedEvent, end: e.target.value})
-                      : setNewEvent({...newEvent, end: e.target.value})
-                    }
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="type">Event Type</Label>
-                <Select
-                  value={selectedEvent ? selectedEvent.type : newEvent.type}
-                  onValueChange={(value: any) => selectedEvent 
-                    ? setSelectedEvent({...selectedEvent, type: value})
-                    : setNewEvent({...newEvent, type: value})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="company">Company Event</SelectItem>
-                    <SelectItem value="leave">Leave</SelectItem>
-                    <SelectItem value="holiday">Holiday</SelectItem>
-                    <SelectItem value="meeting">Meeting</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="location">Location (Optional)</Label>
-                <Input
-                  id="location"
-                  value={selectedEvent ? selectedEvent.location || '' : newEvent.location || ''}
-                  onChange={(e) => selectedEvent 
-                    ? setSelectedEvent({...selectedEvent, location: e.target.value})
-                    : setNewEvent({...newEvent, location: e.target.value})
-                  }
-                  placeholder="Enter event location"
+                <FormField
+                  control={form.control}
+                  name="end"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="datetime-local" 
+                          {...field} 
+                          value={field.value ? format(field.value, "yyyy-MM-dd'T'HH:mm") : ''} 
+                          onChange={(e) => field.onChange(new Date(e.target.value))} 
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
               </div>
-            </div>
-            
-            <DialogFooter>
-              {selectedEvent && (
-                <Button variant="destructive" onClick={handleDeleteEvent}>
-                  Delete
-                </Button>
+              
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location (Optional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="submit">{isEditing ? 'Update' : 'Add'} Event</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* View Event Dialog */}
+      <Dialog open={isViewEventDialogOpen} onOpenChange={setIsViewEventDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Event Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold">{selectedEvent.title}</h3>
+                <div className="flex items-center mt-1">
+                  <span className="text-xs bg-primary/10 px-2 py-1 rounded">
+                    {selectedEvent.type}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    Created by {selectedEvent.createdBy}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <h4 className="text-sm font-medium">Date & Time</h4>
+                  <p className="text-sm">
+                    {format(new Date(selectedEvent.start), 'EEEE, MMMM d, yyyy')}
+                    <br />
+                    {format(new Date(selectedEvent.start), 'h:mm a')} - {format(new Date(selectedEvent.end), 'h:mm a')}
+                  </p>
+                </div>
+                
+                {selectedEvent.location && (
+                  <div>
+                    <h4 className="text-sm font-medium">Location</h4>
+                    <p className="text-sm">{selectedEvent.location}</p>
+                  </div>
+                )}
+                
+                {selectedEvent.description && (
+                  <div>
+                    <h4 className="text-sm font-medium">Description</h4>
+                    <p className="text-sm">{selectedEvent.description}</p>
+                  </div>
+                )}
+              </div>
+              
+              {isHR && (
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={handleEditEvent}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  
+                  <Button variant="destructive" onClick={handleDeleteEvent}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               )}
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={selectedEvent ? handleEditEvent : handleAddEvent}>
-                {selectedEvent ? 'Save Changes' : 'Add Event'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };

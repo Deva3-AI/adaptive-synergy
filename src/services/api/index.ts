@@ -1,28 +1,22 @@
 
-import authService from './authService';
+import { hrService } from './hrService';
 import { taskService } from './taskService';
-import clientService from './clientService';
-import hrService from './hrService';
-import employeeService from './employeeService';
+import { clientService } from './clientService';
 import { financeService } from './financeService';
-import marketingService from './marketingService';
-import reportService from './reportService';
-import platformAnalysisService from './platformAnalysisService';
-import aiService from './aiService';
-import announcementService from './announcementService';
-import calendarService from './calendarService';
+import { employeeService } from './employeeService';
+import { marketingService } from './marketingService';
+import { announcementService } from './announcementService';
+import { userService } from './userService';
+import { calendarService } from './calendarService';
 
 export {
-  authService,
+  hrService,
   taskService,
   clientService,
-  hrService,
-  employeeService,
   financeService,
+  employeeService,
   marketingService,
-  reportService,
-  platformAnalysisService,
-  aiService,
   announcementService,
+  userService,
   calendarService
 };

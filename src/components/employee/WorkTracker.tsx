@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { employeeService } from '@/services/api';
@@ -7,7 +8,21 @@ import { toast } from 'sonner';
 import { Clock, Play, Square, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
-const WorkTracker = () => {
+interface WorkTrackerProps {
+  isWorking: boolean;
+  onStartWork: () => Promise<void>;
+  onEndWork: () => Promise<void>;
+  startTime: Date;
+  todayHours: number;
+}
+
+const WorkTracker: React.FC<WorkTrackerProps> = ({ 
+  isWorking, 
+  onStartWork, 
+  onEndWork, 
+  startTime, 
+  todayHours 
+}) => {
   const { user } = useAuth();
   const [todayAttendance, setTodayAttendance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -17,8 +32,11 @@ const WorkTracker = () => {
   const fetchTodayAttendance = async () => {
     try {
       setLoading(true);
-      const attendanceData = await employeeService.getTodayAttendance();
-      setTodayAttendance(attendanceData);
+      if (user && user.id) {
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        const attendanceData = await employeeService.getTodayAttendance(userId);
+        setTodayAttendance(attendanceData);
+      }
     } catch (error) {
       console.error('Error fetching today attendance:', error);
       toast.error('Failed to fetch attendance data');
@@ -29,12 +47,15 @@ const WorkTracker = () => {
 
   useEffect(() => {
     fetchTodayAttendance();
-  }, []);
+  }, [user]);
 
   const startWork = async () => {
     try {
       setStartingWork(true);
-      await employeeService.startWork();
+      if (user && user.id) {
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        await employeeService.startWork(userId);
+      }
       
       // Refresh attendance data
       fetchTodayAttendance();
@@ -52,14 +73,16 @@ const WorkTracker = () => {
     
     try {
       setStoppingWork(true);
-      const userId = typeof user?.id === 'string' ? parseInt(user.id, 10) : user?.id;
-      
-      // Make sure attendanceId is a number
-      const attendanceId = typeof todayAttendance.attendance_id === 'string' 
-        ? parseInt(todayAttendance.attendance_id, 10) 
-        : todayAttendance.attendance_id;
-      
-      await employeeService.stopWork(Number(attendanceId));
+      if (user && user.id && todayAttendance.attendance_id) {
+        const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
+        
+        // Make sure attendanceId is a number
+        const attendanceId = typeof todayAttendance.attendance_id === 'string' 
+          ? parseInt(todayAttendance.attendance_id, 10) 
+          : todayAttendance.attendance_id;
+        
+        await employeeService.stopWork(attendanceId, userId);
+      }
       
       // Refresh attendance data
       fetchTodayAttendance();

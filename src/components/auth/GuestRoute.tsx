@@ -3,9 +3,9 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 
-type GuestRouteProps = {
+interface GuestRouteProps {
   children: React.ReactNode;
-};
+}
 
 const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
