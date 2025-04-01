@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -231,16 +232,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {
-              path: "/calendar",
-              element: (
+            <Route
+              path="/calendar"
+              element={
                 <ProtectedRoute>
                   <AppLayout>
                     <CompanyCalendar />
                   </AppLayout>
                 </ProtectedRoute>
-              ),
-            }
+              }
+            />
           </Routes>
         </Router>
       </QueryClientProvider>
