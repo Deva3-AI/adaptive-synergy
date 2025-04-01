@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './hooks/use-auth';
@@ -11,6 +12,7 @@ import TaskDetail from './pages/employee/TaskDetail';
 import Profile from './pages/employee/Profile';
 import LeaveRequests from './pages/employee/LeaveRequests';
 import AppLayout from './components/layout/AppLayout';
+import Announcements from './pages/Announcements';
 
 // Client pages
 import ClientDashboard from './pages/client/Dashboard';
@@ -36,6 +38,7 @@ import Payroll from './pages/hr/Payroll';
 import HRReports from './pages/hr/Reports';
 import PerformanceReviews from './pages/hr/PerformanceReviews';
 import InterviewAssessment from './pages/hr/InterviewAssessment';
+import AnnouncementManagement from './pages/hr/AnnouncementManagement';
 
 // Marketing pages
 import MarketingDashboard from './pages/marketing/Dashboard';
@@ -61,6 +64,7 @@ function App() {
               {/* Dashboard routes */}
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/announcements" element={<Announcements />} />
               
               {/* Employee routes */}
               <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
@@ -93,6 +97,7 @@ function App() {
               <Route path="/hr/reports" element={<HRReports />} />
               <Route path="/hr/performance" element={<PerformanceReviews />} />
               <Route path="/hr/interview-assessment/:candidateId" element={<InterviewAssessment />} />
+              <Route path="/hr/announcements" element={<AnnouncementManagement />} />
               
               {/* Marketing routes */}
               <Route path="/marketing/dashboard" element={<MarketingDashboard />} />

@@ -1,20 +1,37 @@
 
+import React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 
-interface SpinnerProps {
-  size?: "sm" | "md" | "lg";
-  className?: string;
-}
+const spinnerVariants = cva(
+  "animate-spin rounded-full border-current border-t-transparent",
+  {
+    variants: {
+      size: {
+        sm: "h-4 w-4 border-2",
+        md: "h-6 w-6 border-2",
+        lg: "h-8 w-8 border-4",
+        xl: "h-12 w-12 border-4",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+);
 
-export function Spinner({ size = "md", className }: SpinnerProps) {
-  const sizeStyles = {
-    sm: "h-4 w-4",
-    md: "h-6 w-6",
-    lg: "h-8 w-8",
-  };
+export interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof spinnerVariants> {}
 
-  return (
-    <Loader2 className={cn("animate-spin", sizeStyles[size], className)} />
-  );
-}
+export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
+  ({ className, size, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(spinnerVariants({ size }), className)}
+        {...props}
+      />
+    );
+  }
+);
+
+Spinner.displayName = "Spinner";
