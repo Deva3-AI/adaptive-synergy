@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarView } from '@/components/calendar/CalendarView';
 import { CalendarEvent } from '@/interfaces/calendar';
@@ -12,9 +12,9 @@ const CompanyCalendar = () => {
   const { user } = useAuth();
   const isHR = user?.role === 'hr' || user?.role === 'admin';
   
-  const { data: events = [], isLoading, refetch } = useQuery({
+  const { data = [], isLoading, refetch } = useQuery({
     queryKey: ['calendar-events'],
-    queryFn: calendarService.getEvents,
+    queryFn: () => calendarService.getEvents(),
   });
   
   const handleAddEvent = async (event: Omit<CalendarEvent, 'id' | 'createdBy'>) => {
@@ -118,7 +118,7 @@ const CompanyCalendar = () => {
       </p>
       
       <CalendarView 
-        events={events}
+        events={data as CalendarEvent[]}
         isHR={isHR}
         onAddEvent={handleAddEvent}
         onEditEvent={handleEditEvent}

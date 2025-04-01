@@ -1,49 +1,42 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Route,
   Routes,
-  useLocation,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ScrollToTop } from "@/components/utils/scroll-to-top";
 import { useAuth } from "@/hooks/use-auth";
-import { authService } from "@/services/api";
-import { AppLayout } from "@/components/layout/AppLayout";
+import AppLayout from "@/components/layout/AppLayout";
 import { LandingPage } from "@/pages/LandingPage";
-import { LoginPage } from "@/pages/auth/LoginPage";
-import { RegisterPage } from "@/pages/auth/RegisterPage";
-import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
-import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
-import { VerifyEmailPage } from "@/pages/auth/VerifyEmailPage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { TasksPage } from "@/pages/TasksPage";
-import { ClientsPage } from "@/pages/ClientsPage";
-import { EmployeesPage } from "@/pages/EmployeesPage";
-import { FinancePage } from "@/pages/FinancePage";
-import { MarketingPage } from "@/pages/MarketingPage";
-import { ReportsPage } from "@/pages/ReportsPage";
-import { SettingsPage } from "@/pages/SettingsPage";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { GuestRoute } from "@/components/auth/GuestRoute";
-import { EmployeeDetailsPage } from "@/pages/EmployeeDetailsPage";
-import { TaskDetailsPage } from "@/pages/TaskDetailsPage";
-import { ClientDetailsPage } from "@/pages/ClientDetailsPage";
-import { InvoiceDetailsPage } from "@/pages/InvoiceDetailsPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { HRDashboard } from "@/pages/hr/HRDashboard";
+import Login from "@/pages/auth/Login";
+import Signup from "@/pages/auth/Signup";
+import PasswordRecovery from "@/pages/PasswordRecovery";
+import ResetPassword from "@/pages/auth/ResetPassword";
+import VerifyEmail from "@/pages/VerifyEmail";
+import Dashboard from "@/pages/Dashboard";
+import Tasks from "@/pages/employee/Tasks";
+import Clients from "@/pages/Clients";
+import { EmployeeDirectory } from "@/pages/employee/EmployeeDirectory";
+import Finance from "@/pages/finance/FinancialDashboard";
+import { Dashboard as MarketingDashboard } from "@/pages/marketing/Dashboard";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import GuestRoute from "@/components/auth/GuestRoute";
+import { EmployeeProfile } from "@/pages/employee/EmployeeProfile";
+import { TaskDetail } from "@/pages/employee/TaskDetail";
+import Profile from "@/pages/Profile";
+import HRDashboard from "@/pages/hr/HRDashboard";
 import CompanyCalendar from "@/pages/CompanyCalendar";
+import Announcements from "@/pages/Announcements";
 
 const queryClient = new QueryClient();
 
 function App() {
-  const { initializeAuth } = useAuth();
-
-  useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+  const { user, token, loading } = useAuth();
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-react-theme">
@@ -56,7 +49,7 @@ function App() {
               path="/login"
               element={
                 <GuestRoute>
-                  <LoginPage />
+                  <Login />
                 </GuestRoute>
               }
             />
@@ -64,7 +57,7 @@ function App() {
               path="/register"
               element={
                 <GuestRoute>
-                  <RegisterPage />
+                  <Signup />
                 </GuestRoute>
               }
             />
@@ -72,7 +65,7 @@ function App() {
               path="/forgot-password"
               element={
                 <GuestRoute>
-                  <ForgotPasswordPage />
+                  <PasswordRecovery />
                 </GuestRoute>
               }
             />
@@ -80,7 +73,7 @@ function App() {
               path="/reset-password/:token"
               element={
                 <GuestRoute>
-                  <ResetPasswordPage />
+                  <ResetPassword />
                 </GuestRoute>
               }
             />
@@ -88,7 +81,7 @@ function App() {
               path="/verify-email/:token"
               element={
                 <GuestRoute>
-                  <VerifyEmailPage />
+                  <VerifyEmail />
                 </GuestRoute>
               }
             />
@@ -97,7 +90,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <DashboardPage />
+                    <Dashboard />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -107,7 +100,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <TasksPage />
+                    <Tasks />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -117,7 +110,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <TaskDetailsPage />
+                    <TaskDetail />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -127,17 +120,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <ClientsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clients/:clientId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <ClientDetailsPage />
+                    <Clients />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -147,7 +130,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <EmployeesPage />
+                    <EmployeeDirectory />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -157,7 +140,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <EmployeeDetailsPage />
+                    <EmployeeProfile />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -167,17 +150,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <FinancePage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/finance/invoices/:invoiceId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <InvoiceDetailsPage />
+                    <Finance />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -187,7 +160,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <MarketingPage />
+                    <MarketingDashboard />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -197,7 +170,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <ReportsPage />
+                    <Reports />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -207,7 +180,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <SettingsPage />
+                    <Settings />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -217,7 +190,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <ProfilePage />
+                    <Profile />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -238,6 +211,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <CompanyCalendar />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/announcements"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Announcements />
                   </AppLayout>
                 </ProtectedRoute>
               }

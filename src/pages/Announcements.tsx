@@ -15,13 +15,13 @@ const Announcements = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  const { data: announcements = [], isLoading, isError, refetch } = useQuery({
+  const { data = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['announcements'],
-    queryFn: announcementService.getAnnouncements,
+    queryFn: () => announcementService.getAnnouncements(),
   });
 
   // Filter announcements by search term and category
-  const filteredAnnouncements = announcements.filter(announcement => {
+  const filteredAnnouncements = (data as Announcement[]).filter(announcement => {
     const matchesSearch = announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          announcement.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          announcement.author.toLowerCase().includes(searchTerm.toLowerCase());

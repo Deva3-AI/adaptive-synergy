@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -20,7 +21,7 @@ const EmployeeWorkTracker = () => {
 
       try {
         setLoading(true);
-        const attendanceData = await employeeService.getTodayAttendance();
+        const attendanceData = await employeeService.getTodayAttendance(user.id);
         setTodayAttendance(attendanceData);
       } catch (error) {
         console.error('Error fetching today attendance:', error);
@@ -38,7 +39,7 @@ const EmployeeWorkTracker = () => {
 
     try {
       setStartingWork(true);
-      const attendanceData = await employeeService.startWork();
+      const attendanceData = await employeeService.startWork(user.id);
       setTodayAttendance(attendanceData);
       toast.success('Work session started successfully');
     } catch (error) {
@@ -56,7 +57,7 @@ const EmployeeWorkTracker = () => {
 
     try {
       setStoppingWork(true);
-      await employeeService.stopWork(todayAttendance.attendance_id);
+      await employeeService.stopWork(todayAttendance.attendance_id, user.id);
       setTodayAttendance(null);
       toast.success('Work session ended successfully');
     } catch (error) {
