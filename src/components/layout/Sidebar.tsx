@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,7 +24,10 @@ import {
   Bell,
   BarChart3,
   Search,
-  ChevronRight
+  ChevronRight,
+  TrendingUp,
+  Megaphone,
+  Mail
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -243,6 +245,12 @@ const navigation: NavItem[] = [
     href: "/settings",
     icon: Settings,
   },
+  {
+    title: "Calendar",
+    href: "/calendar",
+    icon: <Calendar className="h-5 w-5" />,
+    active: pathname === "/calendar",
+  },
 ];
 
 const Sidebar = ({ expanded, setExpanded }: SidebarProps) => {
@@ -273,7 +281,6 @@ const Sidebar = ({ expanded, setExpanded }: SidebarProps) => {
     }
   };
 
-  // If in mobile view, close sidebar when not expanded
   React.useEffect(() => {
     if (isMobile && setExpanded) {
       setExpanded(false);

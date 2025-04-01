@@ -10,6 +10,7 @@ import reportService from './reportService';
 import platformAnalysisService from './platformAnalysisService';
 import aiService from './aiService';
 import announcementService from './announcementService';
+import calendarService from './calendarService';
 
 export {
   authService,
@@ -22,5 +23,6 @@ export {
   reportService,
   platformAnalysisService,
   aiService,
-  announcementService
+  announcementService,
+  calendarService
 };

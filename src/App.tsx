@@ -1,120 +1,250 @@
+import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ScrollToTop } from "@/components/utils/scroll-to-top";
+import { useAuth } from "@/hooks/use-auth";
+import { authService } from "@/services/api";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { LandingPage } from "@/pages/LandingPage";
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
+import { VerifyEmailPage } from "@/pages/auth/VerifyEmailPage";
+import { DashboardPage } from "@/pages/DashboardPage";
+import { TasksPage } from "@/pages/TasksPage";
+import { ClientsPage } from "@/pages/ClientsPage";
+import { EmployeesPage } from "@/pages/EmployeesPage";
+import { FinancePage } from "@/pages/FinancePage";
+import { MarketingPage } from "@/pages/MarketingPage";
+import { ReportsPage } from "@/pages/ReportsPage";
+import { SettingsPage } from "@/pages/SettingsPage";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { GuestRoute } from "@/components/auth/GuestRoute";
+import { EmployeeDetailsPage } from "@/pages/EmployeeDetailsPage";
+import { TaskDetailsPage } from "@/pages/TaskDetailsPage";
+import { ClientDetailsPage } from "@/pages/ClientDetailsPage";
+import { InvoiceDetailsPage } from "@/pages/InvoiceDetailsPage";
+import { ProfilePage } from "@/pages/ProfilePage";
+import { HRDashboard } from "@/pages/hr/HRDashboard";
+import CompanyCalendar from "@/pages/CompanyCalendar";
 
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { AuthProvider } from './hooks/use-auth';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import ProtectedRoute from './components/ProtectedRoute';
-import EmployeeDashboard from './pages/employee/Dashboard';
-import EmployeeTasks from './pages/employee/Tasks';
-import TaskDetail from './pages/employee/TaskDetail';
-import Profile from './pages/employee/Profile';
-import LeaveRequests from './pages/employee/LeaveRequests';
-import AppLayout from './components/layout/AppLayout';
-import Announcements from './pages/Announcements';
-
-// Client pages
-import ClientDashboard from './pages/client/Dashboard';
-import ClientTasks from './pages/client/Tasks';
-import ClientTaskDetail from './pages/client/TaskDetail';
-import ClientReports from './pages/client/Reports';
-import ClientsList from './pages/Clients';
-import BrandsDashboard from './pages/client/BrandsDashboard';
-
-// Finance pages
-import FinanceDashboard from './pages/finance/Dashboard';
-import FinancialDashboard from './pages/finance/FinancialDashboard';
-import SalesDashboard from './pages/finance/SalesDashboard';
-import FinancePerformance from './pages/finance/Performance';
-import FinanceReports from './pages/finance/Reports';
-
-// HR pages
-import HRDashboard from './pages/hr/HRDashboard';
-import Attendance from './pages/hr/Attendance';
-import LeaveManagement from './pages/hr/LeaveManagement';
-import Recruitment from './pages/hr/Recruitment';
-import Payroll from './pages/hr/Payroll';
-import HRReports from './pages/hr/Reports';
-import PerformanceReviews from './pages/hr/PerformanceReviews';
-import InterviewAssessment from './pages/hr/InterviewAssessment';
-import AnnouncementManagement from './pages/hr/AnnouncementManagement';
-
-// Marketing pages
-import MarketingDashboard from './pages/marketing/Dashboard';
-import MarketingCampaigns from './pages/marketing/Campaigns';
-import MarketingAnalytics from './pages/marketing/Analytics';
-import MarketingLeads from './pages/marketing/Leads';
-import MarketingMeetings from './pages/marketing/Meetings';
-import EmailTemplates from './pages/marketing/EmailTemplates';
-import MarketingOutreachPlans from './pages/marketing/OutreachPlans';
+const queryClient = new QueryClient();
 
 function App() {
+  const { initializeAuth } = useAuth();
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Signup />} />
-          
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
-              {/* Dashboard routes */}
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/announcements" element={<Announcements />} />
-              
-              {/* Employee routes */}
-              <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-              <Route path="/employee/tasks" element={<EmployeeTasks />} />
-              <Route path="/employee/tasks/:taskId" element={<TaskDetail />} />
-              <Route path="/employee/profile" element={<Profile />} />
-              <Route path="/employee/leave-requests" element={<LeaveRequests />} />
-              
-              {/* Client routes */}
-              <Route path="/client/dashboard" element={<ClientDashboard />} />
-              <Route path="/client/tasks" element={<ClientTasks />} />
-              <Route path="/client/tasks/:taskId" element={<ClientTaskDetail />} />
-              <Route path="/client/reports" element={<ClientReports />} />
-              <Route path="/client/brands" element={<BrandsDashboard />} />
-              <Route path="/clients" element={<ClientsList />} />
-              
-              {/* Finance routes */}
-              <Route path="/finance/dashboard" element={<FinanceDashboard />} />
-              <Route path="/finance/overview" element={<FinancialDashboard />} />
-              <Route path="/finance/sales" element={<SalesDashboard />} />
-              <Route path="/finance/performance" element={<FinancePerformance />} />
-              <Route path="/finance/reports" element={<FinanceReports />} />
-              
-              {/* HR routes */}
-              <Route path="/hr/dashboard" element={<HRDashboard />} />
-              <Route path="/hr/attendance" element={<Attendance />} />
-              <Route path="/hr/leave-management" element={<LeaveManagement />} />
-              <Route path="/hr/recruitment" element={<Recruitment />} />
-              <Route path="/hr/payroll" element={<Payroll />} />
-              <Route path="/hr/reports" element={<HRReports />} />
-              <Route path="/hr/performance" element={<PerformanceReviews />} />
-              <Route path="/hr/interview-assessment/:candidateId" element={<InterviewAssessment />} />
-              <Route path="/hr/announcements" element={<AnnouncementManagement />} />
-              
-              {/* Marketing routes */}
-              <Route path="/marketing/dashboard" element={<MarketingDashboard />} />
-              <Route path="/marketing/campaigns" element={<MarketingCampaigns />} />
-              <Route path="/marketing/analytics" element={<MarketingAnalytics />} />
-              <Route path="/marketing/leads" element={<MarketingLeads />} />
-              <Route path="/marketing/meetings" element={<MarketingMeetings />} />
-              <Route path="/marketing/email-templates" element={<EmailTemplates />} />
-              <Route path="/marketing/plans" element={<MarketingOutreachPlans />} />
-            </Route>
-          </Route>
-          
-          {/* 404 route */}
-          <Route path="*" element={<div className="p-8 text-center">Page not found</div>} />
-        </Routes>
-      </AuthProvider>
-    </Router>
+    <ThemeProvider defaultTheme="system" storageKey="vite-react-theme">
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route
+              path="/login"
+              element={
+                <GuestRoute>
+                  <LoginPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <GuestRoute>
+                  <RegisterPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <GuestRoute>
+                  <ForgotPasswordPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/reset-password/:token"
+              element={
+                <GuestRoute>
+                  <ResetPasswordPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/verify-email/:token"
+              element={
+                <GuestRoute>
+                  <VerifyEmailPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <DashboardPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <TasksPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks/:taskId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <TaskDetailsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clients"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ClientsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/clients/:clientId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ClientDetailsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employees"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <EmployeesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employees/:employeeId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <EmployeeDetailsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <FinancePage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/invoices/:invoiceId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <InvoiceDetailsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/marketing"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <MarketingPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ReportsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <SettingsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ProfilePage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr-dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <HRDashboard />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            {
+              path: "/calendar",
+              element: (
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CompanyCalendar />
+                  </AppLayout>
+                </ProtectedRoute>
+              ),
+            }
+          </Routes>
+        </Router>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
