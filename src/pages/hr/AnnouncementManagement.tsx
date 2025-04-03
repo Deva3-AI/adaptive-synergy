@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, Plus, ArrowUpDown, CalendarDays } from "lucide-react";
 import { AnnouncementCard } from '@/components/announcements/AnnouncementCard';
 import { AnnouncementForm } from '@/components/announcements/AnnouncementForm';
-import { announcementService } from '@/services/api';
+import { announcementService } from '@/services/api/announcementService';
 import { Announcement } from '@/interfaces/announcements';
 
 const AnnouncementManagement = () => {
@@ -125,13 +124,12 @@ const AnnouncementManagement = () => {
     }
   };
 
-  const filteredAnnouncements = announcements.filter(announcement => {
+  const filteredAnnouncements = (announcements as Announcement[]).filter(announcement => {
     if (activeTab === "all") return true;
     if (activeTab === "pinned") return announcement.isPinned;
     return announcement.category === activeTab;
   });
 
-  // Sort by pinned status and date
   const sortedAnnouncements = [...filteredAnnouncements].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
@@ -224,7 +222,6 @@ const AnnouncementManagement = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -244,7 +241,6 @@ const AnnouncementManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

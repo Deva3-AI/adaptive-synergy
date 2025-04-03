@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, Search, Filter } from "lucide-react";
 import { AnnouncementCard } from '@/components/announcements/AnnouncementCard';
-import { announcementService } from '@/services/api';
+import { announcementService } from '@/services/api/announcementService';
 import { Announcement } from '@/interfaces/announcements';
 import { Spinner } from '@/components/ui/spinner';
 

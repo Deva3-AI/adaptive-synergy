@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -58,7 +57,11 @@ export const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
 
   const handleSubmit = (data: FormValues) => {
     onSubmit({
-      ...data,
+      title: data.title,
+      content: data.content,
+      author: data.author,
+      category: data.category,
+      isPinned: data.isPinned,
       attachmentUrl: data.attachmentUrl || undefined,
     });
   };
