@@ -9,6 +9,7 @@ import { default as reportService } from './reportService';
 import { financeService } from './financeService';
 import { default as platformAnalysisService } from './platformAnalysisService';
 import announcementService from './announcementService';
+import documentationService from './documentationService';
 
 export {
   hrService,
@@ -20,5 +21,6 @@ export {
   reportService,
   financeService,
   platformAnalysisService,
-  announcementService
+  announcementService,
+  documentationService
 };

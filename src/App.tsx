@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -225,16 +226,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {
-              path: '/documentation',
-              element: (
+            <Route
+              path="/documentation"
+              element={
                 <ProtectedRoute>
-                  <MainLayout>
+                  <AppLayout>
                     <Documentation />
-                  </MainLayout>
+                  </AppLayout>
                 </ProtectedRoute>
-              ),
-            }
+              }
+            />
           </Routes>
         </Router>
       </QueryClientProvider>
