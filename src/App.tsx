@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -32,6 +31,7 @@ import Profile from "@/pages/Profile";
 import HRDashboard from "@/pages/hr/HRDashboard";
 import CompanyCalendar from "@/pages/CompanyCalendar";
 import Announcements from "@/pages/Announcements";
+import Documentation from '@/pages/Documentation';
 
 const queryClient = new QueryClient();
 
@@ -225,6 +225,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {
+              path: '/documentation',
+              element: (
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Documentation />
+                  </MainLayout>
+                </ProtectedRoute>
+              ),
+            }
           </Routes>
         </Router>
       </QueryClientProvider>
