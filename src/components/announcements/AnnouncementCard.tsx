@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Megaphone, Calendar, MessageSquare, Bell } from "lucide-react";
-import { Announcement } from '@/interfaces/announcement';
+import { Announcement } from '@/interfaces/announcements';
 import { format } from 'date-fns';
 
 interface AnnouncementCardProps {

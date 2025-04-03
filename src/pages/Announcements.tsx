@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Bell, Search, Filter } from "lucide-react";
 import { AnnouncementCard } from '@/components/announcements/AnnouncementCard';
 import { announcementService } from '@/services/api';
-import { Announcement } from '@/interfaces/announcement';
+import { Announcement } from '@/interfaces/announcements';
 import { Spinner } from '@/components/ui/spinner';
 
 const Announcements = () => {

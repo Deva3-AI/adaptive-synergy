@@ -27,7 +27,7 @@ import { Bell, Plus, ArrowUpDown, CalendarDays } from "lucide-react";
 import { AnnouncementCard } from '@/components/announcements/AnnouncementCard';
 import { AnnouncementForm } from '@/components/announcements/AnnouncementForm';
 import { announcementService } from '@/services/api';
-import { Announcement } from '@/interfaces/announcement';
+import { Announcement } from '@/interfaces/announcements';
 
 const AnnouncementManagement = () => {
   const { toast } = useToast();

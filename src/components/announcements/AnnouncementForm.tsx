@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Announcement } from '@/interfaces/announcement';
+import { Announcement } from '@/interfaces/announcements';
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
