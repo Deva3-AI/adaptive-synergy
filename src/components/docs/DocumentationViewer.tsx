@@ -1,24 +1,84 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search, FileText, Book, Code, Users, Calendar, Bell, BarChart2, CreditCard, Briefcase, Layout, Database, Server, Shield, Wifi } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from 'react-markdown';
-
-// Import the documentation content
-import frontendDocumentation from '../../docs/FrontendDocumentation.md';
-import backendDocumentation from '../../docs/BackendDocumentation.md';
+import { documentationService } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
+import { Spinner } from '@/components/ui/spinner';
 
 const DocumentationViewer = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("frontend");
+  const [frontendDocumentation, setFrontendDocumentation] = useState("");
+  const [backendDocumentation, setBackendDocumentation] = useState("");
+  const [aiDocumentation, setAIDocumentation] = useState("");
+
+  // Fetch documentation content using the documentationService
+  const { data: frontendDocs, isLoading: frontendLoading } = useQuery({
+    queryKey: ['frontend-documentation'],
+    queryFn: () => documentationService.getFrontendDocs(),
+    onSuccess: (data) => {
+      if (data?.content) {
+        setFrontendDocumentation(data.content);
+      }
+    }
+  });
+
+  const { data: backendDocs, isLoading: backendLoading } = useQuery({
+    queryKey: ['backend-documentation'],
+    queryFn: () => documentationService.getBackendDocs(),
+    onSuccess: (data) => {
+      if (data?.content) {
+        setBackendDocumentation(data.content);
+      }
+    }
+  });
+
+  const { data: aiDocs, isLoading: aiLoading } = useQuery({
+    queryKey: ['ai-documentation'],
+    queryFn: () => documentationService.getAIDocs(),
+    onSuccess: (data) => {
+      if (data?.content) {
+        setAIDocumentation(data.content);
+      }
+    }
+  });
+
+  // Fallback to local content if API fails
+  useEffect(() => {
+    const loadLocalDocs = async () => {
+      try {
+        // Only load local docs if the API request didn't return content
+        if (!frontendDocumentation) {
+          const frontendModule = await import('../../docs/FrontendDocumentation.md');
+          setFrontendDocumentation(frontendModule.default);
+        }
+        
+        if (!backendDocumentation) {
+          const backendModule = await import('../../docs/BackendDocumentation.md');
+          setBackendDocumentation(backendModule.default);
+        }
+        
+        if (!aiDocumentation) {
+          const aiModule = await import('../../docs/AIDocumentation.md');
+          setAIDocumentation(aiModule.default);
+        }
+      } catch (error) {
+        console.error("Error loading documentation files:", error);
+      }
+    };
+
+    loadLocalDocs();
+  }, [frontendDocumentation, backendDocumentation, aiDocumentation]);
 
   // Sections for navigation - Frontend
   const frontendSections = [
     { id: "overview", name: "Overview", icon: FileText },
-    { id: "authentication-module", name: "Authentication", icon: Users },
+    { id: "authentication-module", name: "Authentication", icon: Shield },
     { id: "dashboard", name: "Dashboard", icon: Layout },
     { id: "announcements", name: "Announcements", icon: Bell },
     { id: "calendar", name: "Calendar", icon: Calendar },
@@ -28,7 +88,6 @@ const DocumentationViewer = () => {
     { id: "finance-module", name: "Finance", icon: CreditCard },
     { id: "client-module", name: "Client", icon: Briefcase },
     { id: "task-management", name: "Tasks", icon: Code },
-    { id: "ai-features", name: "AI Features", icon: Book },
     { id: "common-components", name: "Components", icon: Layout },
     { id: "interfaces-services", name: "Services", icon: Code },
   ];
@@ -50,6 +109,20 @@ const DocumentationViewer = () => {
     { id: "development-deployment", name: "Deployment", icon: Server },
   ];
 
+  // Sections for navigation - AI
+  const aiSections = [
+    { id: "overview", name: "Overview", icon: Book },
+    { id: "core-ai-technologies", name: "Core AI Technologies", icon: Brain },
+    { id: "client-module-ai-features", name: "Client AI Features", icon: Briefcase },
+    { id: "employee-module-ai-features", name: "Employee AI Features", icon: Users },
+    { id: "marketing-module-ai-features", name: "Marketing AI Features", icon: BarChart2 },
+    { id: "finance-module-ai-features", name: "Finance AI Features", icon: CreditCard },
+    { id: "hr-module-ai-features", name: "HR AI Features", icon: Users },
+    { id: "platform-integration-ai-features", name: "Platform Integration", icon: Wifi },
+    { id: "implementation-details", name: "Implementation", icon: Code },
+    { id: "future-ai-enhancements", name: "Future Enhancements", icon: Lightbulb },
+  ];
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -58,6 +131,27 @@ const DocumentationViewer = () => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const filterContent = (content: string) => {
+    if (!searchTerm.trim()) return content;
+    
+    // Simple filtering - highlight matched sections in a production app
+    // would be more sophisticated
+    return content;
+  };
+
+  const getSections = () => {
+    switch (activeTab) {
+      case 'frontend':
+        return frontendSections;
+      case 'backend':
+        return backendSections;
+      case 'ai':
+        return aiSections;
+      default:
+        return frontendSections;
     }
   };
 
@@ -76,9 +170,10 @@ const DocumentationViewer = () => {
       </div>
 
       <Tabs defaultValue="frontend" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="frontend">Frontend</TabsTrigger>
           <TabsTrigger value="backend">Backend</TabsTrigger>
+          <TabsTrigger value="ai">AI Features</TabsTrigger>
         </TabsList>
 
         <div className="flex flex-col lg:flex-row gap-6 mt-6">
@@ -100,28 +195,16 @@ const DocumentationViewer = () => {
               </div>
               <ScrollArea className="h-[calc(100vh-240px)]">
                 <div className="space-y-1">
-                  {activeTab === "frontend" ? 
-                    frontendSections.map((section) => (
-                      <button
-                        key={section.id}
-                        onClick={() => scrollToSection(section.id)}
-                        className="flex items-center w-full px-2 py-1.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <section.icon className="mr-2 h-4 w-4" />
-                        {section.name}
-                      </button>
-                    )) : 
-                    backendSections.map((section) => (
-                      <button
-                        key={section.id}
-                        onClick={() => scrollToSection(section.id)}
-                        className="flex items-center w-full px-2 py-1.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <section.icon className="mr-2 h-4 w-4" />
-                        {section.name}
-                      </button>
-                    ))
-                  }
+                  {getSections().map((section) => (
+                    <button
+                      key={section.id}
+                      onClick={() => scrollToSection(section.id)}
+                      className="flex items-center w-full px-2 py-1.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <section.icon className="mr-2 h-4 w-4" />
+                      {section.name}
+                    </button>
+                  ))}
                 </div>
               </ScrollArea>
             </CardContent>
@@ -132,9 +215,16 @@ const DocumentationViewer = () => {
             <Card className="w-full">
               <CardContent className="p-6">
                 <ScrollArea className="h-[calc(100vh-180px)]">
-                  <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
-                    <ReactMarkdown>{frontendDocumentation}</ReactMarkdown>
-                  </div>
+                  {frontendLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <Spinner size="lg" />
+                      <span className="ml-3">Loading documentation...</span>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
+                      <ReactMarkdown>{filterContent(frontendDocumentation)}</ReactMarkdown>
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -144,9 +234,35 @@ const DocumentationViewer = () => {
             <Card className="w-full">
               <CardContent className="p-6">
                 <ScrollArea className="h-[calc(100vh-180px)]">
-                  <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
-                    <ReactMarkdown>{backendDocumentation}</ReactMarkdown>
-                  </div>
+                  {backendLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <Spinner size="lg" />
+                      <span className="ml-3">Loading documentation...</span>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
+                      <ReactMarkdown>{filterContent(backendDocumentation)}</ReactMarkdown>
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ai" className="flex-1 mt-0">
+            <Card className="w-full">
+              <CardContent className="p-6">
+                <ScrollArea className="h-[calc(100vh-180px)]">
+                  {aiLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <Spinner size="lg" />
+                      <span className="ml-3">Loading documentation...</span>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
+                      <ReactMarkdown>{filterContent(aiDocumentation)}</ReactMarkdown>
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>

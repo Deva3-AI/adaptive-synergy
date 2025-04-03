@@ -19,15 +19,15 @@ import VerifyEmail from "@/pages/VerifyEmail";
 import Dashboard from "@/pages/Dashboard";
 import Tasks from "@/pages/employee/Tasks";
 import Clients from "@/pages/Clients";
-import { EmployeeDirectory } from "@/pages/employee/EmployeeDirectory";
+import EmployeeDirectory from "@/pages/employee/EmployeeDirectory";
 import Finance from "@/pages/finance/FinancialDashboard";
-import { Dashboard as MarketingDashboard } from "@/pages/marketing/Dashboard";
+import MarketingDashboard from "@/pages/marketing/Dashboard";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import GuestRoute from "@/components/auth/GuestRoute";
-import { EmployeeProfile } from "@/pages/employee/EmployeeProfile";
-import { TaskDetail } from "@/pages/employee/TaskDetail";
+import EmployeeProfile from "@/pages/employee/EmployeeProfile";
+import TaskDetail from "@/pages/employee/TaskDetail";
 import Profile from "@/pages/Profile";
 import HRDashboard from "@/pages/hr/HRDashboard";
 import CompanyCalendar from "@/pages/CompanyCalendar";
@@ -37,7 +37,7 @@ import Documentation from '@/pages/Documentation';
 const queryClient = new QueryClient();
 
 function App() {
-  const { user, token, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-react-theme">
