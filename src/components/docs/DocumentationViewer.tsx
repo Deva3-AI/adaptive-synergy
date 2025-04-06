@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Search, FileText, Book, Code, Users, Calendar, Bell, BarChart2, CreditCard, Briefcase, Layout, Database, Server, Shield, Wifi } from "lucide-react";
+import { Search, FileText, Book, Code, Users, Calendar, Bell, BarChart2, CreditCard, Briefcase, Layout, Database, Server, Shield, Wifi, Brain, Lightbulb } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from 'react-markdown';
 import { documentationService } from '@/services/api';

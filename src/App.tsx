@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -9,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ScrollToTop } from "@/components/utils/scroll-to-top";
 import { useAuth } from "@/hooks/use-auth";
+import { HelmetProvider } from 'react-helmet-async';
 import AppLayout from "@/components/layout/AppLayout";
 import { LandingPage } from "@/pages/LandingPage";
 import Login from "@/pages/auth/Login";
@@ -42,202 +42,204 @@ function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-react-theme">
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route
-              path="/login"
-              element={
-                <GuestRoute>
-                  <Login />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <GuestRoute>
-                  <Signup />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/forgot-password"
-              element={
-                <GuestRoute>
-                  <PasswordRecovery />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/reset-password/:token"
-              element={
-                <GuestRoute>
-                  <ResetPassword />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/verify-email/:token"
-              element={
-                <GuestRoute>
-                  <VerifyEmail />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Dashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Tasks />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks/:taskId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <TaskDetail />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/clients"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Clients />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/employees"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <EmployeeDirectory />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/employees/:employeeId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <EmployeeProfile />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/finance"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Finance />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/marketing"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <MarketingDashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Reports />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Settings />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Profile />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/hr-dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <HRDashboard />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <CompanyCalendar />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/announcements"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Announcements />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/documentation"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Documentation />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </Router>
+        <HelmetProvider>
+          <Router>
+            <ScrollToTop />
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route
+                path="/login"
+                element={
+                  <GuestRoute>
+                    <Login />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <GuestRoute>
+                    <Signup />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <GuestRoute>
+                    <PasswordRecovery />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/reset-password/:token"
+                element={
+                  <GuestRoute>
+                    <ResetPassword />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/verify-email/:token"
+                element={
+                  <GuestRoute>
+                    <VerifyEmail />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Dashboard />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tasks"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Tasks />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tasks/:taskId"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <TaskDetail />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clients"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Clients />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/employees"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <EmployeeDirectory />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/employees/:employeeId"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <EmployeeProfile />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/finance"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Finance />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/marketing"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <MarketingDashboard />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Reports />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Settings />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Profile />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <HRDashboard />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <CompanyCalendar />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/announcements"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Announcements />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/documentation"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Documentation />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Router>
+        </HelmetProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );
