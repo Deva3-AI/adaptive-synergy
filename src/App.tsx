@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Route,
@@ -13,9 +13,9 @@ import AppLayout from "@/components/layout/AppLayout";
 import { LandingPage } from "@/pages/LandingPage";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
-import PasswordRecovery from "@/pages/PasswordRecovery";
+import PasswordRecovery from "@/pages/auth/PasswordRecovery";
 import ResetPassword from "@/pages/auth/ResetPassword";
-import VerifyEmail from "@/pages/VerifyEmail";
+import VerifyEmail from "@/pages/auth/VerifyEmail";
 import Dashboard from "@/pages/Dashboard";
 import Tasks from "@/pages/employee/Tasks";
 import Clients from "@/pages/Clients";
@@ -47,6 +47,8 @@ function App() {
             <ScrollToTop />
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              
+              {/* Auth routes */}
               <Route
                 path="/login"
                 element={
@@ -87,6 +89,8 @@ function App() {
                   </GuestRoute>
                 }
               />
+              
+              {/* Protected routes */}
               <Route
                 path="/dashboard"
                 element={
